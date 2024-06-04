@@ -5,12 +5,14 @@ import java.util.List;
 public class TenorBucketsVb extends CommonVb{
 	private int	tenorBucketApplicationCodeNt  =  0;
 	private int	tenorBucketApplicationCode = -1;
+	private String	tenorBucketApplicationCodeDesc = "";
 	private String	tenorBucketCode = "";
 	private String	tenorBucketDescription = "";
 	private String	dayStart =  "";
 	private String	dayEnd =  "";
 	private int	tenorBucketStatusNt =  1;
 	private int	tenorBucketStatus =  -1;
+	private String	tenorBucketStatusDesc = "";
 	
 	List<SmartSearchVb> smartSearchOpt = null;
 	
@@ -67,6 +69,18 @@ public class TenorBucketsVb extends CommonVb{
 	}
 	public void setSmartSearchOpt(List<SmartSearchVb> smartSearchOpt) {
 		this.smartSearchOpt = smartSearchOpt;
+	}
+	public String getTenorBucketStatusDesc() {
+		return tenorBucketStatusDesc;
+	}
+	public void setTenorBucketStatusDesc(String tenorBucketStatusDesc) {
+		this.tenorBucketStatusDesc = tenorBucketStatusDesc;
+	}
+	public String getTenorBucketApplicationCodeDesc() {
+		return tenorBucketApplicationCodeDesc;
+	}
+	public void setTenorBucketApplicationCodeDesc(String tenorBucketApplicationCodeDesc) {
+		this.tenorBucketApplicationCodeDesc = tenorBucketApplicationCodeDesc;
 	}
 
 }

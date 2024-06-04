@@ -601,7 +601,7 @@ public class LoginUserServices {
 				return exceptionCode;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			exceptionCode.setErrorMsg(String.format("Invalid bearer token - Cause [%s]", e.getMessage()));
 			return exceptionCode;
 		}

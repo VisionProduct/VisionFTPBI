@@ -56,28 +56,31 @@ public class AlphaNumTabWb extends AbstractDynaWorkerBean<TabVb> {
 		}
 	}
 	
-	public ExceptionCode getAllQueryPopupResult(TabVb vObject){
+	public ExceptionCode getAllQueryPopupResultNumTab(TabVb vObject){
 		ExceptionCode exceptionCode = new ExceptionCode();
-			ArrayList<Object> arrListLocal = new ArrayList<Object>();
-			
 			setVerifReqDeleteType(vObject);
-			
 			List<TabVb> collTemp = getScreenDao().getQueryPopupResults(vObject);
 			if (collTemp.size() == 0 && vObject.isVerificationRequired()){
 				collTemp = getScreenDao().getQueryPopupResults(vObject);
 			}
-			arrListLocal.add(collTemp);
+			exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceName(), 1, Constants.QUERY, "");
+			exceptionCode.setResponse(collTemp);
+			exceptionCode.setOtherInfo(vObject);
 			
+			return exceptionCode;
+	}
+	public ExceptionCode getAllQueryPopupResultAlpha(TabVb vObject){
+		ExceptionCode exceptionCode = new ExceptionCode();
+			setVerifReqDeleteType(vObject);
 			vObject.setRequestType("alphaTab");
 			setVerifReqDeleteType(vObject);
-			collTemp = getScreenDao().getQueryPopupResults(vObject);
+			List<TabVb> collTemp = getScreenDao().getQueryPopupResults(vObject);
 			if (collTemp.size() == 0 && vObject.isVerificationRequired()){
 				collTemp = getScreenDao().getQueryPopupResults(vObject);
 			}
-			arrListLocal.add(collTemp);
-			
 			exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceName(), 1, Constants.QUERY, "");
-			exceptionCode.setResponse(arrListLocal);
+			exceptionCode.setResponse(collTemp);
+			exceptionCode.setOtherInfo(vObject);
 			
 			return exceptionCode;
 	}
@@ -180,7 +183,7 @@ public class AlphaNumTabWb extends AbstractDynaWorkerBean<TabVb> {
 			if("numTab".equalsIgnoreCase(vObject.getRequestType())){
 				NumSubTabVb numSubTabVb = new NumSubTabVb(); 
 				numSubTabVb.setNumTab(vObjectTemp.getTab());
-				numSubTabVb.setMaxRecords(20);
+				numSubTabVb.setMaxRecords(vObject.getMaxRecords());
 				numSubTabVb.setCurrentPage(vObject.getCurrentPage());
 				numSubTabVb.setTotalRows(vObject.getTotRecordsCount());
 				List<NumSubTabVb> lResult = getNumSubTabDao().getQueryPopupResults(numSubTabVb);
@@ -198,7 +201,7 @@ public class AlphaNumTabWb extends AbstractDynaWorkerBean<TabVb> {
 				alphaSubTabVb.setAlphaTab(vObjectTemp.getTab());
 				alphaSubTabVb.setStaticDelete(vObject.isStaticDelete());
 				alphaSubTabVb.setVerificationRequired(vObject.isVerificationRequired());
-				alphaSubTabVb.setMaxRecords(20);
+				alphaSubTabVb.setMaxRecords(vObject.getMaxRecords());
 				alphaSubTabVb.setCurrentPage(vObject.getCurrentPage());
 				alphaSubTabVb.setTotalRows(vObject.getTotRecordsCount());					
 				List<AlphaSubTabVb> lResult = getAlphaSubTabDao().getQueryPopupResults(alphaSubTabVb);

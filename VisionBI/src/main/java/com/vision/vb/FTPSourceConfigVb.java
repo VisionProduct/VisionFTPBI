@@ -1,5 +1,7 @@
 package com.vision.vb;
 
+import java.util.List;
+
 public class FTPSourceConfigVb extends CommonVb{
 	private String	country = "";
 	private String	leBook = "";
@@ -18,6 +20,8 @@ public class FTPSourceConfigVb extends CommonVb{
 	private String yearlyHint = "";
 	private int	frquencyTuningNt =  0;
 	private int	frquencyTuning =  1;
+	
+	List<SmartSearchVb> smartSearchOpt = null;
 	
 	public int getFrquencyTuningNt() {
 		return frquencyTuningNt;
@@ -120,5 +124,11 @@ public class FTPSourceConfigVb extends CommonVb{
 	}
 	public void setFtpSourceConfigStatus(int ftpSourceConfigStatus) {
 		this.ftpSourceConfigStatus = ftpSourceConfigStatus;
+	}
+	public List<SmartSearchVb> getSmartSearchOpt() {
+		return smartSearchOpt;
+	}
+	public void setSmartSearchOpt(List<SmartSearchVb> smartSearchOpt) {
+		this.smartSearchOpt = smartSearchOpt;
 	}
 }

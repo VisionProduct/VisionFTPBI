@@ -32,6 +32,8 @@ public class VisionVariablesDao extends AbstractDao<VisionVariablesVb> {
 	
 	String VvCategoryAtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 8, "TAppr.VV_CATEGORY", "VV_CATEGORY_DESC");
 	String VvCategoryAtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 8, "TPend.VV_CATEGORY", "VV_CATEGORY_DESC");
+	
+	
 	@Override
 	protected RowMapper getMapper(){
 		RowMapper mapper = new RowMapper() {
@@ -42,8 +44,10 @@ public class VisionVariablesDao extends AbstractDao<VisionVariablesVb> {
 				visionVariablesVb.setVariableStatusNt(rs.getInt("VARIABLE_STATUS_NT"));
 				visionVariablesVb.setVariableStatus(rs.getInt("VARIABLE_STATUS"));
 				visionVariablesVb.setDbStatus(rs.getInt("VARIABLE_STATUS"));
+				visionVariablesVb.setStatusDesc(rs.getString("VARIABLE_STATUS_DESC"));
 				visionVariablesVb.setRecordIndicatorNt(rs.getInt("RECORD_INDICATOR_NT"));
 				visionVariablesVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
+				visionVariablesVb.setRecordIndicatorDesc(rs.getString("RECORD_INDICATOR_DESC"));
 				visionVariablesVb.setMaker(rs.getLong("MAKER"));
 				visionVariablesVb.setVerifier(rs.getLong("VERIFIER"));
 				visionVariablesVb.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
@@ -61,6 +65,15 @@ public class VisionVariablesDao extends AbstractDao<VisionVariablesVb> {
 				}else{
 					visionVariablesVb.setCategoryDescription("");
 				}
+				
+				if(rs.getString("MAKER_NAME")!= null){ 
+					visionVariablesVb.setMakerName(rs.getString("MAKER_NAME"));
+				}
+				
+				if(rs.getString("VERIFIER_NAME")!= null){ 
+					visionVariablesVb.setVerifierName(rs.getString("VERIFIER_NAME"));
+				}
+				
 				return visionVariablesVb;
 			}
 		};
@@ -70,18 +83,22 @@ public class VisionVariablesDao extends AbstractDao<VisionVariablesVb> {
 	public List<VisionVariablesVb> getQueryPopupResults(VisionVariablesVb dObj){
 		Vector<Object> params = new Vector<Object>();
 		StringBuffer strBufApprove = new StringBuffer("Select TAppr.VARIABLE," +
-			"TAppr.VALUE, TAppr.VARIABLE_STATUS_NT, TAppr.VARIABLE_STATUS," +VariableStatusNtPendDesc+
+			"TAppr.VALUE, TAppr.VARIABLE_STATUS_NT, TAppr.VARIABLE_STATUS," +VariableStatusNtApprDesc+
 			",TAppr.RECORD_INDICATOR_NT, TAppr.RECORD_INDICATOR, "+RecordIndicatorNtApprDesc
-			+ ", TAppr.MAKER, TAppr.VERIFIER, TAppr.INTERNAL_STATUS, " +
+			+ ", TAppr.MAKER, "+makerApprDesc
+			+ ", TAppr.VERIFIER,"+verifierApprDesc
+			+ ", TAppr.INTERNAL_STATUS, " +
 			dateFormat+"(TAppr.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED, " +
 			dateFormat+"(TAppr.DATE_CREATION, "+dateFormatStr+") DATE_CREATION, TAppr.READ_ONLY, TAppr.VV_CATEGORY_AT, TAppr.VV_CATEGORY, " +VvCategoryAtApprDesc+
 			" From VISION_VARIABLES TAppr ");
 		String strWhereNotExists = new String( " Not Exists (Select 'X' From VISION_VARIABLES_PEND TPend Where TPend.VARIABLE = TAppr.VARIABLE)");
 		StringBuffer strBufPending = new StringBuffer("Select TPend.VARIABLE, TPend.VALUE, TPend.VARIABLE_STATUS_NT, TPend.VARIABLE_STATUS, " +VariableStatusNtPendDesc+
 			", TPend.RECORD_INDICATOR_NT, TPend.RECORD_INDICATOR, "+RecordIndicatorNtPendDesc
-			+ ", TPend.MAKER, TPend.VERIFIER, TPend.INTERNAL_STATUS, " +
+			+ ", TPend.MAKER,"+makerPendDesc
+			+ ", TPend.VERIFIER,"+verifierPendDesc
+			+ ", TPend.INTERNAL_STATUS, " +
 			dateFormat+"(TPend.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED, " +
-			dateFormat+"(TPend.DATE_CREATION, "+dateFormatStr+") DATE_CREATION, READ_ONLY, TPend.VV_CATEGORY_AT, TPend.VV_CATEGORY" +VvCategoryAtPendDesc+
+			dateFormat+"(TPend.DATE_CREATION, "+dateFormatStr+") DATE_CREATION, READ_ONLY, TPend.VV_CATEGORY_AT, TPend.VV_CATEGORY, " +VvCategoryAtPendDesc+
 			" From VISION_VARIABLES_PEND TPend ");
 		try
 		{
@@ -163,7 +180,9 @@ public class VisionVariablesDao extends AbstractDao<VisionVariablesVb> {
 		String strQueryAppr = new String("Select TAppr.VARIABLE," +
 			"TAppr.VALUE, TAppr.VARIABLE_STATUS_NT, TAppr.VARIABLE_STATUS," +VariableStatusNtApprDesc+
 			", TAppr.RECORD_INDICATOR_NT, TAppr.RECORD_INDICATOR," +RecordIndicatorNtApprDesc+
-			", TAppr.MAKER, TAppr.VERIFIER, TAppr.INTERNAL_STATUS," +
+			", TAppr.MAKER, "+makerApprDesc
+			+ ", TAppr.VERIFIER, "+verifierApprDesc
+			+ ", TAppr.INTERNAL_STATUS," +
 			dateFormat+"(TAppr.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED, "+dateFormat+"(TAppr.DATE_CREATION, "+dateFormatStr+") DATE_CREATION, READ_ONLY"
 					+ ", VV_CATEGORY_AT, VV_CATEGORY, " +VvCategoryAtApprDesc+
 			" From VISION_VARIABLES TAppr " + 
@@ -171,7 +190,9 @@ public class VisionVariablesDao extends AbstractDao<VisionVariablesVb> {
 		String strQueryPend = new String("Select TPend.VARIABLE," +
 			"TPend.VALUE, TPend.VARIABLE_STATUS_NT, TPend.VARIABLE_STATUS," +VariableStatusNtPendDesc+
 			", TPend.RECORD_INDICATOR_NT, TPend.RECORD_INDICATOR," +RecordIndicatorNtPendDesc+
-			", TPend.MAKER, TPend.VERIFIER, TPend.INTERNAL_STATUS," +
+			", TPend.MAKER, "+makerPendDesc
+			+ ", TPend.VERIFIER, "+verifierPendDesc
+			+ ", TPend.INTERNAL_STATUS," +
 			dateFormat+"(TPend.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED, "+dateFormat+"(TPend.DATE_CREATION, "+dateFormatStr+") DATE_CREATION, READ_ONLY" +
 			", VV_CATEGORY_AT, VV_CATEGORY, " +VvCategoryAtPendDesc+
 			" From VISION_VARIABLES_PEND TPend " + 

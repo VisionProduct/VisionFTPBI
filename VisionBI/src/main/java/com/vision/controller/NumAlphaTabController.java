@@ -64,14 +64,31 @@ public class NumAlphaTabController{
 		}
 	}
 	
-	@RequestMapping(path = "/getAllQueryResults", method = RequestMethod.POST)
+	@RequestMapping(path = "/getAllQueryResultsNumTab", method = RequestMethod.POST)
 	@ApiOperation(value = "Get All profile Data",notes = "Fetch all the existing records from the table",response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> getAllQueryResults(@RequestBody TabVb vObject) {
+	public ResponseEntity<JSONExceptionCode> getAllQueryResultsNumTab(@RequestBody TabVb vObject) {
 		JSONExceptionCode jsonExceptionCode  = null;
 		try{
 			vObject.setActionType("Query");
 			System.out.println("Query Start : "+(new Date()).toString());
-			ExceptionCode exceptionCode = alphaNumTabWb.getAllQueryPopupResult(vObject);
+			ExceptionCode exceptionCode = alphaNumTabWb.getAllQueryPopupResultNumTab(vObject);
+			System.out.println("Query End : "+(new Date()).toString());
+			jsonExceptionCode = new JSONExceptionCode(Constants.SUCCESSFUL_OPERATION, "Query Results", exceptionCode.getResponse(),exceptionCode.getOtherInfo());
+			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
+		}catch(RuntimeCustomException rex){
+			jsonExceptionCode = new JSONExceptionCode(Constants.ERRONEOUS_OPERATION, rex.getMessage(), "");
+			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
+		}	
+	}
+	
+	@RequestMapping(path = "/getAllQueryResultsAlpha", method = RequestMethod.POST)
+	@ApiOperation(value = "Get All profile Data",notes = "Fetch all the existing records from the table",response = ResponseEntity.class)
+	public ResponseEntity<JSONExceptionCode> getAllQueryResultsAlpha(@RequestBody TabVb vObject) {
+		JSONExceptionCode jsonExceptionCode  = null;
+		try{
+			vObject.setActionType("Query");
+			System.out.println("Query Start : "+(new Date()).toString());
+			ExceptionCode exceptionCode = alphaNumTabWb.getAllQueryPopupResultAlpha(vObject);
 			System.out.println("Query End : "+(new Date()).toString());
 			jsonExceptionCode = new JSONExceptionCode(Constants.SUCCESSFUL_OPERATION, "Query Results", exceptionCode.getResponse(),exceptionCode.getOtherInfo());
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);

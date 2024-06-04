@@ -11,26 +11,36 @@ public class FtpMethodsVb extends CommonVb {
 	private String methodDescription = "";
 	private int methodTypeAt = 1303;
 	private String methodType = "";
+	private String methodTypeDesc = "";
 	private int ftpTenorTypeNt = 1302;
 	private int ftpTenorType = -1;
+	private String ftpTenorTypeDesc = "";
 	private int methodBalTypeNt = 1301;
 	private int methodBalType = -1;
+	private String methodBalTypeDesc = "";
 	private int StatusNt = 1;
 	private int Status = -1;
 	private int repricingFlagAt = 1304;
 	private String repricingFlag = "";
+	private String repricingFlagDesc = "";
 	private int lpTenorTypeNt =1302;
 	private int lpTenorType = -1;
+	private String lpTenorTypeDesc = "";
 	private int ftpCurveIdAt =1310;
 	private String ftpCurveId = "";
 	private int interestBasisNt = 1301;
 	private int interestBasis = -1;
+	private String interestBasisDesc = "";
 	private int ftpApplyRateNt = 1304;
 	private int ftpApplyRate = -1;
+	private String ftpApplyRateDesc = "";
 	private int addonApplyRate = -1;
+	private String addonApplyRateDesc = "";
 	private int lpApplyRate = -1;
+	private String lpApplyRateDesc = "";
 	private int methodSubTypeAt = 1360;
 	private String methodSubType = "NA";
+	private String methodSubTypeDesc = "NA";
 	
 	List<SmartSearchVb> smartSearchOpt = null;
 	
@@ -183,6 +193,66 @@ public class FtpMethodsVb extends CommonVb {
 	}
 	public void setSmartSearchOpt(List<SmartSearchVb> smartSearchOpt) {
 		this.smartSearchOpt = smartSearchOpt;
+	}
+	public String getMethodTypeDesc() {
+		return methodTypeDesc;
+	}
+	public void setMethodTypeDesc(String methodTypeDesc) {
+		this.methodTypeDesc = methodTypeDesc;
+	}
+	public String getFtpTenorTypeDesc() {
+		return ftpTenorTypeDesc;
+	}
+	public void setFtpTenorTypeDesc(String ftpTenorTypeDesc) {
+		this.ftpTenorTypeDesc = ftpTenorTypeDesc;
+	}
+	public String getMethodBalTypeDesc() {
+		return methodBalTypeDesc;
+	}
+	public void setMethodBalTypeDesc(String methodBalTypeDesc) {
+		this.methodBalTypeDesc = methodBalTypeDesc;
+	}
+	public String getRepricingFlagDesc() {
+		return repricingFlagDesc;
+	}
+	public void setRepricingFlagDesc(String repricingFlagDesc) {
+		this.repricingFlagDesc = repricingFlagDesc;
+	}
+	public String getLpTenorTypeDesc() {
+		return lpTenorTypeDesc;
+	}
+	public void setLpTenorTypeDesc(String lpTenorTypeDesc) {
+		this.lpTenorTypeDesc = lpTenorTypeDesc;
+	}
+	public String getInterestBasisDesc() {
+		return interestBasisDesc;
+	}
+	public void setInterestBasisDesc(String interestBasisDesc) {
+		this.interestBasisDesc = interestBasisDesc;
+	}
+	public String getFtpApplyRateDesc() {
+		return ftpApplyRateDesc;
+	}
+	public void setFtpApplyRateDesc(String ftpApplyRateDesc) {
+		this.ftpApplyRateDesc = ftpApplyRateDesc;
+	}
+	public String getLpApplyRateDesc() {
+		return lpApplyRateDesc;
+	}
+	public void setLpApplyRateDesc(String lpApplyRateDesc) {
+		this.lpApplyRateDesc = lpApplyRateDesc;
+	}
+	public String getMethodSubTypeDesc() {
+		return methodSubTypeDesc;
+	}
+	public void setMethodSubTypeDesc(String methodSubTypeDesc) {
+		this.methodSubTypeDesc = methodSubTypeDesc;
+	}
+	public String getAddonApplyRateDesc() {
+		return addonApplyRateDesc;
+	}
+	public void setAddonApplyRateDesc(String addonApplyRateDesc) {
+		this.addonApplyRateDesc = addonApplyRateDesc;
 	}
 	
 	

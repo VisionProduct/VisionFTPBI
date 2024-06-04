@@ -181,7 +181,7 @@ public class CommonUtils {
 	// public static void addToQuery(String strFld, StringBuffer strBuf, String
 	// strType, String strStrBufType)
 	public static void addToQuery(String strFld, StringBuffer strBuf) {
-		if (strBuf.toString().endsWith(") ") == true || strBuf.toString().endsWith("?") == true || strBuf.toString().endsWith("IS NULL") == true)
+		if (strBuf.toString().endsWith(") ") == true || strBuf.toString().endsWith("?") == true || strBuf.toString().endsWith("IS NULL") == true || strBuf.toString().endsWith(")  ") == true)
 			strBuf.append(" AND " + strFld);
 		else
 			strBuf.append(" Where " + strFld);

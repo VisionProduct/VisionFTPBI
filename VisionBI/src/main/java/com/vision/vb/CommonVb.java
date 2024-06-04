@@ -8,7 +8,7 @@ public class CommonVb implements Serializable{
 	
 	private static final long serialVersionUID = -2724404220637666443L;
 	private int recordIndicatorNt = 7;
-	private int recordIndicator = 0;
+	private int recordIndicator = -1;
 	private String recordIndicatorDesc = "";
 	private long maker;
 	private String makerName = "";

@@ -16,22 +16,21 @@ import com.vision.exception.ExceptionCode;
 import com.vision.exception.JSONExceptionCode;
 import com.vision.exception.RuntimeCustomException;
 import com.vision.util.Constants;
-import com.vision.vb.FtpMethodsVb;
 import com.vision.vb.MenuVb;
 import com.vision.vb.ReviewResultVb;
-import com.vision.vb.TenorBucketsVb;
-import com.vision.wb.FtpMethodsWb;
+import com.vision.vb.ErrorCodesVb;
+import com.vision.wb.ErrorCodesWb;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
 @RestController
-@RequestMapping(value = "FtpMethods")
-@Api(value="FtpMethods", description="Obtaining alpha tab and num tab values for drop down fields")
-public class FtpMethodsController {
+@RequestMapping("ErrorCodes")
+@Api(value = "ErrorCodes", description = "ErrorCodes")
+public class ErrorCodesController{
 	@Autowired
-	FtpMethodsWb  ftpMethodsWb;
-	
+	ErrorCodesWb errorCodesWb;
+	/*-------------------------------------ErrorCodes SCREEN PAGE LOAD------------------------------------------*/
 	@RequestMapping(path = "/pageLoadValues", method = RequestMethod.GET)
 	@ApiOperation(value = "Page Load Values", notes = "Load AT/NT Values on screen load", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> pageOnLoad() {
@@ -40,7 +39,7 @@ public class FtpMethodsController {
 			MenuVb menuVb = new MenuVb();
 			menuVb.setActionType("Clear");
 
-			ArrayList arrayList = ftpMethodsWb.getPageLoadValues();
+			ArrayList arrayList = errorCodesWb.getPageLoadValues();
 
 			jsonExceptionCode = new JSONExceptionCode(Constants.SUCCESSFUL_OPERATION, "Page Load Values", arrayList);
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
@@ -49,15 +48,16 @@ public class FtpMethodsController {
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		}
 	}
-	
+
+	/*------------------------------------ErrorCodes - FETCH HEADER RECORDS-------------------------------*/
 	@RequestMapping(path = "/getAllQueryResults", method = RequestMethod.POST)
 	@ApiOperation(value = "Get All profile Data",notes = "Fetch all the existing records from the table",response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> getAllQueryResults(@RequestBody FtpMethodsVb vObject) {
+	public ResponseEntity<JSONExceptionCode> getAllQueryResults(@RequestBody ErrorCodesVb vObject) {
 		JSONExceptionCode jsonExceptionCode  = null;
 		try{
 			vObject.setActionType("Query");
 			System.out.println("Query Start : "+(new Date()).toString());
-			ExceptionCode exceptionCode = ftpMethodsWb.getAllQueryPopupResult(vObject);
+			ExceptionCode exceptionCode = errorCodesWb.getAllQueryPopupResult(vObject);
 			System.out.println("Query End : "+(new Date()).toString());
 			jsonExceptionCode = new JSONExceptionCode(Constants.SUCCESSFUL_OPERATION, "Query Results", exceptionCode.getResponse(),exceptionCode.getOtherInfo());
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
@@ -67,12 +67,12 @@ public class FtpMethodsController {
 		}	
 	}
 	@RequestMapping(path = "/getQueryDetails", method = RequestMethod.POST)
-	@ApiOperation(value = "Get FTP Method Details",notes = "FTP Method Details",response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> queryDetails(@RequestBody FtpMethodsVb vObject) {
+	@ApiOperation(value = "Get All ADF Schules",notes = "ADF Schules Details",response = ResponseEntity.class)
+	public ResponseEntity<JSONExceptionCode> queryDetails(@RequestBody ErrorCodesVb vObject) {
 		JSONExceptionCode jsonExceptionCode  = null;
 		try{
 			vObject.setActionType("Query");
-			ExceptionCode  exceptionCode= ftpMethodsWb.getQueryResults(vObject);
+			ExceptionCode  exceptionCode= errorCodesWb.getQueryResults(vObject);
 			jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), exceptionCode.getErrorMsg(), exceptionCode.getResponse(),exceptionCode.getOtherInfo());
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		}catch(RuntimeCustomException rex){
@@ -80,14 +80,18 @@ public class FtpMethodsController {
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		}	
 	}
-	@RequestMapping(path = "/addFtpMethods", method = RequestMethod.POST)
-	@ApiOperation(value = "Add Ftp Methods", notes = "Add Ftp Methods", response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> add(@RequestBody FtpMethodsVb vObject) {
+	/*-------------------------------------ADD ErrorCodes------------------------------------------*/
+	@RequestMapping(path = "/addErrorCodes", method = RequestMethod.POST)
+	@ApiOperation(value = "Add ErrorCodes", notes = "Add ErrorCodes", response = ResponseEntity.class)
+	public ResponseEntity<JSONExceptionCode> add(@RequestBody List<ErrorCodesVb> vObjects) {
 		JSONExceptionCode jsonExceptionCode = null;
 		ExceptionCode exceptionCode = new ExceptionCode();
+		ExceptionCode pRequestCode = new ExceptionCode();
 		try {
+			ErrorCodesVb vObject = new ErrorCodesVb();
 			vObject.setActionType("Add");
-			exceptionCode = ftpMethodsWb.insertRecord(vObject);
+			pRequestCode.setOtherInfo(vObject);
+			exceptionCode = errorCodesWb.insertRecord(pRequestCode, vObjects);
 			jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), exceptionCode.getErrorMsg(),
 					exceptionCode.getOtherInfo());
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
@@ -96,14 +100,18 @@ public class FtpMethodsController {
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		}
 	}
-	@RequestMapping(path = "/modifyFtpMethods", method = RequestMethod.POST)
-	@ApiOperation(value = "Add Ftp Methods", notes = "Add Ftp Methods", response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> modify(@RequestBody FtpMethodsVb vObject) {
+	/*-------------------------------------MODIFY ErrorCodes------------------------------------------*/
+	@RequestMapping(path = "/modifyErrorCodes", method = RequestMethod.POST)
+	@ApiOperation(value = "Modify ErrorCodes", notes = "Modify ErrorCodes Values", response = ResponseEntity.class)
+	public ResponseEntity<JSONExceptionCode> modify(@RequestBody List<ErrorCodesVb>  vObjects) {
 		JSONExceptionCode jsonExceptionCode = null;
 		ExceptionCode exceptionCode = new ExceptionCode();
+		ExceptionCode pRequestCode = new ExceptionCode();
 		try {
+			ErrorCodesVb vObject = new ErrorCodesVb();
 			vObject.setActionType("Modify");
-			exceptionCode = ftpMethodsWb.modifyRecord(vObject);
+			pRequestCode.setOtherInfo(vObject);
+			exceptionCode = errorCodesWb.modifyRecord(pRequestCode, vObjects);
 			jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), exceptionCode.getErrorMsg(),
 					exceptionCode.getOtherInfo());
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
@@ -112,14 +120,19 @@ public class FtpMethodsController {
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		}
 	}
-	@RequestMapping(path = "/deleteFtpMethods", method = RequestMethod.POST)
-	@ApiOperation(value = "Add Ftp Methods", notes = "Add Ftp Methods", response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> delete(@RequestBody FtpMethodsVb vObject) {
+
+	/*-------------------------------------DELETE ErrorCodes------------------------------------------*/
+	@RequestMapping(path = "/deleteErrorCodes", method = RequestMethod.POST)
+	@ApiOperation(value = "Delete ErrorCodes", notes = "Delete existing ErrorCodes", response = ResponseEntity.class)
+	public ResponseEntity<JSONExceptionCode> delete(@RequestBody List<ErrorCodesVb>  vObjects) {
 		JSONExceptionCode jsonExceptionCode = null;
 		ExceptionCode exceptionCode = new ExceptionCode();
+		ExceptionCode pRequestCode = new ExceptionCode();
 		try {
-			vObject.setActionType("Modify");
-			exceptionCode = ftpMethodsWb.deleteRecord(vObject);
+			ErrorCodesVb vObject = new ErrorCodesVb();
+			vObject.setActionType("Delete");
+			pRequestCode.setOtherInfo(vObject);
+			exceptionCode = errorCodesWb.deleteRecord(pRequestCode, vObjects);
 			jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), exceptionCode.getErrorMsg(),
 					exceptionCode.getOtherInfo());
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
@@ -128,30 +141,16 @@ public class FtpMethodsController {
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		}
 	}
-	@RequestMapping(path = "/reviewFtpMethods", method = RequestMethod.POST)
-	@ApiOperation(value = "Get Ftp Methods", notes = "Fetch all the existing records from the table", response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> review(@RequestBody FtpMethodsVb vObject) {
-		JSONExceptionCode jsonExceptionCode = null;
-		try {
-			vObject.setActionType("Query");
-//			ExceptionCode exceptionCode = ftpMethodsWb.reviewRecord(vObject);
-			List<ReviewResultVb> reviewList = ftpMethodsWb.reviewRecordDynamic(vObject);
-			jsonExceptionCode = new JSONExceptionCode(Constants.SUCCESSFUL_OPERATION, "Menu Listing", reviewList);			
-			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
-		} catch (RuntimeCustomException rex) {
-			jsonExceptionCode = new JSONExceptionCode(Constants.ERRONEOUS_OPERATION, rex.getMessage(), "");
-			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
-		}
-	}
-	@RequestMapping(path = "/rejectFtpMethods", method = RequestMethod.POST)
-	@ApiOperation(value = "Reject Ftp Methods", notes = "Reject existing Ftp Methods", response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> reject(@RequestBody FtpMethodsVb vObject) {
+	/*-------------------------------------Reject ErrorCodes------------------------------------------*/
+	@RequestMapping(path = "/rejectErrorCodes", method = RequestMethod.POST)
+	@ApiOperation(value = "Reject ErrorCodes", notes = "Reject existing ErrorCodes", response = ResponseEntity.class)
+	public ResponseEntity<JSONExceptionCode> reject(@RequestBody ErrorCodesVb vObject) {
 		JSONExceptionCode jsonExceptionCode = null;
 		ExceptionCode exceptionCode = new ExceptionCode();
 		try {
 			vObject.setActionType("Reject");
 			exceptionCode.setOtherInfo(vObject);
-			exceptionCode = ftpMethodsWb.reject(vObject);
+			exceptionCode = errorCodesWb.reject(vObject);
 			jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), exceptionCode.getErrorMsg(),
 					exceptionCode.getOtherInfo());
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
@@ -161,15 +160,15 @@ public class FtpMethodsController {
 		}
 	}
 	
-	@RequestMapping(path = "/approveFtpMethods", method = RequestMethod.POST)
-	@ApiOperation(value = "Approve Ftp Methods", notes = "Approve existing Ftp Methods", response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> approve(@RequestBody FtpMethodsVb vObject) {
+	@RequestMapping(path = "/approveErrorCodes", method = RequestMethod.POST)
+	@ApiOperation(value = "Approve ErrorCodes", notes = "Approve existing ErrorCodes", response = ResponseEntity.class)
+	public ResponseEntity<JSONExceptionCode> approve(@RequestBody ErrorCodesVb vObject) {
 		JSONExceptionCode jsonExceptionCode = null;
 		ExceptionCode exceptionCode = new ExceptionCode();
 		try {
 			vObject.setActionType("Approve");
 			exceptionCode.setOtherInfo(vObject);
-			exceptionCode = ftpMethodsWb.approve(vObject);
+			exceptionCode = errorCodesWb.approve(vObject);
 			jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), exceptionCode.getErrorMsg(),
 					exceptionCode.getOtherInfo());
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
@@ -179,16 +178,16 @@ public class FtpMethodsController {
 		}
 	}
 	
-	@RequestMapping(path = "/bulkApproveFtpMethods", method = RequestMethod.POST)
-	@ApiOperation(value = "Approve Ftp Methods", notes = "Approve existing Ftp Methods", response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> bulkApprove(@RequestBody List<FtpMethodsVb> vObjects) {
+	@RequestMapping(path = "/bulkApproveErrorCodes", method = RequestMethod.POST)
+	@ApiOperation(value = "Approve ErrorCodes", notes = "Approve existing ErrorCodes", response = ResponseEntity.class)
+	public ResponseEntity<JSONExceptionCode> bulkApprove(@RequestBody List<ErrorCodesVb> vObjects) {
 		JSONExceptionCode jsonExceptionCode = null;
 		ExceptionCode exceptionCode = new ExceptionCode();
 		try {
-			FtpMethodsVb vObject = new FtpMethodsVb();
+			ErrorCodesVb vObject = new ErrorCodesVb();
 			vObject.setActionType("Approve");
 			exceptionCode.setOtherInfo(vObject);
-			exceptionCode = ftpMethodsWb.bulkApprove(vObjects, vObject);
+			exceptionCode = errorCodesWb.bulkApprove(vObjects, vObject);
 			String errorMessage= exceptionCode.getErrorMsg().replaceAll("- Approve -", "- Bulk Approve -");
 			jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), errorMessage,
 					exceptionCode.getOtherInfo());
@@ -198,16 +197,16 @@ public class FtpMethodsController {
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		}
 	}
-	@RequestMapping(path = "/bulkRejectFtpMethods", method = RequestMethod.POST)
-	@ApiOperation(value = "Approve Ftp Methods", notes = "Approve existing Ftp Methods", response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> bulkReject(@RequestBody List<FtpMethodsVb> vObjects) {
+	@RequestMapping(path = "/bulkRejectErrorCodes", method = RequestMethod.POST)
+	@ApiOperation(value = "Approve ErrorCodes", notes = "Approve existing ErrorCodes", response = ResponseEntity.class)
+	public ResponseEntity<JSONExceptionCode> bulkReject(@RequestBody List<ErrorCodesVb> vObjects) {
 		JSONExceptionCode jsonExceptionCode = null;
 		ExceptionCode exceptionCode = new ExceptionCode();
 		try {
-			FtpMethodsVb vObject = new FtpMethodsVb();
+			ErrorCodesVb vObject = new ErrorCodesVb();
 			vObject.setActionType("Reject");
 			exceptionCode.setOtherInfo(vObject);
-			exceptionCode = ftpMethodsWb.bulkReject(vObjects, vObject);
+			exceptionCode = errorCodesWb.bulkReject(vObjects, vObject);
 			String errorMessage= exceptionCode.getErrorMsg().replaceAll("- Reject -", "- Bulk Reject -");
 			jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), errorMessage,
 					exceptionCode.getOtherInfo());
@@ -216,19 +215,22 @@ public class FtpMethodsController {
 			jsonExceptionCode = new JSONExceptionCode(Constants.ERRONEOUS_OPERATION, rex.getMessage(), "");
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		}
-	}
+	}	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	@RequestMapping(path = "/reviewErrorCodes", method = RequestMethod.POST)
+	@ApiOperation(value = "Get Headers", notes = "Fetch all the existing records from the table", response = ResponseEntity.class)
+	public ResponseEntity<JSONExceptionCode> review(@RequestBody ErrorCodesVb vObject) {
+		JSONExceptionCode jsonExceptionCode = null;
+		try {
+			vObject.setActionType("Query");
+//			ExceptionCode exceptionCode = errorCodesWb.reviewRecord(vObject);
+			List<ReviewResultVb> reviewList = errorCodesWb.reviewRecord(vObject);
+			jsonExceptionCode = new JSONExceptionCode(Constants.SUCCESSFUL_OPERATION, "Menu Listing", reviewList);			
+			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
+		} catch (RuntimeCustomException rex) {
+			jsonExceptionCode = new JSONExceptionCode(Constants.ERRONEOUS_OPERATION, rex.getMessage(), "");
+			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
+		}
+	}	
+
 }

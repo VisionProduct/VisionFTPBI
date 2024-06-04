@@ -155,8 +155,7 @@ public class AbstractQueryDao<E extends CommonVb> extends AbstractCommonDao {
 						objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);
 				dObj.setTotalRows(paginationhelper.getTotalRows());
 			}else{
-				result = paginationhelper.fetchPage(getJdbcTemplate(), approveQuery.toString()+orderBy, 
-						objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper); 
+				result = paginationhelper.fetchPage(getJdbcTemplate(), approveQuery.toString()+orderBy, objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper);
 			}
 		}
 		return result;

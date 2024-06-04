@@ -2,22 +2,30 @@ package com.vision.dao;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
 import com.vision.authentication.CustomContextHolder;
 import com.vision.exception.ExceptionCode;
+import com.vision.exception.RuntimeCustomException;
 import com.vision.util.CommonUtils;
 import com.vision.util.Constants;
 import com.vision.util.ValidationUtil;
 import com.vision.vb.FTPCurveVb;
 import com.vision.vb.FTPGroupsVb;
 import com.vision.vb.FTPSourceConfigVb;
+import com.vision.vb.SmartSearchVb;
 @Component
 public class FTPSourceConfigDao extends AbstractDao<FTPSourceConfigVb> {
+	
+	@Value("${spring.datasource.username}")
+	private String owner;
+	
 	public RowMapper getQueryPopupMapper(){
 		RowMapper mapper = new RowMapper() {
 			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -80,74 +88,68 @@ public class FTPSourceConfigDao extends AbstractDao<FTPSourceConfigVb> {
 
 		try
 		{
-			if (ValidationUtil.isValid(dObj.getCountry()))
-			{
-				params.addElement("%" + dObj.getCountry().toUpperCase() + "%" );
-				CommonUtils.addToQuery("UPPER(TAppr.COUNTRY) like ?", strBufApprove);
-				CommonUtils.addToQuery("UPPER(TPend.COUNTRY) like ?", strBufPending);
-			}
-			if (ValidationUtil.isValid(dObj.getLeBook()))
-			{
-				params.addElement("%" + dObj.getLeBook().toUpperCase() + "%" );
-				CommonUtils.addToQuery("UPPER(TAppr.LE_BOOK) like ?", strBufApprove);
-				CommonUtils.addToQuery("UPPER(TPend.LE_BOOK) like ?", strBufPending);
-			}
-			if (ValidationUtil.isValid(dObj.getSequence()) &&  dObj.getSequence() != 0)
-			{
-				params.addElement(dObj.getSequence());
-				CommonUtils.addToQuery("UPPER(TAppr.SOURCE_SEQUENCE) = ?", strBufApprove);
-				CommonUtils.addToQuery("UPPER(TPend.SOURCE_SEQUENCE) = ?", strBufPending);
-			}
-			if (ValidationUtil.isValid(dObj.getSourceReference()) && !"-1".equalsIgnoreCase(dObj.getSourceReference()))
-			{
-				params.addElement(dObj.getSourceReference());
-				CommonUtils.addToQuery("TAppr.SOURCE_REFERENCE = ?", strBufApprove);
-				CommonUtils.addToQuery("TPend.SOURCE_REFERENCE = ?", strBufPending);
-			}
-			if (ValidationUtil.isValid(dObj.getTableName()))
-			{
-				params.addElement("%" + dObj.getTableName().toUpperCase() + "%" );
-				CommonUtils.addToQuery("UPPER(TAppr.TABLE_NAME) like ?", strBufApprove);
-				CommonUtils.addToQuery("UPPER(TPend.TABLE_NAME) like ?", strBufPending);
-			}
-			if (ValidationUtil.isValid(dObj.getColName()))
-			{
-				params.addElement("%" + dObj.getColName().toUpperCase() + "%" );
-				CommonUtils.addToQuery("UPPER(TAppr.COLUMN_NAME) like ?", strBufApprove);
-				CommonUtils.addToQuery("UPPER(TPend.COLUMN_NAME) like ?", strBufPending);
-			}
-			if (ValidationUtil.isValid(dObj.getColName()))
-			{
-				params.addElement("%" + dObj.getColName().toUpperCase() + "%" );
-				CommonUtils.addToQuery("UPPER(TAppr.COLUMN_NAME) like ?", strBufApprove);
-				CommonUtils.addToQuery("UPPER(TPend.COLUMN_NAME) like ?", strBufPending);
-			}
-			if (ValidationUtil.isValid(dObj.getOperand()) && !"-1".equalsIgnoreCase(dObj.getOperand()))
-			{
-				params.addElement(dObj.getOperand());
-				CommonUtils.addToQuery("UPPER(TAppr.OPERAND) = ?", strBufApprove);
-				CommonUtils.addToQuery("UPPER(TPend.OPERAND) = ?", strBufPending);
-			}
-			if (dObj.getFtpSourceConfigStatus() != -1)
-			{
-				params.addElement(dObj.getFtpSourceConfigStatus());
-				CommonUtils.addToQuery("TAppr.FTP_SC_STATUS = ?", strBufApprove);
-				CommonUtils.addToQuery("TPend.FTP_SC_STATUS = ?", strBufPending);
-			}
-			//check if the column [RECORD_INDICATOR] should be included in the query
-			if (dObj.getRecordIndicator() != -1){
-				if (dObj.getRecordIndicator() > 3){
-					params.addElement(new Integer(0));
-					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR > ?", strBufApprove);
-					CommonUtils.addToQuery("TPend.RECORD_INDICATOR > ?", strBufPending);
-				}else{
-					params.addElement(new Integer(dObj.getRecordIndicator()));
-					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR = ?", strBufApprove);
-					CommonUtils.addToQuery("TPend.RECORD_INDICATOR = ?", strBufPending);
+			if (dObj.getSmartSearchOpt() != null && dObj.getSmartSearchOpt().size() > 0) {
+				int count = 1;
+				for (SmartSearchVb data: dObj.getSmartSearchOpt()){
+					if(count == dObj.getSmartSearchOpt().size()) {
+						data.setJoinType("");
+					} else {
+						if(!ValidationUtil.isValid(data.getJoinType()) && !("AND".equalsIgnoreCase(data.getJoinType()) || "OR".equalsIgnoreCase(data.getJoinType()))) {
+							data.setJoinType("AND");
+						}
+					}
+					String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
+					switch (data.getObject()) {
+					case "country":
+						CommonUtils.addToQuerySearch(" upper(TAppr.COUNTRY) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.COUNTRY) "+ val, strBufPending, data.getJoinType());
+						break;
+
+					case "leBook":
+						CommonUtils.addToQuerySearch(" upper(TAppr.LE_BOOK) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.LE_BOOK) "+ val, strBufPending, data.getJoinType());
+						break;
+
+					case "sequence":
+						CommonUtils.addToQuerySearch(" upper(TAppr.SOURCE_SEQUENCE) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.SOURCE_SEQUENCE) "+ val, strBufPending, data.getJoinType());
+						break;
+					case "sourceReference":
+						CommonUtils.addToQuerySearch(" upper(TAppr.SOURCE_REFERENCE) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.SOURCE_REFERENCE) "+ val, strBufPending, data.getJoinType());
+						break;						
+					case "tableName":
+						CommonUtils.addToQuerySearch(" upper(TAppr.TABLE_NAME) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.TABLE_NAME) "+ val, strBufPending, data.getJoinType());
+						break;
+
+					case "colName":
+						CommonUtils.addToQuerySearch(" upper(TAppr.COLUMN_NAME) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.COLUMN_NAME) "+ val, strBufPending, data.getJoinType());
+						break;
+					case "operand":
+						CommonUtils.addToQuerySearch(" upper(TAppr.OPERAND) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.OPERAND) "+ val, strBufPending, data.getJoinType());
+						break;
+
+					case "ftpSourceConfigStatus":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SC_STATUS) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_SC_STATUS) "+ val, strBufPending, data.getJoinType());
+						break;
+						
+					case "recordIndicator":
+						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR) "+ val, strBufPending, data.getJoinType());
+						break;
+
+						default:
+					}
+					count++;
 				}
 			}
-		}
-		catch(Exception ex){
+			String orderBy = " Order By COUNTRY, LE_BOOK, SOURCE_REFERENCE";
+			return getQueryPopupResults(dObj,strBufPending, strBufApprove, strWhereNotExists, orderBy, params, getQueryPopupMapper());
+		}catch(Exception ex){
 			ex.printStackTrace();
 			logger.error(((strBufApprove==null)? "strBufApprove is null":strBufApprove.toString()));
 			logger.error("UNION");
@@ -158,9 +160,6 @@ public class FTPSourceConfigDao extends AbstractDao<FTPSourceConfigVb> {
 					logger.error("objParams[" + i + "]" + params.get(i).toString());
 			return null;
 		}
-
-		String orderBy = " Order By COUNTRY, LE_BOOK, SOURCE_REFERENCE";
-		return getQueryPopupResults(dObj,strBufPending, strBufApprove, strWhereNotExists, orderBy, params, getQueryPopupMapper());
 	}
 
 	public List<FTPSourceConfigVb> getQueryResults(FTPSourceConfigVb dObj, int intStatus){
@@ -633,8 +632,9 @@ public class FTPSourceConfigDao extends AbstractDao<FTPSourceConfigVb> {
 				 vObject.getMaker(), vObject.getVerifier(), vObject.getInternalStatus(),vObject.getFrquencyTuning()};
 			return getJdbcTemplate().update(query,args);
 	}
-	public ExceptionCode addModifyFtpTuning(ExceptionCode exceptionCode,FTPSourceConfigVb vObject){
+	public ExceptionCode addModifyFtpTuning(FTPSourceConfigVb vObject){
 		List<FTPSourceConfigVb> collTemp = null;
+		ExceptionCode exceptionCode = null;
 		strApproveOperation =Constants.MODIFY;
 		strErrorDesc  = "";
 		strCurrentOperation = Constants.MODIFY;
@@ -660,4 +660,107 @@ public class FTPSourceConfigDao extends AbstractDao<FTPSourceConfigVb> {
 		exceptionCode = getResultObject(retVal);
 		return exceptionCode;
 	}
+	
+	protected ExceptionCode doUpdateApprRecordForNonTrans(FTPSourceConfigVb vObject) throws RuntimeCustomException {
+		List<FTPSourceConfigVb> collTemp = null;
+		ExceptionCode exceptionCode = null;
+		strCurrentOperation = Constants.ADD;
+		strApproveOperation = Constants.ADD;
+		setServiceDefaults();
+		FTPSourceConfigVb vObjectlocal = null;
+		vObject.setMaker(getIntCurrentUserId());
+		collTemp = selectApprovedRecord(vObject);
+		if (collTemp == null) {
+			logger.error("Collection is null for Select Approved Record");
+			exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		if (collTemp.size() > 0) {
+			vObjectlocal = ((ArrayList<FTPSourceConfigVb>) collTemp).get(0);
+			int intStaticDeletionFlag = getStatus(((ArrayList<FTPSourceConfigVb>) collTemp).get(0));
+			if (intStaticDeletionFlag == Constants.PASSIVATE) {
+				logger.error("Collection size is greater than zero - Duplicate record found, but inactive");
+				exceptionCode = getResultObject(Constants.RECORD_ALREADY_PRESENT_BUT_INACTIVE);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			vObject.setRecordIndicator(Constants.STATUS_ZERO);
+			vObject.setVerifier(getIntCurrentUserId());
+			vObject.setDateCreation(vObjectlocal.getDateCreation());
+			retVal = doUpdateAppr(vObject);
+			if (retVal != Constants.SUCCESSFUL_OPERATION) {
+				exceptionCode = getResultObject(retVal);
+				throw buildRuntimeCustomException(exceptionCode);
+			} else {
+				exceptionCode = getResultObject(Constants.SUCCESSFUL_OPERATION);
+			}
+		}else {
+			vObject.setRecordIndicator(Constants.STATUS_ZERO);
+			vObject.setVerifier(getIntCurrentUserId());
+			retVal = doInsertionAppr(vObject);
+			if (retVal != Constants.SUCCESSFUL_OPERATION) {
+				exceptionCode = getResultObject(retVal);
+				throw buildRuntimeCustomException(exceptionCode);
+			} else {
+				exceptionCode = getResultObject(Constants.SUCCESSFUL_OPERATION);
+			}
+		}
+		String systemDate = getSystemDate();
+		vObject.setDateLastModified(systemDate);
+		vObject.setDateCreation(systemDate);
+		exceptionCode = writeAuditLog(vObject, null);
+		if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+			exceptionCode = getResultObject(Constants.AUDIT_TRAIL_ERROR);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		return exceptionCode;
+	}
+	
+	public List<FTPSourceConfigVb> getTableColumns(FTPSourceConfigVb vObject) {
+		setServiceDefaults();
+		List<FTPSourceConfigVb> collTemp = null;
+		StringBuffer strQueryAppr = new StringBuffer("SELECT OWNER, TABLE_NAME, COLUMN_NAME,       DATA_TYPE, "
+				+ "CASE                                            WHEN DATA_TYPE IN                               "
+				+ "('NUMBER',                                      'NUMERIC',                                      "
+				+ "'DEC',                                          'DECIMAL',                                      "
+				+ "'INTEGER',                                      'INT',                                          "
+				+ "'SMALLINT',                                     'REAL',                                         "
+				+ "'FLOAT')                                        THEN                                            "
+				+ "DATA_PRECISION                                  ELSE                                            "
+				+ "DATA_LENGTH                                     END                                             "
+				+ "DATA_LENGTH,                                    "
+				+ "CASE                                            "
+				+ "WHEN DATA_TYPE IN                               ('NUMBER',                                      "
+				+ "'NUMERIC',                                      'DEC',                                          "
+				+ "'DECIMAL',                                      'INTEGER',                                      "
+				+ "'INT',                                          'SMALLINT',                                     "
+				+ "'REAL',                                         'FLOAT')                                        "
+				+ "THEN                                            DATA_SCALE                                      "
+				+ "ELSE                                            DATA_PRECISION                                  "
+				+ "END                                             DATA_PRECISION,"
+				+ "  NULLABLE, nvl(COLUMN_ID, 0)  COLUMN_ID "
+				+ " FROM ALL_TAB_COLUMNS                            WHERE UPPER(TABLE_NAME) = upper(?) AND UPPER(OWNER)= UPPER(?)");
+		Object objParams[] = new Object[3];
+		objParams[0] = vObject.getTableName().toUpperCase();
+		objParams[1] = owner.toUpperCase();
+		try {
+			RowMapper mapper = new RowMapper() {
+				public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+					FTPSourceConfigVb vObject = new FTPSourceConfigVb();
+//					vObject.setColName(rs.getString("COLUMN_ID"));
+					vObject.setColName(rs.getString("COLUMN_NAME"));
+/*					vObject.setColumnLength(rs.getInt("DATA_LENGTH"));
+					vObject.setColumnPrecision(rs.getInt("DATA_PRECISION"));
+					vObject.setColumnType(rs.getString("DATA_TYPE"));
+					vObject.setNullable(rs.getString("NULLABLE"));*/
+					return vObject;
+				}
+			};
+			collTemp = getJdbcTemplate().query(strQueryAppr.toString(), objParams, mapper);
+			return collTemp;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			return null;
+		}
+	}
+	
 }

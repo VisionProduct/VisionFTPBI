@@ -86,6 +86,9 @@ public abstract class AbstractDynaWorkerBean<E extends CommonVb> extends Abstrac
 			if(exceptionCode!=null && exceptionCode.getErrorMsg()!=""){
 				return exceptionCode;
 			}
+			for (E object : vObjects) {
+				object.setVerificationRequired(vObject.isVerificationRequired());
+			}
 			if(!vObject.isVerificationRequired()){
 				exceptionCode = getScreenDao().doUpdateApprRecord(vObjects);
 			}else{
@@ -125,6 +128,9 @@ public abstract class AbstractDynaWorkerBean<E extends CommonVb> extends Abstrac
 			if(exceptionCode!=null && exceptionCode.getErrorMsg()!=""){
 				return exceptionCode;
 			}
+			for (E object : vObjects) {
+				object.setVerificationRequired(vObject.isVerificationRequired());
+			}
 			if(!vObject.isVerificationRequired()){
 				exceptionCode = getScreenDao().doDeleteApprRecord(vObjects, vObject);
 			}else{
@@ -146,8 +152,8 @@ public abstract class AbstractDynaWorkerBean<E extends CommonVb> extends Abstrac
 	public List<ReviewResultVb> reviewRecord(E vObject){
 		try{
 			setVerifReqDeleteType(vObject);
-			List<E> approvedCollection = getScreenDao().getQueryResults(vObject,1);
-			List<E> pendingCollection = getScreenDao().getQueryResults(vObject,0);
+			List<E> approvedCollection = getScreenDao().getQueryResults(vObject,0);
+			List<E> pendingCollection = getScreenDao().getQueryResults(vObject,1);
 			return transformToReviewResults(approvedCollection,pendingCollection);
 		}catch(Exception ex){
 			return null;
@@ -188,7 +194,7 @@ public abstract class AbstractDynaWorkerBean<E extends CommonVb> extends Abstrac
 			for (E object : vObjects) {
 				object.setVerificationRequired(queryPopObj.isVerificationRequired());
 			}
-			exceptionCode =  getScreenDao().bulkApprove(vObjects,queryPopObj.isStaticDelete());
+			exceptionCode =  getScreenDao().bulkApprove(vObjects,queryPopObj);
 			ArrayList<E> tmpResult = (ArrayList<E>)getScreenDao().getQueryResults(queryPopObj,1);
 			exceptionCode.setResponse(tmpResult);
 			exceptionCode.setOtherInfo(queryPopObj);
@@ -214,7 +220,7 @@ public abstract class AbstractDynaWorkerBean<E extends CommonVb> extends Abstrac
 		try{
 			setVerifReqDeleteType(queryPopObj);
 			clonedObjects = deepCopy.copyCollection(vObjects);
-			exceptionCode =  getScreenDao().doBulkReject(vObjects);
+			exceptionCode =  getScreenDao().doBulkReject(vObjects, queryPopObj);
 			ArrayList<E> tmpResult = (ArrayList<E>) getScreenDao().getQueryResults(queryPopObj,1);
 			exceptionCode.setResponse(tmpResult);
 			exceptionCode.setOtherInfo(queryPopObj);

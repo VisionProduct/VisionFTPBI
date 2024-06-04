@@ -1,5 +1,8 @@
 package com.vision.vb;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class FTPCurveVb extends CommonVb{
 	private int	tenorBucketApplicationCodeNt  =  8;
 	private int	tenorBucketApplicationCode = -1;
@@ -37,6 +40,10 @@ public class FTPCurveVb extends CommonVb{
 	private String	addOnAttRate2 = "";
 	private String	addOnAttRate3 = "";
 	private String	addOnAttRate4 = "";
+	
+	private List<FTPCurveVb> ftpCurveList = new ArrayList<FTPCurveVb>();
+	
+	private boolean reloadFlag = true;
 	
 	private String productAttribute = "";
 	
@@ -262,6 +269,18 @@ public class FTPCurveVb extends CommonVb{
 	}
 	public void setAddOnAttRate4(String addOnAttRate4) {
 		this.addOnAttRate4 = addOnAttRate4;
+	}
+	public boolean isReloadFlag() {
+		return reloadFlag;
+	}
+	public void setReloadFlag(boolean reloadFlag) {
+		this.reloadFlag = reloadFlag;
+	}
+	public List<FTPCurveVb> getFtpCurveList() {
+		return ftpCurveList;
+	}
+	public void setFtpCurveList(List<FTPCurveVb> ftpCurveList) {
+		this.ftpCurveList = ftpCurveList;
 	}
 	
 }

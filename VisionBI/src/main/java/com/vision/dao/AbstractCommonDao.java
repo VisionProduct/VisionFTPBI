@@ -45,6 +45,12 @@ public abstract class AbstractCommonDao {
 	String dateConvert = "To_Date(?, 'DD-MM-YYYY')";
 	String nullFun = "NVL";
 	
+	String makerApprDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TAPPR.MAKER,0) ) MAKER_NAME";
+	String makerPendDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TPend.MAKER,0) ) MAKER_NAME";
+	
+	String verifierApprDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TAPPR.VERIFIER,0) ) VERIFIER_NAME";
+	String verifierPendDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TPend.VERIFIER,0) ) VERIFIER_NAME";
+	
 	@Value("${app.databaseType}")
 	public void setDatabaseType(String privateName) {
 		AbstractCommonDao.databaseType = privateName;

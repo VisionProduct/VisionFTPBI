@@ -17,11 +17,52 @@ import com.vision.vb.TenorBucketsVb;
 
 @Component
 public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
+	
+	String TenorAppCodeNtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TAppr.TENOR_APPLICATION_CODE", "TENOR_APPLICATION_CODE_DESC");
+	String TenorAppCodeNtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TPend.TENOR_APPLICATION_CODE", "TENOR_APPLICATION_CODE_DESC");
+	
+	String StatusNtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TAppr.TENOR_STATUS", "TENOR_STATUS_DESC");
+	String StatusNtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TPend.TENOR_STATUS", "TENOR_STATUS_DESC");
+
+	String RecordIndicatorNtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 7, "TAppr.RECORD_INDICATOR", "RECORD_INDICATOR_DESC");
+	String RecordIndicatorNtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 7, "TPend.RECORD_INDICATOR", "RECORD_INDICATOR_DESC");
+	
 	public RowMapper getQueryPopupMapper(){
 		RowMapper mapper = new RowMapper() {
 			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
 				TenorBucketsVb tenorBucketsVb = new TenorBucketsVb();
+				tenorBucketsVb.setDateCreation(rs.getString("DATE_CREATION"));
+				tenorBucketsVb.setTenorBucketApplicationCodeNt(rs.getInt("TENOR_APPLICATION_CODE_NT"));
 				tenorBucketsVb.setTenorBucketApplicationCode(rs.getInt("TENOR_APPLICATION_CODE"));
+				tenorBucketsVb.setTenorBucketCode(rs.getString("TENOR_CODE"));
+				tenorBucketsVb.setTenorBucketDescription(rs.getString("TENOR_DESCRIPTION"));
+				tenorBucketsVb.setDayStart(rs.getString("DAY_START"));
+				tenorBucketsVb.setDayEnd(rs.getString("DAY_END"));
+				tenorBucketsVb.setTenorBucketStatusNt(rs.getInt("TENOR_STATUS_NT"));
+				tenorBucketsVb.setTenorBucketStatus(rs.getInt("TENOR_STATUS"));
+				tenorBucketsVb.setDbStatus(rs.getInt("TENOR_STATUS"));
+				tenorBucketsVb.setRecordIndicatorNt(rs.getInt("RECORD_INDICATOR_NT"));
+				tenorBucketsVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
+				tenorBucketsVb.setMaker(rs.getInt("MAKER"));
+				tenorBucketsVb.setVerifier(rs.getInt("VERIFIER"));
+				tenorBucketsVb.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
+				tenorBucketsVb.setDateLastModified(rs.getString("DATE_LAST_MODIFIED"));
+				
+				if(rs.getString("MAKER_NAME")!= null){ 
+					tenorBucketsVb.setMakerName(rs.getString("MAKER_NAME"));
+				}
+				if(rs.getString("MAKER_NAME")!= null){ 
+					tenorBucketsVb.setMakerName(rs.getString("MAKER_NAME"));
+				}
+				tenorBucketsVb.setRecordIndicatorDesc(rs.getString("RECORD_INDICATOR_DESC"));
+				tenorBucketsVb.setTenorBucketStatusDesc(rs.getString("TENOR_STATUS_DESC"));
+				
+				tenorBucketsVb.setTenorBucketApplicationCodeDesc(rs.getString("TENOR_APPLICATION_CODE_DESC"));
+				
+				if(rs.getString("VERIFIER_NAME")!= null){ 
+					tenorBucketsVb.setVerifierName(rs.getString("VERIFIER_NAME"));
+				}
+				
 				return tenorBucketsVb;
 			}
 		};
@@ -48,6 +89,13 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 				tenorBucketsVb.setVerifier(rs.getInt("VERIFIER"));
 				tenorBucketsVb.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
 				tenorBucketsVb.setDateLastModified(rs.getString("DATE_LAST_MODIFIED"));
+				if(rs.getString("MAKER_NAME")!= null){ 
+					tenorBucketsVb.setMakerName(rs.getString("MAKER_NAME"));
+				}
+				
+				if(rs.getString("VERIFIER_NAME")!= null){ 
+					tenorBucketsVb.setVerifierName(rs.getString("VERIFIER_NAME"));
+				}
 				return tenorBucketsVb;
 			}
 		};
@@ -56,13 +104,37 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 
 	public List<TenorBucketsVb> getQueryPopupResults(TenorBucketsVb dObj){
 		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer("Select Distinct TAppr.TENOR_APPLICATION_CODE"+
+		/*StringBuffer strBufApprove = new StringBuffer("Select Distinct TAppr.TENOR_APPLICATION_CODE"+
 			" From TENOR_BUCKETS TAppr ");
 		String strWhereNotExists = new String(" Not Exists (Select 'X' From TENOR_BUCKETS_PEND TPend Where " + 
 			"TAppr.TENOR_APPLICATION_CODE = TPend.TENOR_APPLICATION_CODE "+
 			"And TAppr.TENOR_CODE = TPend.TENOR_CODE) ");
 		StringBuffer strBufPending = new StringBuffer("Select Distinct TPend.TENOR_APPLICATION_CODE"+
-			" From TENOR_BUCKETS_PEND TPend ");
+			" From TENOR_BUCKETS_PEND TPend ");*/
+		
+		StringBuffer strBufApprove = new StringBuffer("Select "+dateFormat+"(TAppr.DATE_CREATION, " + 
+				dateFormatStr+" ) DATE_CREATION,TAppr.TENOR_APPLICATION_CODE_NT"
+						+ ",TAppr.TENOR_APPLICATION_CODE, " +TenorAppCodeNtApprDesc+ 
+			", TAppr.TENOR_CODE,TAppr.TENOR_DESCRIPTION,TAppr.DAY_START,TAppr.DAY_END,TAppr.TENOR_STATUS_NT, " +StatusNtApprDesc+ 
+			",TAppr.TENOR_STATUS,TAppr.RECORD_INDICATOR_NT,TAppr.RECORD_INDICATOR,"+RecordIndicatorNtApprDesc
+			+ ","
+			+ "TAppr.MAKER, "+makerApprDesc
+			+ ", TAppr.VERIFIER, "+verifierApprDesc
+			+ ",TAppr.INTERNAL_STATUS,"+dateFormat+"(TAppr.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED From TENOR_BUCKETS TAppr ");
+
+		String strWhereNotExists = new String(" Not Exists (Select 'X' From TENOR_BUCKETS_PEND TPend Where " + 
+			"TAppr.TENOR_APPLICATION_CODE = TPend.TENOR_APPLICATION_CODE " + 
+			"And TAppr.TENOR_CODE = TPend.TENOR_CODE )");
+
+		StringBuffer strBufPending = new StringBuffer("Select "+dateFormat+"(TPend.DATE_CREATION, " + 
+			dateFormatStr+" ) DATE_CREATION,TPend.TENOR_APPLICATION_CODE_NT,TPend.TENOR_APPLICATION_CODE, "+TenorAppCodeNtPendDesc
+					+ ", " + 
+			"TPend.TENOR_CODE,TPend.TENOR_DESCRIPTION,TPend.DAY_START,TPend.DAY_END,TPend.TENOR_STATUS_NT, " +StatusNtPendDesc+ 
+			",TPend.TENOR_STATUS"
+			+ ",TPend.RECORD_INDICATOR_NT,TPend.RECORD_INDICATOR,"+RecordIndicatorNtPendDesc
+			+ ",TPend.MAKER, " +makerPendDesc 
+			+", TPend.VERIFIER, "+verifierPendDesc
+			+ ",TPend.INTERNAL_STATUS,"+dateFormat+"(TPend.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED From TENOR_BUCKETS_PEND TPend ");
 		try
 		{
 			if (dObj.getSmartSearchOpt() != null && dObj.getSmartSearchOpt().size() > 0) {
@@ -138,20 +210,26 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 		Vector<Object> params = new Vector<Object>();
 		setServiceDefaults();
 		StringBuffer strBufApprove = new StringBuffer("Select "+dateFormat+"(TAppr.DATE_CREATION, " + 
-				dateFormatStr+" ) DATE_CREATION,TAppr.TENOR_APPLICATION_CODE_NT,TAppr.TENOR_APPLICATION_CODE, " + 
-			"TAppr.TENOR_CODE,TAppr.TENOR_DESCRIPTION,TAppr.DAY_START,TAppr.DAY_END,TAppr.TENOR_STATUS_NT, " + 
-			"TAppr.TENOR_STATUS,TAppr.RECORD_INDICATOR_NT,TAppr.RECORD_INDICATOR,TAppr.MAKER, " + 
-			"TAppr.VERIFIER,TAppr.INTERNAL_STATUS,"+dateFormat+"(TAppr.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED From TENOR_BUCKETS TAppr ");
+				dateFormatStr+" ) DATE_CREATION,TAppr.TENOR_APPLICATION_CODE_NT,TAppr.TENOR_APPLICATION_CODE, " +TenorAppCodeNtApprDesc+ 
+			",TAppr.TENOR_CODE,TAppr.TENOR_DESCRIPTION,TAppr.DAY_START,TAppr.DAY_END,TAppr.TENOR_STATUS_NT, " + 
+			"TAppr.TENOR_STATUS, "+StatusNtApprDesc
+			+ ",TAppr.RECORD_INDICATOR_NT,TAppr.RECORD_INDICATOR,"+RecordIndicatorNtApprDesc
+			+ ",TAppr.MAKER, " +makerApprDesc 
+			+",TAppr.VERIFIER, "+verifierApprDesc
+			+ ",TAppr.INTERNAL_STATUS,"+dateFormat+"(TAppr.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED From TENOR_BUCKETS TAppr ");
 
 		String strWhereNotExists = new String(" Not Exists (Select 'X' From TENOR_BUCKETS_PEND TPend Where " + 
 			"TAppr.TENOR_APPLICATION_CODE = TPend.TENOR_APPLICATION_CODE " + 
 			"And TAppr.TENOR_CODE = TPend.TENOR_CODE )");
 
 		StringBuffer strBufPending = new StringBuffer("Select "+dateFormat+"(TPend.DATE_CREATION, " + 
-			dateFormatStr+" ) DATE_CREATION,TPend.TENOR_APPLICATION_CODE_NT,TPend.TENOR_APPLICATION_CODE, " + 
-			"TPend.TENOR_CODE,TPend.TENOR_DESCRIPTION,TPend.DAY_START,TPend.DAY_END,TPend.TENOR_STATUS_NT, " + 
-			"TPend.TENOR_STATUS,TPend.RECORD_INDICATOR_NT,TPend.RECORD_INDICATOR,TPend.MAKER, " + 
-			"TPend.VERIFIER,TPend.INTERNAL_STATUS,"+dateFormat+"(TPend.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED From TENOR_BUCKETS_PEND TPend ");
+			dateFormatStr+" ) DATE_CREATION,TPend.TENOR_APPLICATION_CODE_NT,TPend.TENOR_APPLICATION_CODE, " +TenorAppCodeNtPendDesc+ 
+			",TPend.TENOR_CODE,TPend.TENOR_DESCRIPTION,TPend.DAY_START,TPend.DAY_END,TPend.TENOR_STATUS_NT, " + 
+			"TPend.TENOR_STATUS, "+StatusNtPendDesc
+			+ ",TPend.RECORD_INDICATOR_NT,TPend.RECORD_INDICATOR,"+RecordIndicatorNtPendDesc
+			+ ",TPend.MAKER, " +makerPendDesc 
+			+", TPend.VERIFIER, "+verifierPendDesc
+			+ ",TPend.INTERNAL_STATUS,"+dateFormat+"(TPend.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED From TENOR_BUCKETS_PEND TPend ");
 
 		try
 		{
@@ -227,9 +305,14 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 		StringBuffer strQueryAppr = new StringBuffer("Select "+dateFormat+"(TAppr.DATE_CREATION, " + 
 				dateFormatStr+" ) DATE_CREATION," +
 			"TAppr.TENOR_APPLICATION_CODE_NT, " + 
-			"TAppr.TENOR_APPLICATION_CODE,TAppr.TENOR_CODE,TAppr.TENOR_DESCRIPTION,TAppr.DAY_START, " + 
-			"TAppr.DAY_END,TAppr.TENOR_STATUS_NT,TAppr.TENOR_STATUS,TAppr.RECORD_INDICATOR_NT, " + 
-			"TAppr.RECORD_INDICATOR,TAppr.MAKER,TAppr.VERIFIER,TAppr.INTERNAL_STATUS,"+dateFormat+"(TAppr.DATE_LAST_MODIFIED, " + 
+			"TAppr.TENOR_APPLICATION_CODE, "+TenorAppCodeNtApprDesc
+			+ ",TAppr.TENOR_CODE,TAppr.TENOR_DESCRIPTION,TAppr.DAY_START, " + 
+			"TAppr.DAY_END,TAppr.TENOR_STATUS_NT,TAppr.TENOR_STATUS, "+StatusNtApprDesc
+			+ ",TAppr.RECORD_INDICATOR_NT, " + 
+			"TAppr.RECORD_INDICATOR,"+RecordIndicatorNtApprDesc
+			+ ",TAppr.MAKER,"+makerApprDesc
+			+ ", TAppr.VERIFIER, "+verifierApprDesc
+			+ ",TAppr.INTERNAL_STATUS,"+dateFormat+"(TAppr.DATE_LAST_MODIFIED, " + 
 			dateFormatStr+" ) DATE_LAST_MODIFIED" +
 			" From TENOR_BUCKETS TAppr " + 
 			"Where TAppr.TENOR_APPLICATION_CODE = ?  And TAppr.TENOR_CODE = ? ");
@@ -237,9 +320,14 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 		StringBuffer strQueryPend = new StringBuffer("Select "+dateFormat+"(TPend.DATE_CREATION, " + 
 				dateFormatStr+" ) DATE_CREATION," +
 			"TPend.TENOR_APPLICATION_CODE_NT, " + 
-			"TPend.TENOR_APPLICATION_CODE,TPend.TENOR_CODE,TPend.TENOR_DESCRIPTION,TPend.DAY_START, " + 
-			"TPend.DAY_END,TPend.TENOR_STATUS_NT,TPend.TENOR_STATUS,TPend.RECORD_INDICATOR_NT, " + 
-			"TPend.RECORD_INDICATOR,TPend.MAKER,TPend.VERIFIER,TPend.INTERNAL_STATUS,"+dateFormat+"(TPend.DATE_LAST_MODIFIED, " + 
+			"TPend.TENOR_APPLICATION_CODE, "+TenorAppCodeNtPendDesc
+			+ ",TPend.TENOR_CODE,TPend.TENOR_DESCRIPTION,TPend.DAY_START, " + 
+			"TPend.DAY_END,TPend.TENOR_STATUS_NT,TPend.TENOR_STATUS, "+StatusNtPendDesc
+			+ ",TPend.RECORD_INDICATOR_NT, " + 
+			"TPend.RECORD_INDICATOR,"+RecordIndicatorNtPendDesc
+			+ ",TPend.MAKER, "+makerPendDesc
+			+ ",TPend.VERIFIER, "+verifierPendDesc
+			+ ",TPend.INTERNAL_STATUS,"+dateFormat+"(TPend.DATE_LAST_MODIFIED, " + 
 			dateFormatStr+" ) DATE_LAST_MODIFIED" +
 			" From TENOR_BUCKETS_PEND TPend " + 
 			"Where TPend.TENOR_APPLICATION_CODE = ?  And TPend.TENOR_CODE = ? ");

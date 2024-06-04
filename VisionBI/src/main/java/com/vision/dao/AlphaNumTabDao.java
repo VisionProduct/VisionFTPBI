@@ -1842,13 +1842,13 @@ public class AlphaNumTabDao extends AbstractDao<TabVb> {
 	@Override
 	protected int doUpdateAppr(TabVb vObject){
 		String queryAlpha = "Update ALPHA_TAB Set " + 
-			"ALPHA_TAB_DESCRIPTION = ?, ALPHA_TAB_STATUS_NT = ?, ALPHA_TAB_STATUS = ?, RECORD_INDICATOR_NT = ?, " + 
+			" ALPHA_TAB_DESCRIPTION = ?, ALPHA_TAB_STATUS_NT = ?, ALPHA_TAB_STATUS = ?, RECORD_INDICATOR_NT = ?, " + 
 			" RECORD_INDICATOR = ?, MAKER = ?, VERIFIER = ?, INTERNAL_STATUS = ?, DATE_LAST_MODIFIED = "+systemDate+" " + 
-			"Where ALPHA_TAB = ? ";
+			" Where ALPHA_TAB = ? ";
 		String query = "Update NUM_TAB Set " + 
-			"NUM_TAB_DESCRIPTION = ?, NUM_TAB_STATUS_NT = ?, NUM_TAB_STATUS = ?, RECORD_INDICATOR_NT = ?, " + 
+			" NUM_TAB_DESCRIPTION = ?, NUM_TAB_STATUS_NT = ?, NUM_TAB_STATUS = ?, RECORD_INDICATOR_NT = ?, " + 
 			" RECORD_INDICATOR = ?, MAKER = ?, VERIFIER = ?, INTERNAL_STATUS = ?, DATE_LAST_MODIFIED = "+systemDate+" " + 
-			"Where NUM_TAB = ? ";
+			" Where NUM_TAB = ? ";
 		Object args[] = {vObject.getTabDescription(), vObject.getTabStatusNt(),
 			vObject.getTabStatus(), vObject.getRecordIndicatorNt(), vObject.getRecordIndicator(),
 			vObject.getMaker(), vObject.getVerifier(), vObject.getInternalStatus(), 
@@ -1863,13 +1863,13 @@ public class AlphaNumTabDao extends AbstractDao<TabVb> {
 	@Override
 	protected int doUpdatePend(TabVb vObject){
 		String queryAlpha = "Update ALPHA_TAB_PEND Set " + 
-			"ALPHA_TAB_DESCRIPTION = ?, ALPHA_TAB_STATUS_NT = ?, ALPHA_TAB_STATUS = ?, RECORD_INDICATOR_NT = ?, " +
-			"RECORD_INDICATOR = ?, MAKER = ?, VERIFIER = ?, INTERNAL_STATUS = ?, DATE_LAST_MODIFIED =  " +systemDate+ 
-			"Where ALPHA_TAB = ? ";
+			" ALPHA_TAB_DESCRIPTION = ?, ALPHA_TAB_STATUS_NT = ?, ALPHA_TAB_STATUS = ?, RECORD_INDICATOR_NT = ?, " +
+			" RECORD_INDICATOR = ?, MAKER = ?, VERIFIER = ?, INTERNAL_STATUS = ?, DATE_LAST_MODIFIED =  " +systemDate+ 
+			" Where ALPHA_TAB = ? ";
 		String query = "Update NUM_TAB_PEND Set " + 
-			"NUM_TAB_DESCRIPTION = ?, NUM_TAB_STATUS_NT = ?, NUM_TAB_STATUS = ?, RECORD_INDICATOR_NT = ?, " +
-			"RECORD_INDICATOR = ?, MAKER = ?, VERIFIER = ?, INTERNAL_STATUS = ?, DATE_LAST_MODIFIED =  " +systemDate+ 
-			"Where NUM_TAB = ? ";
+			" NUM_TAB_DESCRIPTION = ?, NUM_TAB_STATUS_NT = ?, NUM_TAB_STATUS = ?, RECORD_INDICATOR_NT = ?, " +
+			" RECORD_INDICATOR = ?, MAKER = ?, VERIFIER = ?, INTERNAL_STATUS = ?, DATE_LAST_MODIFIED =  " +systemDate+ 
+			" Where NUM_TAB = ? ";
 		Object args[] = {vObject.getTabDescription(), vObject.getTabStatusNt(),
 			vObject.getTabStatus(), vObject.getRecordIndicatorNt(), vObject.getRecordIndicator(), 
 			vObject.getMaker(), vObject.getVerifier(), vObject.getInternalStatus(),

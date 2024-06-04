@@ -271,7 +271,7 @@ public abstract class AbstractWorkerBean<E extends CommonVb> {
 		try{
 			setVerifReqDeleteType(queryPopObj);
 			clonedObjects = deepCopy.copyCollection(vObjects);
-			exceptionCode =  getScreenDao().bulkApprove(vObjects,queryPopObj.isStaticDelete());
+			exceptionCode =  getScreenDao().bulkApprove(vObjects,queryPopObj);
 			ArrayList<E> tmpResult = (ArrayList<E>) getQueryPopupResults(queryPopObj);
 			exceptionCode.setOtherInfo(tmpResult);
 			return exceptionCode;
@@ -295,7 +295,7 @@ public abstract class AbstractWorkerBean<E extends CommonVb> {
 		try{
 			setVerifReqDeleteType(queryPopObj);
 			clonedObjects = deepCopy.copyCollection(vObjects);
-			exceptionCode =  getScreenDao().doBulkReject(vObjects);
+			exceptionCode =  getScreenDao().doBulkReject(vObjects, queryPopObj);
 			ArrayList<E> tmpResult = (ArrayList<E>) getQueryPopupResults(queryPopObj);
 			exceptionCode.setOtherInfo(tmpResult);
 			return exceptionCode;
@@ -351,8 +351,8 @@ public abstract class AbstractWorkerBean<E extends CommonVb> {
 	public List<ReviewResultVb> reviewRecordDynamic(E vObject){
 		try{
 			setVerifReqDeleteType(vObject);
-			List<E> approvedCollection = getScreenDao().getQueryResultsForReview(vObject,1);
-			List<E> pendingCollection = getScreenDao().getQueryResultsForReview(vObject,0);
+			List<E> approvedCollection = getScreenDao().getQueryResultsForReview(vObject,0);
+			List<E> pendingCollection = getScreenDao().getQueryResultsForReview(vObject,1);
 			return transformToReviewResults(approvedCollection,pendingCollection);
 		}catch(Exception ex){
 			return null;

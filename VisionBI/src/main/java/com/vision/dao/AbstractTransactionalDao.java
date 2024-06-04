@@ -379,7 +379,7 @@ public class AbstractTransactionalDao<E extends CommonVb> extends AbstractQueryD
 	 * @return
 	 */
 	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
-	public ExceptionCode bulkApprove(List<E> vObjects, boolean staticDelete) throws RuntimeCustomException {
+	public ExceptionCode bulkApprove(List<E> vObjects,  E vObject) throws RuntimeCustomException {
 		strErrorDesc = "";
 		strCurrentOperation = Constants.APPROVE;
 		ExceptionCode exceptionCode = null;
@@ -389,8 +389,9 @@ public class AbstractTransactionalDao<E extends CommonVb> extends AbstractQueryD
 			for (E object : vObjects) {
 				if (object.getRecordIndicator() > 0 && object.isChecked()) {
 					foundFlag = true;
+					object.setVerificationRequired(vObject.isVerificationRequired());
 					strErrorDesc = frameErrorMessage(object, Constants.APPROVE);
-					exceptionCode = doApproveRecord(object, staticDelete);
+					exceptionCode = doApproveRecord(object, vObject.isStaticDelete());
 					if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
 						int index = exceptionCode.getErrorMsg().trim().indexOf(serviceDesc + " - Approve - Failed -");
 						if (index >= 0) {
@@ -428,7 +429,7 @@ public class AbstractTransactionalDao<E extends CommonVb> extends AbstractQueryD
 	}
 
 	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
-	public ExceptionCode doBulkReject(List<E> vObjects) throws RuntimeCustomException {
+	public ExceptionCode doBulkReject(List<E> vObjects, E vObject) throws RuntimeCustomException {
 
 		strErrorDesc = "";
 		strCurrentOperation = Constants.REJECT;
@@ -439,6 +440,7 @@ public class AbstractTransactionalDao<E extends CommonVb> extends AbstractQueryD
 			for (E object : vObjects) {
 				if (object.getRecordIndicator() > 0 && object.isChecked()) {
 					foundFlag = true;
+					object.setVerificationRequired(vObject.isVerificationRequired());
 					strErrorDesc = frameErrorMessage(object, Constants.REJECT);
 					exceptionCode = doRejectRecord(object);
 					if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {

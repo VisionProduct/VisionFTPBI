@@ -150,8 +150,8 @@ public class MagnifierDao extends AbstractDao<MagnifierResultVb> {
 		RowMapper mapper = new RowMapper() {
 			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
 				MagnifierResultVb magnifierResultVb = new MagnifierResultVb();
-				magnifierResultVb.setColumnNine(rs.getString(2));
-				magnifierResultVb.setColumnTen(rs.getString(3));
+				magnifierResultVb.setColumnNine(rs.getString(1));
+				magnifierResultVb.setColumnTen(rs.getString(2));
 				magnifierResultVb.setMagnifierResult(magnifierResultVb.getColumnNine()+","+magnifierResultVb.getColumnTen());
 				return magnifierResultVb;
 			}

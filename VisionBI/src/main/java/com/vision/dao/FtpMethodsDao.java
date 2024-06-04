@@ -452,7 +452,7 @@ public class FtpMethodsDao extends AbstractDao<FtpMethodsVb> {
 	@Override
 	protected void setServiceDefaults(){
 		serviceName = "FtpMethods";
-		serviceDesc = CommonUtils.getResourceManger().getString("ftpMethods");//"GL Enrich Ids";
+		serviceDesc = "FTP Methods";//CommonUtils.getResourceManger().getString("ftpMethods");//"GL Enrich Ids";
 		tableName = "FTP_METHODS";
 		childTableName = "FTP_METHODS";
 		intCurrentUserId = CustomContextHolder.getContext().getVisionId();
