@@ -2140,7 +2140,7 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 
 					default:
 					}
-					count++;
+					count++; 
 				}
 			}
 			String orderBy = " Order By COUNTRY, LE_BOOK, DATA_SOURCE, FTP_GROUP ";
