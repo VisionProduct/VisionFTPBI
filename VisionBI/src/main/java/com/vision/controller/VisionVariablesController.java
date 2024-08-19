@@ -7,11 +7,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
 import com.vision.exception.ExceptionCode;
 import com.vision.exception.JSONExceptionCode;
 import com.vision.exception.RuntimeCustomException;
@@ -31,7 +27,7 @@ public class VisionVariablesController{
 	@Autowired
 	VisionVariablesWb visionVariablesWb;
 	/*-------------------------------------VisionVariables SCREEN PAGE LOAD------------------------------------------*/
-	@RequestMapping(path = "/pageLoadValues", method = RequestMethod.GET)
+	@GetMapping("/pageLoadValues")
 	@ApiOperation(value = "Page Load Values", notes = "Load AT/NT Values on screen load", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> pageOnLoad() {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -50,7 +46,7 @@ public class VisionVariablesController{
 	}
 
 	/*------------------------------------VisionVariables - FETCH HEADER RECORDS-------------------------------*/
-	@RequestMapping(path = "/getAllQueryResults", method = RequestMethod.POST)
+	@PostMapping("/getAllQueryResults")
 	@ApiOperation(value = "Get All profile Data",notes = "Fetch all the existing records from the table",response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> getAllQueryResults(@RequestBody VisionVariablesVb vObject) {
 		JSONExceptionCode jsonExceptionCode  = null;
@@ -66,7 +62,7 @@ public class VisionVariablesController{
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		}	
 	}
-	@RequestMapping(path = "/getQueryDetails", method = RequestMethod.POST)
+	@PostMapping("/getQueryDetails")
 	@ApiOperation(value = "Get All ADF Schules",notes = "ADF Schules Details",response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> queryDetails(@RequestBody VisionVariablesVb vObject) {
 		JSONExceptionCode jsonExceptionCode  = null;
@@ -81,7 +77,7 @@ public class VisionVariablesController{
 		}	
 	}
 	/*-------------------------------------ADD VisionVariables------------------------------------------*/
-	@RequestMapping(path = "/addVisionVariables", method = RequestMethod.POST)
+	@PostMapping("/addVisionVariables")
 	@ApiOperation(value = "Add VisionVariables", notes = "Add VisionVariables", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> add(@RequestBody List<VisionVariablesVb> vObjects) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -101,7 +97,7 @@ public class VisionVariablesController{
 		}
 	}
 	/*-------------------------------------MODIFY VisionVariables------------------------------------------*/
-	@RequestMapping(path = "/modifyVisionVariables", method = RequestMethod.POST)
+	@PostMapping("/modifyVisionVariables")
 	@ApiOperation(value = "Modify VisionVariables", notes = "Modify VisionVariables Values", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> modify(@RequestBody List<VisionVariablesVb>  vObjects) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -122,7 +118,7 @@ public class VisionVariablesController{
 	}
 
 	/*-------------------------------------DELETE VisionVariables------------------------------------------*/
-	@RequestMapping(path = "/deleteVisionVariables", method = RequestMethod.POST)
+	@PostMapping("/deleteVisionVariables")
 	@ApiOperation(value = "Delete VisionVariables", notes = "Delete existing VisionVariables", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> delete(@RequestBody List<VisionVariablesVb>  vObjects) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -142,7 +138,7 @@ public class VisionVariablesController{
 		}
 	}
 	/*-------------------------------------Reject VisionVariables------------------------------------------*/
-	@RequestMapping(path = "/rejectVisionVariables", method = RequestMethod.POST)
+	@PostMapping("/rejectVisionVariables")
 	@ApiOperation(value = "Reject VisionVariables", notes = "Reject existing VisionVariables", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> reject(@RequestBody VisionVariablesVb vObject) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -160,7 +156,7 @@ public class VisionVariablesController{
 		}
 	}
 	
-	@RequestMapping(path = "/approveVisionVariables", method = RequestMethod.POST)
+	@PostMapping("/approveVisionVariables")
 	@ApiOperation(value = "Approve VisionVariables", notes = "Approve existing VisionVariables", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> approve(@RequestBody VisionVariablesVb vObject) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -178,7 +174,7 @@ public class VisionVariablesController{
 		}
 	}
 	
-	@RequestMapping(path = "/bulkApproveVisionVariables", method = RequestMethod.POST)
+	@PostMapping("/bulkApproveVisionVariables")
 	@ApiOperation(value = "Approve VisionVariables", notes = "Approve existing VisionVariables", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> bulkApprove(@RequestBody List<VisionVariablesVb> vObjects) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -197,7 +193,7 @@ public class VisionVariablesController{
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		}
 	}
-	@RequestMapping(path = "/bulkRejectVisionVariables", method = RequestMethod.POST)
+	@PostMapping("/bulkRejectVisionVariables")
 	@ApiOperation(value = "Approve VisionVariables", notes = "Approve existing VisionVariables", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> bulkReject(@RequestBody List<VisionVariablesVb> vObjects) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -217,7 +213,7 @@ public class VisionVariablesController{
 		}
 	}	
 	
-	@RequestMapping(path = "/reviewVisionVariables", method = RequestMethod.POST)
+	@PostMapping("/reviewVisionVariables")
 	@ApiOperation(value = "Get Headers", notes = "Fetch all the existing records from the table", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> review(@RequestBody VisionVariablesVb vObject) {
 		JSONExceptionCode jsonExceptionCode = null;

@@ -36,7 +36,7 @@ public class LongValueExample {
 	protected static Connection returnConnection() throws Exception {
 		try {
 			Class.forName("oracle.jdbc.driver.OracleDriver");
-			return DriverManager.getConnection("jdbc:oracle:thin:@10.16.1.101:1521:VISION", "VISIONBI", "vision123");
+			return DriverManager.getConnection("jdbc:oracle:thin:@10.16.1.101:1521:VISIONBI", "devuser", "vision123");
 		} catch (Exception e) {
 			throw e;
 		}

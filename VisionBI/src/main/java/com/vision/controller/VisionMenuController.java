@@ -6,11 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
 import com.vision.exception.ExceptionCode;
 import com.vision.exception.JSONExceptionCode;
 import com.vision.exception.RuntimeCustomException;
@@ -31,7 +27,7 @@ public class VisionMenuController {
 	MenuWb menuWb;
 	
 	/*-------------------------------------VISION MENU SCREEN PAGE LOAD------------------------------------------*/
-	@RequestMapping(path = "/pageLoadValues", method = RequestMethod.GET)
+	@GetMapping("/pageLoadValues")
 	@ApiOperation(value = "Page Load Values",notes = "Load AT/NT Values on screen load",response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> visionMenuLoad(){
 		JSONExceptionCode jsonExceptionCode  = null;
@@ -47,7 +43,7 @@ public class VisionMenuController {
 		}	
 	}
 	/*-------------------------------------GET ALL MENU GROUP------------------------------------------*/
-	@RequestMapping(path = "/getAllVisionMenuGroup", method = RequestMethod.GET)
+	@GetMapping("/getAllVisionMenuGroup")
 	@ApiOperation(value = "Get All Menu Group",notes = "Return Distinct Menu Group from Vision_Menu",response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> getAllVisonMenuGroup() {
 		JSONExceptionCode jsonExceptionCode  = null;
@@ -64,7 +60,7 @@ public class VisionMenuController {
 	}
 	
 	/*-------------------------------------GET ALL MENU------------------------------------------*/
-	@RequestMapping(path = "/getAllVisionMenu", method = RequestMethod.POST)
+	@PostMapping("/getAllVisionMenu")
 	@ApiOperation(value = "Get All Vision Menu",notes = "Returns list of Menu from Vision_Menu based on Menu Group",response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> getAllVisionMenu(@RequestBody MenuVb menuVb) {
 		JSONExceptionCode jsonExceptionCode  = null;
@@ -83,7 +79,7 @@ public class VisionMenuController {
 		}	
 	}
 	/*-------------------------------------ADD MENU------------------------------------------*/
-	@RequestMapping(path = "/addMenu", method = RequestMethod.POST)
+	@PostMapping("/addMenu")
 	@ApiOperation(value = "Add Menu ", notes = "Add Vision Menu", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> add(@RequestBody MenuVb menuVb) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -103,7 +99,7 @@ public class VisionMenuController {
 		}
 	}
 	/*-------------------------------------MODIFY MENU------------------------------------------*/
-	@RequestMapping(path = "/modifyMenu", method = RequestMethod.POST)
+	@PostMapping("/modifyMenu")
 	@ApiOperation(value = "Modify Menu ", notes = "Modify Vision Menu", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> modify(@RequestBody List<MenuVb> menuVblst) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -123,7 +119,7 @@ public class VisionMenuController {
 		}
 	}
 	/*-------------------------------------DELETE MENU------------------------------------------*/
-	@RequestMapping(path = "/deleteMenu", method = RequestMethod.POST)
+	@PostMapping("/deleteMenu")
 	@ApiOperation(value = "Delete Menu ", notes = "Modify Vision Menu", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> delete(@RequestBody List<MenuVb> menuVblst) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -145,7 +141,7 @@ public class VisionMenuController {
 		}
 	}
 	/*-------------------------------------REVIEW MENU------------------------------------------*/
-	@RequestMapping(path = "/reviewMenu", method = RequestMethod.POST)
+	@PostMapping("/reviewMenu")
 	@ApiOperation(value = "Review Menu ", notes = "Review Vision Menu", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> review(@RequestBody MenuVb menuVb) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -161,7 +157,7 @@ public class VisionMenuController {
 		}
 	}
 	/*-------------------------------------REJECT MENU------------------------------------------*/
-	@RequestMapping(path = "/rejectMenu", method = RequestMethod.POST)
+	@PostMapping("/rejectMenu")
 	@ApiOperation(value = "Reject Menu ", notes = "Review Vision Menu", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> bulkReject(@RequestBody List<MenuVb> menuVblst) {
 		JSONExceptionCode jsonExceptionCode = null;
@@ -182,7 +178,7 @@ public class VisionMenuController {
 		}
 	}
 	/*-------------------------------------APPROVE MENU------------------------------------------*/
-	@RequestMapping(path = "/approveMenu", method = RequestMethod.POST)
+	@PostMapping("/approveMenu")
 	@ApiOperation(value = "Approve Menu ", notes = "Approve Vision Menu", response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> bulkApprove(@RequestBody List<MenuVb> menuVblst) {
 		JSONExceptionCode jsonExceptionCode = null;

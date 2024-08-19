@@ -53,6 +53,7 @@ public class MagnifierDao extends AbstractDao<MagnifierResultVb> {
 				magnifierResultVb.setColumnOne(rs.getString(1));
 				magnifierResultVb.setColumnTwo(rs.getString(2));
 				magnifierResultVb.setColumnThree(rs.getString(3));
+				magnifierResultVb.setMagnifierResult(magnifierResultVb.getColumnOne()+","+magnifierResultVb.getColumnTwo()+","+magnifierResultVb.getColumnThree());
 				return magnifierResultVb;
 			}
 		};
@@ -278,12 +279,17 @@ public class MagnifierDao extends AbstractDao<MagnifierResultVb> {
 			}
 			String orderBy = " ORDER BY "+dObj.getOrderByCond()+" ";
 			strBufApprove = new StringBuffer(query);
-			if(dObj.getNumberOfCols()==4) {
-				return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params, getLevel4ColMapper());	
+			if (dObj.getNumberOfCols() == 4) {
+				return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params,
+						getLevel4ColMapper());
+			}  else if(dObj.getNumberOfCols() == 3){
+				return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params,
+						getThreeColMapper());
 			}else {
-				return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params, getTwoColumnMagnifierMapper());
+				return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params,
+						getTwoColumnMagnifierMapper());
 			}
-		}catch(Exception ex){
+		} catch (Exception ex){
 			
 			ex.printStackTrace();
 			logger.error(((strBufApprove==null)? "strBufApprove is Null":strBufApprove.toString()));

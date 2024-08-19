@@ -1,6 +1,6 @@
 package com.vision.vb;
 
-public class SmartSearchVb {
+public class SmartSearchVb extends CommonVb{
 
 	private static final long serialVersionUID = -2010835009684844752L;
 

@@ -141,6 +141,7 @@ public class RaProfilePrivilegesController {
 		}
 	}
 	/*-------------------------------------RA PROFILE SETUP - GET DASHBOARDLIST------------------------------------------*/
+	
 	@RequestMapping(path = "/getReportDashboardList", method = RequestMethod.POST)
 	@ApiOperation(value = "Get Report Dashboard list",notes = "List of Dashboard/Reports for profile setup",response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> getAllReportDashboards(@RequestParam String type){

@@ -40,19 +40,28 @@ public class FTPCurveVb extends CommonVb{
 	private String	addOnAttRate2 = "";
 	private String	addOnAttRate3 = "";
 	private String	addOnAttRate4 = "";
+	private String	visionSbuDesc =  "";
+	private String	currencyDesc =  "";
+	private String	tenorBucketCodeDesc = "";
+	private String customerIdDesc = "";
+	private String	contractIdDesc =  "";
 	
+	
+	public String getCurrencyDesc() {
+		return currencyDesc;
+	}
+	public void setCurrencyDesc(String currencyDesc) {
+		this.currencyDesc = currencyDesc;
+	}
 	private List<FTPCurveVb> ftpCurveList = new ArrayList<FTPCurveVb>();
 	
 	private boolean reloadFlag = true;
 	
 	private String productAttribute = "";
 	
-	public String getProductAttribute() {
-		return productAttribute;
-	}
-	public void setProductAttribute(String productAttribute) {
-		this.productAttribute = productAttribute;
-	}
+	private String productAttributeDesc = "";
+	
+	
 	
 	public String getActualEffectiveDate() {
 		return actualEffectiveDate;
@@ -282,5 +291,42 @@ public class FTPCurveVb extends CommonVb{
 	public void setFtpCurveList(List<FTPCurveVb> ftpCurveList) {
 		this.ftpCurveList = ftpCurveList;
 	}
+	public String getVisionSbuDesc() {
+		return visionSbuDesc;
+	}
+	public void setVisionSbuDesc(String visionSbuDesc) {
+		this.visionSbuDesc = visionSbuDesc;
+	}
+	public String getTenorBucketCodeDesc() {
+		return tenorBucketCodeDesc;
+	}
+	public void setTenorBucketCodeDesc(String tenorBucketCodeDesc) {
+		this.tenorBucketCodeDesc = tenorBucketCodeDesc;
+	}
+	public String getProductAttributeDesc() {
+		return productAttributeDesc;
+	}
+	public void setProductAttributeDesc(String productAttributeDesc) {
+		this.productAttributeDesc = productAttributeDesc;
+	}
+	public String getProductAttribute() {
+		return productAttribute;
+	}
+	public void setProductAttribute(String productAttribute) {
+		this.productAttribute = productAttribute;
+	}
+	public String getCustomerIdDesc() {
+		return customerIdDesc;
+	}
+	public void setCustomerIdDesc(String customerIdDesc) {
+		this.customerIdDesc = customerIdDesc;
+	}
+	public String getContractIdDesc() {
+		return contractIdDesc;
+	}
+	public void setContractIdDesc(String contractIdDesc) {
+		this.contractIdDesc = contractIdDesc;
+	}
+	
 	
 }

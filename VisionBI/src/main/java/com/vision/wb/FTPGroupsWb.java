@@ -2,6 +2,7 @@ package com.vision.wb;
 
 import java.util.ArrayList;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -28,24 +29,24 @@ import com.vision.vb.FTPCurveVb;
 import com.vision.vb.NumSubTabVb;
 import com.vision.vb.AlphaSubTabVb;
 import com.vision.vb.ReviewResultVb;
+import com.vision.vb.SmartSearchVb;
 
 @Component
-public class FTPGroupsWb extends AbstractDynaWorkerBean<FTPGroupsVb>{
+public class FTPGroupsWb extends AbstractDynaWorkerBean<FTPGroupsVb> {
 	@Autowired
 	private FTPGroupsDao ftpGroupsDao;
 	@Autowired
 	private FTPSourceConfigDao ftpSourceConfigDao;
-	
+
 	public static Logger logger = LoggerFactory.getLogger(FTPGroupsWb.class);
-	
-	
-	public ArrayList getPageLoadValues(){
+
+	public ArrayList getPageLoadValues() {
 		List collTemp = null;
 		ArrayList<Object> arrListLocal = new ArrayList<Object>();
-		try{
-			collTemp = getNumSubTabDao().findActiveNumSubTabsByNumTab(1);//Status
+		try {
+			collTemp = getNumSubTabDao().findActiveNumSubTabsByNumTab(1);// Status
 			arrListLocal.add(collTemp);
-			collTemp = getNumSubTabDao().findActiveNumSubTabsByNumTab(7); // Record Indicator 
+			collTemp = getNumSubTabDao().findActiveNumSubTabsByNumTab(7); // Record Indicator
 			arrListLocal.add(collTemp);
 			collTemp = getAlphaSubTabDao().findActiveAlphaSubTabsByAlphaTab(1301); // FTP Group
 			arrListLocal.add(collTemp);
@@ -55,7 +56,7 @@ public class FTPGroupsWb extends AbstractDynaWorkerBean<FTPGroupsVb>{
 			arrListLocal.add(collTemp);
 			collTemp = getAlphaSubTabDao().findActiveAlphaSubTabsByAlphaTab(1303); // Method_Type
 			arrListLocal.add(collTemp);
-			collTemp = getAlphaSubTabDao().findActiveAlphaSubTabsByAlphaTab(1304); //Repricing_Flag
+			collTemp = getAlphaSubTabDao().findActiveAlphaSubTabsByAlphaTab(1304); // Repricing_Flag
 			arrListLocal.add(collTemp);
 			collTemp = getAlphaSubTabDao().findActiveAlphaSubTabsByAlphaTab(1310); // FTP_Curve_ID
 			arrListLocal.add(collTemp);
@@ -64,7 +65,9 @@ public class FTPGroupsWb extends AbstractDynaWorkerBean<FTPGroupsVb>{
 			collTemp = getNumSubTabDao().findActiveNumSubTabsByNumTab(1302); // FTP_Tenor_Type
 			arrListLocal.add(collTemp);
 //			collTemp = getFtpGroupsDao().getVisionSbu();
-			//collTemp = getFtpGroupsDao().getVisionSbu( String.valueOf( CustomContextHolder.getContext().getVisionId()), String.valueOf(System.currentTimeMillis()), "PR088" );
+			// collTemp = getFtpGroupsDao().getVisionSbu( String.valueOf(
+			// CustomContextHolder.getContext().getVisionId()),
+			// String.valueOf(System.currentTimeMillis()), "PR088" );
 			collTemp = getNumSubTabDao().findActiveNumSubTabsByNumTab(8); // Tenor_ Application_Code
 			arrListLocal.add(collTemp);
 			collTemp = getNumSubTabDao().findActiveNumSubTabsByNumTab(6); // Interest Basis
@@ -73,20 +76,23 @@ public class FTPGroupsWb extends AbstractDynaWorkerBean<FTPGroupsVb>{
 			arrListLocal.add(collTemp);
 			collTemp = getNumSubTabDao().findActiveNumSubTabsByNumTab(1304); // FTP Apply Rate
 			arrListLocal.add(collTemp);
-			collTemp = getAlphaSubTabDao().findActiveAlphaSubTabsByAlphaTab(1360);//FTP Engine Method SubType
+			collTemp = getAlphaSubTabDao().findActiveAlphaSubTabsByAlphaTab(1360);// FTP Engine Method SubType
 			arrListLocal.add(collTemp);
 			collTemp = getFtpGroupsDao().callProcToPopulateVisionSBUData(); // Vision SBU
-			arrListLocal.add(collTemp);			
+			arrListLocal.add(collTemp);
 			collTemp = getCommonDao().findVerificationRequiredAndStaticDelete("FTP_GROUPS");
+			arrListLocal.add(collTemp);
+			collTemp = getNumSubTabDao().findActiveNumSubTabsByNumTab(1305); // Frequency Tuning
 			arrListLocal.add(collTemp);
 
 			return arrListLocal;
-		}catch(Exception ex){
+		} catch (Exception ex) {
 			ex.printStackTrace();
 			logger.error("Exception in getting the Page load values.", ex);
 			return null;
 		}
 	}
+
 	@Override
 	protected void setAtNtValues(FTPGroupsVb vObject) {
 		vObject.setFtpGroupAt(1301);
@@ -95,308 +101,335 @@ public class FTPGroupsWb extends AbstractDynaWorkerBean<FTPGroupsVb>{
 		vObject.setFtpGroupStatusNt(1);
 		vObject.setRecordIndicatorNt(7);
 		vObject.setDataSourceAt(10);
-		
+
 	}
+
 	@Override
 	protected void setVerifReqDeleteType(FTPGroupsVb vObject) {
-		ArrayList<CommonVb> lCommVbList =(ArrayList<CommonVb>) getCommonDao().findVerificationRequiredAndStaticDelete("FTP_GROUPS");
+		ArrayList<CommonVb> lCommVbList = (ArrayList<CommonVb>) getCommonDao()
+				.findVerificationRequiredAndStaticDelete("FTP_GROUPS");
 		vObject.setStaticDelete(lCommVbList.get(0).isStaticDelete());
 		vObject.setVerificationRequired(false);
 	}
-	public ExceptionCode queryResultSource(FTPGroupsVb vObject){
+
+	public ExceptionCode queryResultSource(FTPGroupsVb vObject) {
 		ExceptionCode exceptionCode = new ExceptionCode();
-		
+
 		ArrayList<Object> arrListLocal = new ArrayList<Object>();
-		
+
 		List<FTPGroupsVb> collSourceTemp = new ArrayList();
 		List<FtpMethodsVb> collTempMethods = new ArrayList();
-		collSourceTemp = (ArrayList)getFtpGroupsDao().getQueryResultsSource(vObject);
-		collTempMethods = (ArrayList)getFtpGroupsDao().getQueryResultMethods(vObject);
+		collSourceTemp = (ArrayList) getFtpGroupsDao().getQueryResultsSource(vObject);
+		collTempMethods = (ArrayList) getFtpGroupsDao().getQueryResultMethods(vObject);
 		exceptionCode.setActionType("Query");
-		if(collSourceTemp.size() == 0 && collTempMethods.size() == 0){
+		if (collSourceTemp.size() == 0 && collTempMethods.size() == 0) {
 			exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceDesc(), 16, "Query", "");
 			exceptionCode.setOtherInfo(vObject);
 			return exceptionCode;
-		}else{
+		} else {
 			doSetDesctiptionsAfterQuery(collSourceTemp);
 			doSetDesctiptionsAfterQuery(vObject);
-			
+
 			FtpMethodsVb ftpMethodsVb = (FtpMethodsVb) collTempMethods.get(0);
 			FTPCurveVb ftpCurveVb = new FTPCurveVb();
 			String businessDate = ftpGroupsDao.businessDay();
 			ftpCurveVb.setEffectiveDate(businessDate);
-			
+
 			ftpCurveVb.setFtpCurveId(ftpMethodsVb.getFtpCurveId());
-			
+
 			List<NumSubTabVb> tenoApplicatoinCodes = getNumSubTabDao().findActiveNumSubTabsByNumTab(8);
-			
+
 			ftpCurveVb.setTenorBucketApplicationCode(tenoApplicatoinCodes.get(0).getNumSubTab());
 			ftpCurveVb.setLpTenorBucketApplicationCode(tenoApplicatoinCodes.get(0).getNumSubTab());
-			
-			List<FTPGroupsVb> curvesList = ftpGroupsDao.getQueryPopupResultsCurves(ftpCurveVb.getFtpCurveId(),ftpCurveVb.getEffectiveDate(),vObject,ftpCurveVb.isReloadFlag());
-			
-			List<FTPGroupsVb> addOnList = ftpGroupsDao.getQueryPopupResultsAddOn(ftpCurveVb.getFtpCurveId(),ftpCurveVb.getEffectiveDate(),vObject,ftpCurveVb.isReloadFlag());
-			
-			
-			List<FTPGroupsVb> tenorCodeList = (ArrayList) ftpGroupsDao.getTenorCode(ftpCurveVb.getTenorBucketApplicationCode());
-			List<FTPGroupsVb> lpTenorCodeList = (ArrayList) ftpGroupsDao.getTenorCode(ftpCurveVb.getLpTenorBucketApplicationCode());
-			ArrayList colTemp = (ArrayList)ftpGroupsDao.getQueryPopupResultPremium(ftpCurveVb);
+
+			List<FTPGroupsVb> curvesList = ftpGroupsDao.getQueryPopupResultsCurves(ftpCurveVb.getFtpCurveId(),
+					ftpCurveVb.getEffectiveDate(), vObject, ftpCurveVb.isReloadFlag());
+
+			List<FTPGroupsVb> addOnList = ftpGroupsDao.getQueryPopupResultsAddOn(ftpCurveVb.getFtpCurveId(),
+					ftpCurveVb.getEffectiveDate(), vObject, ftpCurveVb.isReloadFlag());
+
+			List<FTPGroupsVb> tenorCodeList = (ArrayList) ftpGroupsDao
+					.getTenorCode(ftpCurveVb.getTenorBucketApplicationCode());// row
+			List<FTPGroupsVb> lpTenorCodeList = (ArrayList) ftpGroupsDao
+					.getTenorCode(ftpCurveVb.getLpTenorBucketApplicationCode());// Column
+			ArrayList colTemp = (ArrayList) ftpGroupsDao.getQueryPopupResultPremium(ftpCurveVb);
 			ArrayList tmpList = new ArrayList();
 			tmpList.add(colTemp); // Premium
 			tmpList.add(tenorCodeList); // Tenor Code List
 			tmpList.add(lpTenorCodeList); // LP Tenor Code List
-			
+
 			exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceDesc(), 1, "Query", "");
 			arrListLocal.add(collSourceTemp); // FTP Source
 			arrListLocal.add(collTempMethods); // FTP Method
-			arrListLocal.add(curvesList);  // FTP Curves
-			arrListLocal.add(addOnList);  // FTP Curves
+			arrListLocal.add(curvesList); // FTP Curves
+			arrListLocal.add(addOnList); // FTP AddOn
 			arrListLocal.add(tmpList); // FTP Premium
-			
-			
-			
+
 			exceptionCode.setOtherInfo(vObject);
 //			exceptionCode.setResponse(collTemp);
-			exceptionCode.setRequest(arrListLocal);
+			exceptionCode.setResponse(arrListLocal);
 			return exceptionCode;
 		}
 	}
-	public ExceptionCode reloadCurveId(FTPCurveVb ftpCurveVb){
+
+	public ExceptionCode reloadCurveId(FTPCurveVb ftpCurveVb) {
 		ExceptionCode exceptionCode = new ExceptionCode();
 		FTPGroupsVb ftpGroupsVb = new FTPGroupsVb();
-		
-		if(!ValidationUtil.isValid(ftpCurveVb.getEffectiveDate())) {
+
+		if (!ValidationUtil.isValid(ftpCurveVb.getEffectiveDate())) {
 			String businessDate = ftpGroupsDao.businessDay();
 			ftpCurveVb.setEffectiveDate(businessDate);
 		}
-		
-		ArrayList colTemp = (ArrayList)ftpGroupsDao.getQueryPopupResultsCurves(ftpCurveVb.getFtpCurveId(),ftpCurveVb.getEffectiveDate(),ftpGroupsVb,ftpCurveVb.isReloadFlag());
-		ftpCurveVb.setTotalRows(ftpCurveVb.getTotalRows());
+
+		ArrayList colTemp = (ArrayList) ftpGroupsDao.getQueryPopupResultsCurves(ftpCurveVb.getFtpCurveId(),
+				ftpCurveVb.getEffectiveDate(), ftpGroupsVb, ftpCurveVb.isReloadFlag());
+		ftpCurveVb.setTotalRows(ftpGroupsVb.getTotalRows());
 		ftpCurveVb.setCurrentPage(ftpCurveVb.getCurrentPage());
 		exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceDesc(), 1, "Query", "");
 		exceptionCode.setOtherInfo(ftpCurveVb);
 		exceptionCode.setResponse(colTemp);
 		return exceptionCode;
 	}
-	
-	public ExceptionCode reloadFtpAddOn(FTPCurveVb ftpCurveVb){
+
+	public ExceptionCode reloadFtpAddOn(FTPCurveVb ftpCurveVb) {
 		ExceptionCode exceptionCode = new ExceptionCode();
 		FTPGroupsVb ftpGroupsVb = new FTPGroupsVb();
-		
-		if(!ValidationUtil.isValid(ftpCurveVb.getEffectiveDate())) {
+
+		if (!ValidationUtil.isValid(ftpCurveVb.getEffectiveDate())) {
 			String businessDate = ftpGroupsDao.businessDay();
 			ftpCurveVb.setEffectiveDate(businessDate);
 		}
-		
-		ArrayList colTemp = (ArrayList)ftpGroupsDao.getQueryPopupResultsAddOn(ftpCurveVb.getFtpCurveId(),ftpCurveVb.getEffectiveDate(),ftpGroupsVb,ftpCurveVb.isReloadFlag());
-		ftpCurveVb.setTotalRows(ftpCurveVb.getTotalRows());
+
+		ArrayList colTemp = (ArrayList) ftpGroupsDao.getQueryPopupResultsAddOn(ftpCurveVb.getFtpCurveId(),
+				ftpCurveVb.getEffectiveDate(), ftpGroupsVb, ftpCurveVb.isReloadFlag());
+		ftpCurveVb.setTotalRows(ftpGroupsVb.getTotalRows());
 		ftpCurveVb.setCurrentPage(ftpCurveVb.getCurrentPage());
 		exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceDesc(), 1, "Query", "");
 		exceptionCode.setOtherInfo(ftpCurveVb);
 		exceptionCode.setResponse(colTemp);
 		return exceptionCode;
 	}
-	
-	public ExceptionCode reloadFtpPremium(FTPCurveVb ftpCurveVb){
+
+	public ExceptionCode reloadFtpPremium(FTPCurveVb ftpCurveVb) {
 		ExceptionCode exceptionCode = new ExceptionCode();
-		
-		if(!ValidationUtil.isValid(ftpCurveVb.getEffectiveDate())) {
+
+		if (!ValidationUtil.isValid(ftpCurveVb.getEffectiveDate())) {
 			String businessDate = ftpGroupsDao.businessDay();
 			ftpCurveVb.setEffectiveDate(businessDate);
 		}
-		
 
 		ArrayList tenorCodeList = (ArrayList) ftpGroupsDao.getTenorCode(ftpCurveVb.getTenorBucketApplicationCode());
 		ArrayList lpTenorCodeList = (ArrayList) ftpGroupsDao.getTenorCode(ftpCurveVb.getLpTenorBucketApplicationCode());
-		ArrayList colTemp = (ArrayList)ftpGroupsDao.getQueryPopupResultPremium(ftpCurveVb);
+		ArrayList colTemp = (ArrayList) ftpGroupsDao.getQueryPopupResultPremium(ftpCurveVb);
 		ArrayList tmpList = new ArrayList();
 		tmpList.add(colTemp); // Premium
 		tmpList.add(tenorCodeList); // Tenor Code List
 		tmpList.add(lpTenorCodeList); // LP Tenor Code List
-		
+
 		exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceDesc(), 1, "Query", "");
 		exceptionCode.setOtherInfo(ftpCurveVb);
 		exceptionCode.setResponse(tmpList);
 		return exceptionCode;
 	}
-	
-	public ExceptionCode getQueryResultTuning(FTPSourceConfigVb ftpSourceConfigVb){
+
+	public ExceptionCode getQueryResultTuning(FTPSourceConfigVb ftpSourceConfigVb) {
 		ExceptionCode exceptionCode = new ExceptionCode();
 		try {
-			ArrayList colTemp = (ArrayList)ftpSourceConfigDao.getQueryResultTuning(ftpSourceConfigVb);
+			ArrayList colTemp = (ArrayList) ftpSourceConfigDao.getQueryResultTuning(ftpSourceConfigVb);
 			exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceDesc(), 1, "Query", "");
 			exceptionCode.setOtherInfo(ftpSourceConfigVb);
 			exceptionCode.setResponse(colTemp);
 			return exceptionCode;
-		}catch(Exception ex){
+		} catch (Exception ex) {
 			ex.printStackTrace();
 			logger.error("Exception in getting the getAllQueryPopupResult results.", ex);
 			return null;
 		}
 	}
-	
+
 	@Override
 	protected AbstractDao<FTPGroupsVb> getScreenDao() {
 		return ftpGroupsDao;
 	}
+
 	public FTPGroupsDao getFtpGroupsDao() {
 		return ftpGroupsDao;
 	}
+
 	public void setFtpGroupsDao(FTPGroupsDao ftpGroupsDao) {
 		this.ftpGroupsDao = ftpGroupsDao;
 	}
+
 	@Override
-	protected void doSetDesctiptionsAfterQuery(FTPGroupsVb vObject){
-		/*List<FTPGroupsVb> lResult = getMergeTableDao().getBsGlDesc(vObject);
-		if(lResult != null && !lResult.isEmpty()){
-			vObject.setBsGlDescription(lResult.get(0).getBsGlDescription());
-		}*/
+	protected void doSetDesctiptionsAfterQuery(FTPGroupsVb vObject) {
+		/*
+		 * List<FTPGroupsVb> lResult = getMergeTableDao().getBsGlDesc(vObject);
+		 * if(lResult != null && !lResult.isEmpty()){
+		 * vObject.setBsGlDescription(lResult.get(0).getBsGlDescription()); }
+		 */
 	}
-	
-	public ExceptionCode getAllQueryPopupResult(FTPGroupsVb queryPopupObj){
+
+	public ExceptionCode getAllQueryPopupResult(FTPGroupsVb queryPopupObj) {
 		ExceptionCode exceptionCode = new ExceptionCode();
-		try{
+		try {
 			setVerifReqDeleteType(queryPopupObj);
 			doFormateDataForQuery(queryPopupObj);
 			List<FTPGroupsVb> arrListResult = ftpGroupsDao.getQueryPopupResults(queryPopupObj);
-			if(arrListResult!= null && arrListResult.size() > 0) {
+			if (arrListResult != null && arrListResult.size() > 0) {
 				exceptionCode.setErrorCode(Constants.SUCCESSFUL_OPERATION);
-				List<FTPGroupsVb> groupList =  getSubOrdinatDetails(arrListResult);
+				List<FTPGroupsVb> groupList = getSubOrdinatDetails(arrListResult);
 				exceptionCode.setResponse(groupList);
-			}else {
+			} else {
 				exceptionCode.setErrorCode(Constants.NO_RECORDS_FOUND);
 			}
 			exceptionCode.setOtherInfo(queryPopupObj);
 			return exceptionCode;
-		}catch(Exception ex){
+		} catch (Exception ex) {
 			ex.printStackTrace();
 			logger.error("Exception in getting the getAllQueryPopupResult results.", ex);
 			return null;
 		}
 	}
-	
-	public ExceptionCode getAllQueryPopupResult1(FTPGroupsVb queryPopupObj){
+
+	public ExceptionCode getAllQueryPopupResult1(FTPGroupsVb queryPopupObj) {
 		ExceptionCode exceptionCode = new ExceptionCode();
-		try{
+		try {
 			setVerifReqDeleteType(queryPopupObj);
 			doFormateDataForQuery(queryPopupObj);
+			List<SmartSearchVb> groupSmartSearchOpt = new ArrayList<>();
+			List<SmartSearchVb> detailSmartSearchOpt = new ArrayList<>();
+			if(queryPopupObj.getSmartSearchOpt() != null && queryPopupObj.getSmartSearchOpt().size() > 0) {
+				groupSmartSearchOpt = queryPopupObj.getSmartSearchOpt().stream().filter(vb -> ValidationUtil.isValid(vb.getScreenName()) && "GROUPSEARCH".equalsIgnoreCase(vb.getScreenName())).collect(Collectors.toList());
+				detailSmartSearchOpt = queryPopupObj.getSmartSearchOpt().stream().filter(vb -> ValidationUtil.isValid(vb.getScreenName()) && "DETAILSEARCH".equalsIgnoreCase(vb.getScreenName())).collect(Collectors.toList());
+			}
+			queryPopupObj.setSmartSearchOpt(groupSmartSearchOpt);
 			List<FTPGroupsVb> arrListResult = ftpGroupsDao.getQueryPopupResultsByGroup(queryPopupObj);
-			if(arrListResult!= null && arrListResult.size() > 0) {
-				for(FTPGroupsVb groupsVb : arrListResult) {
-					List<FTPGroupsVb> childList =  ftpGroupsDao.getQueryPopupResultsDetails(groupsVb);
+			if (arrListResult != null && arrListResult.size() > 0) {
+				for (FTPGroupsVb groupsVb : arrListResult) {
+					groupsVb.setSmartSearchOpt(detailSmartSearchOpt);
+					List<FTPGroupsVb> childList = ftpGroupsDao.getQueryPopupResultsDetails(groupsVb);
 					groupsVb.setChildList(childList);
 				}
 				exceptionCode.setErrorCode(Constants.SUCCESSFUL_OPERATION);
 				exceptionCode.setResponse(arrListResult);
-			}else {
+			} else {
 				exceptionCode.setErrorCode(Constants.NO_RECORDS_FOUND);
 			}
 			exceptionCode.setOtherInfo(queryPopupObj);
 			return exceptionCode;
-		}catch(Exception ex){
+		} catch (Exception ex) {
 			ex.printStackTrace();
 			logger.error("Exception in getting the getAllQueryPopupResult results.", ex);
 			return null;
 		}
 	}
-	
-	public ExceptionCode getTableColumns(FTPSourceConfigVb queryPopupObj){
+
+	public ExceptionCode getTableColumns(FTPSourceConfigVb queryPopupObj) {
 		ExceptionCode exceptionCode = new ExceptionCode();
-		try{
+		try {
 			List<FTPSourceConfigVb> arrListResult = ftpSourceConfigDao.getTableColumns(queryPopupObj);
-			if(arrListResult!= null && arrListResult.size() > 0) {
+			if (arrListResult != null && arrListResult.size() > 0) {
 				exceptionCode.setErrorCode(Constants.SUCCESSFUL_OPERATION);
 				exceptionCode.setResponse(arrListResult);
-			}else {
+			} else {
 				exceptionCode.setErrorCode(Constants.NO_RECORDS_FOUND);
 			}
 			exceptionCode.setOtherInfo(queryPopupObj);
 			return exceptionCode;
-		}catch(Exception ex){
+		} catch (Exception ex) {
 			ex.printStackTrace();
 			logger.error("Exception in getting the getAllQueryPopupResult results.", ex);
 			return null;
 		}
 	}
+
 	public FTPSourceConfigDao getFtpSourceConfigDao() {
 		return ftpSourceConfigDao;
 	}
+
 	public void setFtpSourceConfigDao(FTPSourceConfigDao ftpSourceConfigDao) {
 		this.ftpSourceConfigDao = ftpSourceConfigDao;
 	}
-	
-	public ExceptionCode addModifyFtpCurve(List<FTPCurveVb> ftpCurveList,FTPCurveVb vObject){
-		ExceptionCode exceptionCode  = null;
+
+	public ExceptionCode addModifyFtpCurve(List<FTPCurveVb> ftpCurveList, FTPCurveVb vObject) {
+		ExceptionCode exceptionCode = null;
 		DeepCopy<FTPCurveVb> deepCopy = new DeepCopy<FTPCurveVb>();
 		FTPCurveVb clonedObject = null;
-		try{
+		try {
 			clonedObject = deepCopy.copy(vObject);
 			exceptionCode = ftpGroupsDao.addModifyFtpCurve(ftpCurveList, vObject);
 			exceptionCode.setOtherInfo(vObject);
 			return exceptionCode;
-		}catch(RuntimeCustomException rex){
+		} catch (RuntimeCustomException rex) {
 			logger.error("Modify Exception " + rex.getCode().getErrorMsg());
-			logger.error( ((vObject==null)? "vObject is Null":vObject.toString()));
+			logger.error(((vObject == null) ? "vObject is Null" : vObject.toString()));
 			exceptionCode = rex.getCode();
 			exceptionCode.setOtherInfo(clonedObject);
 			return exceptionCode;
 		}
 	}
-	public ExceptionCode addModifyFtpAddOn(List<FTPCurveVb> ftpCurveList,FTPCurveVb vObject){
-		ExceptionCode exceptionCode  = null;
+
+	public ExceptionCode addModifyFtpAddOn(List<FTPCurveVb> ftpCurveList, FTPCurveVb vObject) {
+		ExceptionCode exceptionCode = null;
 		DeepCopy<FTPCurveVb> deepCopy = new DeepCopy<FTPCurveVb>();
 		FTPCurveVb clonedObject = null;
-		try{
+		try {
 			clonedObject = deepCopy.copy(vObject);
 			exceptionCode = ftpGroupsDao.addModifyFtpAddOn(ftpCurveList, vObject);
 			exceptionCode.setOtherInfo(vObject);
 			return exceptionCode;
-		}catch(RuntimeCustomException rex){
+		} catch (RuntimeCustomException rex) {
 			logger.error("Modify Exception " + rex.getCode().getErrorMsg());
-			logger.error( ((vObject==null)? "vObject is Null":vObject.toString()));
+			logger.error(((vObject == null) ? "vObject is Null" : vObject.toString()));
 			exceptionCode = rex.getCode();
 			exceptionCode.setOtherInfo(clonedObject);
 			return exceptionCode;
 		}
 	}
-	
-	public List<FTPGroupsVb> getSubOrdinatDetails(List<FTPGroupsVb> arrListResult){
-		ExceptionCode exceptionCode =  new ExceptionCode();
+
+	public List<FTPGroupsVb> getSubOrdinatDetails(List<FTPGroupsVb> arrListResult) {
+		ExceptionCode exceptionCode = new ExceptionCode();
 		List<FTPGroupsVb> result = new ArrayList<FTPGroupsVb>();
 		try {
-			
+
 			FTPGroupsVb vObjectParent = new FTPGroupsVb();
 //			FTPGroupsVb vObjectParent = null;
 			String previousConnectorId = "";
-			for(FTPGroupsVb vObkj : arrListResult) {
+			for (FTPGroupsVb vObkj : arrListResult) {
 //				String keyValue = rs.getString("COUNTRY")+""+rs.getString("LE_BOOK")+""+rs.getString("DATA_SOURCE")+""+rs.getString("FTP_GROUP");
-				String keyValue = vObkj.getCountry()+""+vObkj.getLeBook()+""+vObkj.getDataSource()+""+vObkj.getFtpGroup();
+				String keyValue = vObkj.getCountry() + "" + vObkj.getLeBook() + "" + vObkj.getDataSource() + ""
+						+ vObkj.getFtpGroup();
 				if (!ValidationUtil.isValid(previousConnectorId)) {
-					vObjectParent = new FTPGroupsVb(vObkj.getCountry(), vObkj.getLeBook(), vObkj.getDataSource(), vObkj.getFtpGroup());
-					previousConnectorId = vObkj.getCountry()+""+vObkj.getLeBook()+""+vObkj.getDataSource()+""+vObkj.getFtpGroup();
+					vObjectParent = new FTPGroupsVb(vObkj.getCountry(), vObkj.getLeBook(), vObkj.getDataSource(),
+							vObkj.getFtpGroup());
+					previousConnectorId = vObkj.getCountry() + "" + vObkj.getLeBook() + "" + vObkj.getDataSource() + ""
+							+ vObkj.getFtpGroup();
 				} else if (!previousConnectorId.equalsIgnoreCase(keyValue)) {
 					result.add(vObjectParent);
-					vObjectParent = new FTPGroupsVb(vObkj.getCountry(), vObkj.getLeBook(), vObkj.getDataSource(), vObkj.getFtpGroup());
-					previousConnectorId = vObkj.getCountry()+""+vObkj.getLeBook()+""+vObkj.getDataSource()+""+vObkj.getFtpGroup();
+					vObjectParent = new FTPGroupsVb(vObkj.getCountry(), vObkj.getLeBook(), vObkj.getDataSource(),
+							vObkj.getFtpGroup());
+					previousConnectorId = vObkj.getCountry() + "" + vObkj.getLeBook() + "" + vObkj.getDataSource() + ""
+							+ vObkj.getFtpGroup();
 				}
 				vObjectParent.getChildList().add(vObkj);
 			}
-		}catch(Exception e) {
+		} catch (Exception e) {
 			exceptionCode.setErrorCode(Constants.ERRONEOUS_OPERATION);
 			exceptionCode.setErrorMsg(e.getMessage());
 		}
 		return result;
 	}
-	// Get FTP Method Details 
-	public ExceptionCode getQueryResultMethods(FTPGroupsVb vObject){
+
+	// Get FTP Method Details
+	public ExceptionCode getQueryResultMethods(FTPGroupsVb vObject) {
 		int intStatus = 1;
 		setVerifReqDeleteType(vObject);
 		List<FtpMethodsVb> collTemp = getFtpGroupsDao().getQueryResultMethods(vObject);
-		if(collTemp.size() == 0){
+		if (collTemp.size() == 0) {
 			ExceptionCode exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceDesc(), 16, "Query", "");
 			exceptionCode.setOtherInfo(vObject);
 			return exceptionCode;
-		}else{
+		} else {
 //			doSetDesctiptionsAfterQuery(collTemp);
 			doSetDesctiptionsAfterQuery(vObject);
 			ExceptionCode exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceDesc(), 1, "Query", "");
@@ -405,17 +438,17 @@ public class FTPGroupsWb extends AbstractDynaWorkerBean<FTPGroupsVb>{
 			return exceptionCode;
 		}
 	}
-	
-	// Get FTP Source Details 
-	public ExceptionCode getQueryResultsSource(FTPGroupsVb vObject){
+
+	// Get FTP Source Details
+	public ExceptionCode getQueryResultsSource(FTPGroupsVb vObject) {
 		int intStatus = 1;
 		setVerifReqDeleteType(vObject);
-		List<FtpMethodsVb> collTemp = (ArrayList)getFtpGroupsDao().getQueryResultsSource(vObject);
-		if(collTemp.size() == 0){
+		List<FtpMethodsVb> collTemp = (ArrayList) getFtpGroupsDao().getQueryResultsSource(vObject);
+		if (collTemp.size() == 0) {
 			ExceptionCode exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceDesc(), 16, "Query", "");
 			exceptionCode.setOtherInfo(vObject);
 			return exceptionCode;
-		}else{
+		} else {
 //				doSetDesctiptionsAfterQuery(collTemp);
 			doSetDesctiptionsAfterQuery(vObject);
 			ExceptionCode exceptionCode = CommonUtils.getResultObject(getScreenDao().getServiceDesc(), 1, "Query", "");
@@ -424,5 +457,86 @@ public class FTPGroupsWb extends AbstractDynaWorkerBean<FTPGroupsVb>{
 			return exceptionCode;
 		}
 	}
-	
+
+	public ExceptionCode getFtpRateIdDetails(FTPCurveVb vObject) {
+		ExceptionCode exceptionCode = new ExceptionCode();
+		try {
+			FTPGroupsVb ftpGroupsVb = new FTPGroupsVb();
+			setVerifReqDeleteType(ftpGroupsVb);
+			ftpGroupsVb.setCurrentPage(vObject.getCurrentPage());
+			List<FTPGroupsVb> colTemp = ftpGroupsDao.getFTPRatesDataDao(ftpGroupsVb, vObject);
+			exceptionCode.setErrorCode(Constants.SUCCESSFUL_OPERATION);
+			vObject.setTotalRows(ftpGroupsVb.getTotalRows());
+			exceptionCode.setResponse(colTemp);
+			exceptionCode.setOtherInfo(vObject);
+			return exceptionCode;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return exceptionCode;
+		}
+	}
+
+	public ExceptionCode modifyFtpPremium(List<FTPCurveVb> ftpCurveList, FTPCurveVb vObject) {
+		ExceptionCode exceptionCode = new ExceptionCode();
+		List<FTPCurveVb> queryList = null;
+		try {
+			ArrayList tmpList = new ArrayList();
+			ArrayList tenorCodeList = (ArrayList) getFtpGroupsDao()
+					.getTenorCode(vObject.getTenorBucketApplicationCode());
+			ArrayList lpTenorCodeList = (ArrayList) getFtpGroupsDao()
+					.getTenorCode(vObject.getLpTenorBucketApplicationCode());
+			queryList = genrateListPremium(ftpCurveList, tenorCodeList, lpTenorCodeList, vObject);
+			vObject.setVerificationRequired(false);
+			if(queryList.size() > 0 &&!queryList.isEmpty()) 
+			exceptionCode = getFtpGroupsDao().addModifyFtpPremium( queryList, vObject);
+			exceptionCode.setOtherInfo(vObject);
+			exceptionCode.setResponse(queryList);
+			tmpList.add(tenorCodeList);
+			tmpList.add(lpTenorCodeList);
+			exceptionCode.setRequest(tmpList);
+			exceptionCode.setActionType("Modify");
+			return exceptionCode;
+		} catch (Exception e) {
+			e.printStackTrace();
+			exceptionCode.setOtherInfo(vObject);
+			exceptionCode.setResponse(queryList);
+			exceptionCode.setActionType("Save");
+			return exceptionCode;
+		}
+	}
+
+	public List<FTPCurveVb> genrateListPremium(List<FTPCurveVb> vObjMain, ArrayList tenorCodeList,
+			ArrayList lpTenorCodeList, FTPCurveVb ftpCurveVb) {
+		List<FTPCurveVb> ftpCurvelst = new ArrayList<FTPCurveVb>();
+	int count = 0 ;
+		for (int Ctr = 0; Ctr < lpTenorCodeList.size(); Ctr++) {
+			for (int Ctr1 = 0; Ctr1 < tenorCodeList.size(); Ctr1++) {
+				FTPCurveVb vObject = new FTPCurveVb();
+
+				FTPCurveVb numTabVb = new FTPCurveVb();
+				numTabVb = (FTPCurveVb) tenorCodeList.get(Ctr1);
+				FTPCurveVb numTabVb1 = new FTPCurveVb();
+				numTabVb1 = (FTPCurveVb) lpTenorCodeList.get(Ctr);
+				if (ValidationUtil.isValid(vObjMain.get(count).getFtpRateId()) && ValidationUtil.isValid(vObjMain.get(count).getSubRate())) {
+						vObject.setFtpRateId(vObjMain.get(count).getFtpRateId());
+						vObject.setSubRate(vObjMain.get(count).getSubRate());
+					vObject.setTenorBucketCode(numTabVb.getTenorBucketCode());
+					vObject.setLpTenorBucketCode(numTabVb1.getTenorBucketCode());
+					vObject.setFtpCurveId(ftpCurveVb.getFtpCurveId());
+					vObject.setEffectiveDate(ftpCurveVb.getEffectiveDate());
+					vObject.setRateEffectiveDate(ftpCurveVb.getRateEffectiveDate());
+					vObject.setVisionSbu(ftpCurveVb.getVisionSbu());
+					vObject.setCurrency(ftpCurveVb.getCurrency());
+					vObject.setTenorBucketApplicationCode(ftpCurveVb.getTenorBucketApplicationCode());
+					vObject.setLpTenorBucketApplicationCode(ftpCurveVb.getLpTenorBucketApplicationCode());
+					vObject.setFtpCurveStatusNt(0);
+					vObject.setRecordIndicator(0);
+					ftpCurvelst.add(vObject);
+				}
+				count++;
+			}
+		}
+		return ftpCurvelst;
+	}
+
 }

@@ -118,7 +118,7 @@ public class FtpMethodsController {
 		JSONExceptionCode jsonExceptionCode = null;
 		ExceptionCode exceptionCode = new ExceptionCode();
 		try {
-			vObject.setActionType("Modify");
+			vObject.setActionType("delete");
 			exceptionCode = ftpMethodsWb.deleteRecord(vObject);
 			jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), exceptionCode.getErrorMsg(),
 					exceptionCode.getOtherInfo());
@@ -135,7 +135,7 @@ public class FtpMethodsController {
 		try {
 			vObject.setActionType("Query");
 //			ExceptionCode exceptionCode = ftpMethodsWb.reviewRecord(vObject);
-			List<ReviewResultVb> reviewList = ftpMethodsWb.reviewRecordDynamic(vObject);
+			List<ReviewResultVb> reviewList = ftpMethodsWb.reviewRecord(vObject);
 			jsonExceptionCode = new JSONExceptionCode(Constants.SUCCESSFUL_OPERATION, "Menu Listing", reviewList);			
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		} catch (RuntimeCustomException rex) {
@@ -217,18 +217,5 @@ public class FtpMethodsController {
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 		}
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 }

@@ -20,8 +20,8 @@ public class FTPGroupsVb extends CommonVb{
 	private int	sourceReferenceAt =  1302;
 	private String	sourceReference =  "";
 	private String	sourceReferenceDesc =  "";
-	private String	ftpReference = "";
-	private String	ftpDescription = "";
+//	private String	ftpReference = "";
+//	private String	ftpDescription = "";
 	private String	methodReference = "";
 	private String	methodDescription = "";
 	private String	defaultGroup = "";
@@ -108,12 +108,12 @@ public class FTPGroupsVb extends CommonVb{
 	public void setSourceReference(String sourceReference) {
 		this.sourceReference = sourceReference;
 	}
-	public String getFtpReference() {
-		return ftpReference;
-	}
-	public void setFtpReference(String ftpReference) {
-		this.ftpReference = ftpReference;
-	}
+//	public String getFtpReference() {
+//		return ftpReference;
+//	}
+//	public void setFtpReference(String ftpReference) {
+//		this.ftpReference = ftpReference;
+//	}
 	public String getMethodReference() {
 		return methodReference;
 	}
@@ -156,12 +156,12 @@ public class FTPGroupsVb extends CommonVb{
 	public void setMethodDescription(String methodDescription) {
 		this.methodDescription = methodDescription;
 	}
-	public String getFtpDescription() {
+	/*public String getFtpDescription() {
 		return ftpDescription;
 	}
 	public void setFtpDescription(String ftpDescription) {
 		this.ftpDescription = ftpDescription;
-	}
+	}*/
 	public int getDefaultFlagCount() {
 		return defaultFlagCount;
 	}

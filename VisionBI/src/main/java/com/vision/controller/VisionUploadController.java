@@ -11,10 +11,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.vision.download.ExportXlsServlet;
@@ -41,7 +38,7 @@ public class VisionUploadController {
 	ExportXlsServlet exportXlsServlet;
 	
 	/*-------------------------------------Upload Files Rest Service-------------------------------*/
-	@RequestMapping(path = "/uploadFilesToFtp", method = RequestMethod.POST)
+	@PostMapping("/uploadFilesToFtp")
 	@ApiOperation(value = "Uploading Multipart files to Server",notes = "Upload files to Server",response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> uploadFilesToFtp(@RequestParam("file") MultipartFile[] files){
 		ExceptionCode exceptionCode = null;
@@ -72,7 +69,7 @@ public class VisionUploadController {
 	}
 	
 	/*-------------------------------------Download Files Rest Service-------------------------------*/
-	@RequestMapping(path = "/downloadFilesFromFtp", method = RequestMethod.GET)
+	@GetMapping("/downloadFilesFromFtp")
 	@ApiOperation(value = "Downloading Multipart files to Server",notes = "Download files from server",response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> downloadFilesFromFtp(@QueryParam("fileName") String fileName, @QueryParam("fileExtension") String fileExtension, HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException{
 		try{
@@ -95,7 +92,7 @@ public class VisionUploadController {
 	}
 	
 	/*-------------------------------------List Rest Service-------------------------------*/
-	@RequestMapping(path = "/listFilesFromSftp", method = RequestMethod.GET)
+	@GetMapping("/listFilesFromSftp")
 	@ApiOperation(value = "Listing Multipart files from Server",notes = "List files from Server",response = ResponseEntity.class)
 	public ResponseEntity<JSONExceptionCode> listRestFilesFromFtpServer(@QueryParam("groupBy") String groupBy,@QueryParam("dirType") int dirType){
 		ExceptionCode exceptionCode = null;

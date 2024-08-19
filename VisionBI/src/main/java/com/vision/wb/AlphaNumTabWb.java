@@ -412,8 +412,8 @@ public class AlphaNumTabWb extends AbstractDynaWorkerBean<TabVb> {
 	public List<ReviewResultVb> reviewRecord(TabVb vObject){
 		try{
 			setVerifReqDeleteType(vObject);
-			List<TabVb> approvedCollection = getScreenDao().getQueryResultsForReview(vObject,1);
-			List<TabVb> pendingCollection = getScreenDao().getQueryResultsForReview(vObject,0);
+			List<TabVb> approvedCollection = getScreenDao().getQueryResultsForReview(vObject,0);
+			List<TabVb> pendingCollection = getScreenDao().getQueryResultsForReview(vObject,1);
 			if("numTab".equalsIgnoreCase(vObject.getRequestType())){
 				return transformToReviewResultsNumTab(approvedCollection,pendingCollection);
 			}else{

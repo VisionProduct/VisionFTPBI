@@ -38,6 +38,12 @@ public class AlphaNumTabDao extends AbstractDao<TabVb> {
 				TabVb tabVb = new TabVb();
 				tabVb.setTab(rs.getInt(1)); 
 				tabVb.setTabDescription(rs.getString(2));
+				tabVb.setTabStatus(rs.getInt(3));
+				tabVb.setTabStatusNt(rs.getInt(4));
+				tabVb.setStatusDesc(rs.getString(5));
+				tabVb.setRecordIndicatorNt(rs.getInt(6));
+				tabVb.setRecordIndicator(rs.getInt(7));
+				tabVb.setRecordIndicatorDesc(rs.getString(8));
 				return tabVb;
 			}
 		};
@@ -1963,6 +1969,18 @@ public class AlphaNumTabDao extends AbstractDao<TabVb> {
 	public void setAlphaSubTabDao(AlphaSubTabDao alphaSubTabDao) {
 		this.alphaSubTabDao = alphaSubTabDao;
 	}
+	String VariableStatusNtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TAppr.NUM_TAB_STATUS", "NUM_TAB_STATUS_DESC");
+	String VariableStatusNtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TPend.NUM_TAB_STATUS", "NUM_TAB_STATUS_DESC");
+
+	String RecordIndicatorNtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 7, "TAppr.RECORD_INDICATOR", "RECORD_INDICATOR_DESC");
+	String RecordIndicatorNtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 7, "TPend.RECORD_INDICATOR", "RECORD_INDICATOR_DESC");
+	
+	String VariableStatusAtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TAppr.ALPHA_TAB_STATUS", "ALPHA_TAB_STATUS_DESC");
+	String VariableStatusAtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TPend.ALPHA_TAB_STATUS", "ALPHA_TAB_STATUS_DESC");
+
+	String RecordIndicatorAtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 7, "TAppr.RECORD_INDICATOR", "RECORD_INDICATOR_DESC");
+	String RecordIndicatorAtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 7, "TPend.RECORD_INDICATOR", "RECORD_INDICATOR_DESC");
+	
 	//******************************************************************************************************************************
 	private List<TabVb> getQueryPopupResultsNtNew(TabVb tabVb) {
 		setServiceDefaultsNt();
@@ -1970,10 +1988,10 @@ public class AlphaNumTabDao extends AbstractDao<TabVb> {
 		int Ctr = 0;
 		List<TabVb> result = null;
 		Object objParams[] = null;
-		StringBuffer strBufApprove = new StringBuffer(" SELECT ATTL.NUM_TAB, ATTL.NUM_TAB_DESCRIPTION, ATTL.NUM_TAB_STATUS  FROM NUM_TAB ATTL ");
-		StringBuffer strBufPending = new StringBuffer(" SELECT ATTL.NUM_TAB, ATTL.NUM_TAB_DESCRIPTION, ATTL.NUM_TAB_STATUS  FROM NUM_TAB_PEND ATTL ");
-		String strWhereNotExists = " NOT EXISTS (SELECT 'X' FROM NUM_TAB_PEND P WHERE P.NUM_TAB=ATTL.NUM_TAB) ";
-		String strSubQryJoinCond = " ATT.NUM_TAB=X.NUM_TAB";
+		StringBuffer strBufApprove = new StringBuffer(" SELECT TAppr.NUM_TAB, TAppr.NUM_TAB_DESCRIPTION, TAppr.NUM_TAB_STATUS ,TAppr.NUM_TAB_STATUS_NT,"+VariableStatusNtApprDesc+" ,TAppr.RECORD_INDICATOR_NT ,TAppr.RECORD_INDICATOR ,"+RecordIndicatorNtApprDesc+" FROM NUM_TAB TAppr ");
+		StringBuffer strBufPending = new StringBuffer(" SELECT TPend.NUM_TAB, TPend.NUM_TAB_DESCRIPTION, TPend.NUM_TAB_STATUS ,TPend.NUM_TAB_STATUS_NT,"+VariableStatusNtPendDesc+"  ,TPend.RECORD_INDICATOR_NT ,TPend.RECORD_INDICATOR ,"+RecordIndicatorNtPendDesc+" FROM NUM_TAB_PEND TPend ");
+		String strWhereNotExists = " NOT EXISTS (SELECT 'X' FROM NUM_TAB_PEND TPend WHERE TPend.NUM_TAB=TAppr.NUM_TAB) ";
+		String strSubQryJoinCond = " TAppr.NUM_TAB=X.NUM_TAB";
 		if (tabVb.getSmartSearchOpt() != null && tabVb.getSmartSearchOpt().size() > 0) {
 			int count = 1;
 			for (SmartSearchVb data: tabVb.getSmartSearchOpt()){
@@ -2025,10 +2043,10 @@ public class AlphaNumTabDao extends AbstractDao<TabVb> {
 		int Ctr = 0;
 		List<TabVb> result = null;
 		Object objParams[] = null;
-		StringBuffer strBufApprove = new StringBuffer(" SELECT ATTL.ALPHA_TAB , ATTL.ALPHA_TAB_DESCRIPTION, ATTL.ALPHA_TAB_STATUS FROM ALPHA_TAB ATTL ");
-		StringBuffer strBufPending = new StringBuffer(" SELECT ATTL.ALPHA_TAB , ATTL.ALPHA_TAB_DESCRIPTION, ATTL.ALPHA_TAB_STATUS FROM ALPHA_TAB_PEND ATTL ");
-		String strWhereNotExists = " NOT EXISTS (SELECT 'X' FROM ALPHA_TAB_PEND P WHERE P.ALPHA_TAB=ATTL.ALPHA_TAB) ";
-		String strSubQryJoinCond = " ATT.ALPHA_TAB=X.ALPHA_TAB";
+		StringBuffer strBufApprove = new StringBuffer(" SELECT TAppr.ALPHA_TAB , TAppr.ALPHA_TAB_DESCRIPTION, TAppr.ALPHA_TAB_STATUS ,TAppr.ALPHA_TAB_STATUS_NT,"+VariableStatusAtApprDesc+" ,TAppr.RECORD_INDICATOR_NT ,TAppr.RECORD_INDICATOR ,"+RecordIndicatorAtApprDesc+" FROM ALPHA_TAB TAppr ");
+		StringBuffer strBufPending = new StringBuffer(" SELECT TPend.ALPHA_TAB , TPend.ALPHA_TAB_DESCRIPTION, TPend.ALPHA_TAB_STATUS ,TPend.ALPHA_TAB_STATUS_NT,"+VariableStatusAtPendDesc+" ,TPend.RECORD_INDICATOR_NT ,TPend.RECORD_INDICATOR ,"+RecordIndicatorAtPendDesc+" FROM ALPHA_TAB_PEND TPend ");
+		String strWhereNotExists = " NOT EXISTS (SELECT 'X' FROM ALPHA_TAB_PEND TPend WHERE TPend.ALPHA_TAB=TAppr.ALPHA_TAB) ";
+		String strSubQryJoinCond = " TAppr.ALPHA_TAB=X.ALPHA_TAB";
 		
 		if (tabVb.getSmartSearchOpt() != null && tabVb.getSmartSearchOpt().size() > 0) {
 			int count = 1;

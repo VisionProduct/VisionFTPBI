@@ -331,7 +331,7 @@ public class FTPSourceConfigDao extends AbstractDao<FTPSourceConfigVb> {
 	@Override
 	protected void setServiceDefaults(){
 		serviceName = "FTPSourceConfig";
-		serviceDesc = CommonUtils.getResourceManger().getString("ftpSourceConfig");
+		serviceDesc ="ftpSourceConfig";// CommonUtils.getResourceManger().getString("ftpSourceConfig");
 		tableName = "FTP_SOURCE_CONFIG";
 		childTableName = "FTP_SOURCE_CONFIG";
 		intCurrentUserId = CustomContextHolder.getContext().getVisionId();
@@ -739,7 +739,7 @@ public class FTPSourceConfigDao extends AbstractDao<FTPSourceConfigVb> {
 				+ "END                                             DATA_PRECISION,"
 				+ "  NULLABLE, nvl(COLUMN_ID, 0)  COLUMN_ID "
 				+ " FROM ALL_TAB_COLUMNS                            WHERE UPPER(TABLE_NAME) = upper(?) AND UPPER(OWNER)= UPPER(?)");
-		Object objParams[] = new Object[3];
+		Object objParams[] = new Object[2];
 		objParams[0] = vObject.getTableName().toUpperCase();
 		objParams[1] = owner.toUpperCase();
 		try {

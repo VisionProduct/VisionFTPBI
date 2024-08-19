@@ -324,7 +324,8 @@ public abstract class AbstractWorkerBean<E extends CommonVb> {
 			getScreenDao().fetchMakerVerifierNames(((ArrayList<E>)collTemp).get(0));
 			((ArrayList<E>)collTemp).get(0).setVerificationRequired(vObject.isVerificationRequired());
 			((ArrayList<E>)collTemp).get(0).setStaticDelete(vObject.isStaticDelete());
-			exceptionCode.setOtherInfo(((ArrayList<E>)collTemp).get(0));
+			exceptionCode.setResponse(collTemp);
+			exceptionCode.setOtherInfo(vObject);
 			return exceptionCode;
 		}
 	}
@@ -360,8 +361,8 @@ public abstract class AbstractWorkerBean<E extends CommonVb> {
 	}
 	public List<ReviewResultVb> reviewRecord(E vObject){
 		try{
-			List<E> approvedCollection = getScreenDao().getQueryResults(vObject,1);
-			List<E> pendingCollection = getScreenDao().getQueryResults(vObject,0);
+			List<E> approvedCollection = getScreenDao().getQueryResults(vObject,0);
+			List<E> pendingCollection = getScreenDao().getQueryResults(vObject,1);
 			return transformToReviewResults(approvedCollection,pendingCollection);
 		}catch(Exception ex){
 			return null;

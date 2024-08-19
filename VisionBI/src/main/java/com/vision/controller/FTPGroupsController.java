@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.vision.dao.FTPGroupsDao;
 import com.vision.exception.ExceptionCode;
 import com.vision.exception.JSONExceptionCode;
 import com.vision.exception.RuntimeCustomException;
@@ -34,6 +35,8 @@ import io.swagger.annotations.ApiOperation;
 public class FTPGroupsController {
 	@Autowired
 	FTPGroupsWb ftpGroupsWb;
+	
+	FTPGroupsDao fTPGroupsDao;
 	
 	@Autowired
 	FTPSourceConfigWb ftpSourceConfigWb;
@@ -89,12 +92,14 @@ public class FTPGroupsController {
 	}
 	@RequestMapping(path = "/modifyGroupControls", method = RequestMethod.POST)
 	@ApiOperation(value = "Add FTPGroups", notes = "Add FTPGroups", response = ResponseEntity.class)
-	public ResponseEntity<JSONExceptionCode> modify(@RequestBody FTPGroupsVb vObject) {
+	public ResponseEntity<JSONExceptionCode> modify(@RequestBody List<FTPGroupsVb> vObjects) {
 		JSONExceptionCode jsonExceptionCode = null;
 		ExceptionCode exceptionCode = new ExceptionCode();
 		try {
-			vObject.setActionType("Modify");
-			exceptionCode = ftpGroupsWb.modifyRecord(vObject);
+			FTPGroupsVb ftpGroupsVb =new FTPGroupsVb();
+			ftpGroupsVb.setActionType("Modify");
+			exceptionCode.setOtherInfo(ftpGroupsVb);
+			exceptionCode = ftpGroupsWb.modifyRecord(exceptionCode,vObjects);
 			jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), exceptionCode.getErrorMsg(),
 					exceptionCode.getOtherInfo());
 			return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
@@ -350,8 +355,40 @@ public class FTPGroupsController {
 				return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
 			}	
 		}
+		
+		// Get FTP RateId Details BY FTP RateId
+		@RequestMapping(path = "/getFTPRateIdDetails", method = RequestMethod.POST)
+		@ApiOperation(value = "Get FTP RATE ID Details ",notes = "FTP RATEID Details",response = ResponseEntity.class)
+		public ResponseEntity<JSONExceptionCode> getFtpRateId(@RequestBody FTPCurveVb vObject) {
+			JSONExceptionCode jsonExceptionCode  = null;
+			try{
+				vObject.setActionType("Query");
+				ExceptionCode  exceptionCode= ftpGroupsWb.getFtpRateIdDetails(vObject);
+				jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), exceptionCode.getErrorMsg(), exceptionCode.getResponse(),exceptionCode.getOtherInfo());
+				return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
+			}catch(RuntimeCustomException rex){
+				jsonExceptionCode = new JSONExceptionCode(Constants.ERRONEOUS_OPERATION, rex.getMessage(), "");
+				return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
+			}	
+		}
 	
-	
+		
+		@RequestMapping(path = "/modifyFtpPremium", method = RequestMethod.POST)
+		@ApiOperation(value = "Add FTPPremium", notes = "Add FTPGroups", response = ResponseEntity.class)
+		public ResponseEntity<JSONExceptionCode> modifyFtpPremium(@RequestBody FTPCurveVb vObject) {
+			JSONExceptionCode jsonExceptionCode = null;
+			ExceptionCode exceptionCode = new ExceptionCode();
+			try {
+				vObject.setActionType("Modify");
+				exceptionCode = ftpGroupsWb.modifyFtpPremium(vObject.getFtpCurveList(),vObject);
+				jsonExceptionCode = new JSONExceptionCode(exceptionCode.getErrorCode(), exceptionCode.getErrorMsg(),exceptionCode.getResponse(),
+						exceptionCode.getOtherInfo());
+				return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
+			} catch (RuntimeCustomException rex) {
+				jsonExceptionCode = new JSONExceptionCode(Constants.ERRONEOUS_OPERATION, rex.getMessage(), "");
+				return new ResponseEntity<JSONExceptionCode>(jsonExceptionCode, HttpStatus.OK);
+			}
+		}
 	
 	
 	

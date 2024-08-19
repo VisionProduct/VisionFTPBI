@@ -14,9 +14,8 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -87,7 +86,7 @@ public class VisionBiApplication {
 		 
 	 }
 	 
-		@RequestMapping(path="/getmethod" , method=RequestMethod.GET)
+		@GetMapping("/getmethod")
 		public String getLanguages(@RequestHeader("Accept-Language") String locale){
          return messageSource().getMessage("greeting",null,new Locale(locale));		
 		}

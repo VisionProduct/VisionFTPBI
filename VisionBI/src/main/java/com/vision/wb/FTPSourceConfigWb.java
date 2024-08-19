@@ -59,49 +59,49 @@ public class FTPSourceConfigWb extends AbstractDynaWorkerBean<FTPSourceConfigVb>
 			getScreenDao().fetchMakerVerifierNames(approvedCollection.get(0));
 		ArrayList<ReviewResultVb> lResult = new ArrayList<ReviewResultVb>();
 		ReviewResultVb lCountry = new ReviewResultVb(rsb.getString("country"),(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getCountry(),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getCountry());
+				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getCountry(),!(approvedCollection.get(0).getCountry().equalsIgnoreCase(pendingCollection.get(0).getCountry())));
 		lResult.add(lCountry);
 		ReviewResultVb lLeBook = new ReviewResultVb(rsb.getString("leBook"),(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getLeBook(),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getLeBook());
+				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getLeBook(),!(approvedCollection.get(0).getLeBook().equalsIgnoreCase(pendingCollection.get(0).getLeBook())));
 		lResult.add(lLeBook);
 		ReviewResultVb lSourceReference = new ReviewResultVb(rsb.getString("sourceReference"),(pendingCollection == null || pendingCollection.isEmpty())?"":getAtDescription((List<AlphaSubTabVb>) collTemp.get(2),pendingCollection.get(0).getSourceReference()),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":getAtDescription((List<AlphaSubTabVb>) collTemp.get(2),approvedCollection.get(0).getSourceReference()));
+				(approvedCollection == null || approvedCollection.isEmpty())?"":getAtDescription((List<AlphaSubTabVb>) collTemp.get(2),approvedCollection.get(0).getSourceReference()),!(approvedCollection.get(0).getSourceReference().equalsIgnoreCase(pendingCollection.get(0).getSourceReference())));
 		lResult.add(lSourceReference);
 		ReviewResultVb lSequence = new ReviewResultVb(rsb.getString("sequence"),(pendingCollection == null || pendingCollection.isEmpty())?"":String.valueOf(pendingCollection.get(0).getSequence()),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":String.valueOf(approvedCollection.get(0).getSequence()));
+				(approvedCollection == null || approvedCollection.isEmpty())?"":String.valueOf(approvedCollection.get(0).getSequence()),!(approvedCollection.get(0).getSequence()==(pendingCollection.get(0).getSequence())));
 		lResult.add(lSequence);
 		ReviewResultVb lTableName = new ReviewResultVb(rsb.getString("tableName"),(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getTableName(),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getTableName());
+				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getTableName(),!(approvedCollection.get(0).getTableName().equalsIgnoreCase(pendingCollection.get(0).getTableName())));
 		lResult.add(lTableName);
 		ReviewResultVb lColumnName = new ReviewResultVb(rsb.getString("columnName"),(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getColName(),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getColName());
+				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getColName(),!(approvedCollection.get(0).getColName().equalsIgnoreCase(pendingCollection.get(0).getColName())));
 		lResult.add(lColumnName);
 		ReviewResultVb lOperand = new ReviewResultVb(rsb.getString("operand"),(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getOperand(),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getOperand());
+				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getOperand(),!(approvedCollection.get(0).getOperand().equalsIgnoreCase(pendingCollection.get(0).getOperand())));
 		lResult.add(lOperand);
 		ReviewResultVb lConditionValue1 = new ReviewResultVb(rsb.getString("conditionValue")+" 1",(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getConditionValue1(),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getConditionValue1());
+				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getConditionValue1(),!(approvedCollection.get(0).getConditionValue1().equalsIgnoreCase(pendingCollection.get(0).getConditionValue1())));
 		lResult.add(lConditionValue1);
 		ReviewResultVb lConditionValue2 = new ReviewResultVb(rsb.getString("conditionValue")+" 2",(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getConditionValue2(),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getConditionValue2());
+				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getConditionValue2(),!(approvedCollection.get(0).getConditionValue2().equalsIgnoreCase(pendingCollection.get(0).getConditionValue2())));
 		lResult.add(lConditionValue2);
-		ReviewResultVb lFtpSourceConfigStatus = new ReviewResultVb(rsb.getString("status"),(pendingCollection == null || pendingCollection.isEmpty())?"":getNtDescription((List<NumSubTabVb>) collTemp.get(1),pendingCollection.get(0).getFtpSourceConfigStatus()),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":getNtDescription((List<NumSubTabVb>) collTemp.get(1),approvedCollection.get(0).getFtpSourceConfigStatus()));
+		ReviewResultVb lFtpSourceConfigStatus = new ReviewResultVb(rsb.getString("status"),(pendingCollection == null || pendingCollection.isEmpty())?"":getNtDescription((List<NumSubTabVb>) collTemp.get(0),pendingCollection.get(0).getFtpSourceConfigStatus()),
+				(approvedCollection == null || approvedCollection.isEmpty())?"":getNtDescription((List<NumSubTabVb>) collTemp.get(0),approvedCollection.get(0).getFtpSourceConfigStatus()),!(approvedCollection.get(0).getFtpSourceConfigStatus()==(pendingCollection.get(0).getFtpSourceConfigStatus())));
 		lResult.add(lFtpSourceConfigStatus);
 		ReviewResultVb lRecordIndicator = new ReviewResultVb(rsb.getString("recordIndicator"),(pendingCollection == null || pendingCollection.isEmpty())?"":getNtDescription((List<NumSubTabVb>) collTemp.get(1),pendingCollection.get(0).getRecordIndicator()),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":getNtDescription((List<NumSubTabVb>) collTemp.get(1),approvedCollection.get(0).getRecordIndicator()));
+				(approvedCollection == null || approvedCollection.isEmpty())?"":getNtDescription((List<NumSubTabVb>) collTemp.get(1),approvedCollection.get(0).getRecordIndicator()),!(approvedCollection.get(0).getRecordIndicator()==(pendingCollection.get(0).getRecordIndicator())));
 		lResult.add(lRecordIndicator);
 		ReviewResultVb lMaker = new ReviewResultVb(rsb.getString("maker"),(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getMaker() == 0?"":pendingCollection.get(0).getMakerName(),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getMaker() == 0?"":approvedCollection.get(0).getMakerName());
+				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getMaker() == 0?"":approvedCollection.get(0).getMakerName(),!(approvedCollection.get(0).getMaker()==(pendingCollection.get(0).getMaker())));
 		lResult.add(lMaker);
 		ReviewResultVb lVerifier = new ReviewResultVb(rsb.getString("verifier"),(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getVerifier() == 0?"":pendingCollection.get(0).getVerifierName(),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getVerifier() == 0?"":approvedCollection.get(0).getVerifierName());
+				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getVerifier() == 0?"":approvedCollection.get(0).getVerifierName(),!(approvedCollection.get(0).getVerifier()==(pendingCollection.get(0).getVerifier())));
 		lResult.add(lVerifier);
 		ReviewResultVb lDateLastModified = new ReviewResultVb(rsb.getString("dateLastModified"),(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getDateLastModified(),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getDateLastModified());
+				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getDateLastModified(),!(approvedCollection.get(0).getDateLastModified().equals(pendingCollection.get(0).getDateLastModified())));
 		lResult.add(lDateLastModified);
 		ReviewResultVb lDateCreation = new ReviewResultVb(rsb.getString("dateCreation"),(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getDateCreation(),
-				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getDateCreation());
+				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getDateCreation(),!(approvedCollection.get(0).getDateCreation().equals(pendingCollection.get(0).getDateCreation())));
 		lResult.add(lDateCreation);
 		return lResult;
 	}

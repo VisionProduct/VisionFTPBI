@@ -44,6 +44,7 @@ public class FtpMethodsDao extends AbstractDao<FtpMethodsVb> {
 				ftpMethodsVb.setLpTenorType(rs.getInt("LP_TENOR_TYPE"));
 				ftpMethodsVb.setRecordIndicatorNt(rs.getInt("RECORD_INDICATOR_NT"));
 				ftpMethodsVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
+				ftpMethodsVb.setRecordIndicatorDesc(rs.getString("RECORD_INDICATOR_DESC"));
 				ftpMethodsVb.setMaker(rs.getLong("MAKER"));
 				ftpMethodsVb.setVerifier(rs.getLong("VERIFIER"));
 				ftpMethodsVb.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
@@ -60,7 +61,8 @@ public class FtpMethodsDao extends AbstractDao<FtpMethodsVb> {
 		};
 		return mapper;
 	}
-	
+	String RecordIndicatorNtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 7, "TAppr.RECORD_INDICATOR", "RECORD_INDICATOR_DESC");
+	String RecordIndicatorNtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 7, "TPend.RECORD_INDICATOR", "RECORD_INDICATOR_DESC");
 	public List<FtpMethodsVb> getQueryPopupResults(FtpMethodsVb dObj){
 		
 		Vector<Object> params = new Vector<Object>();
@@ -69,7 +71,7 @@ public class FtpMethodsDao extends AbstractDao<FtpMethodsVb> {
 				"TAppr.METHOD_TYPE_AT, TAppr.METHOD_TYPE," +
 				"TAppr.METHOD_SUB_TYPE_AT, TAppr.METHOD_SUB_TYPE," +
 				"TAppr.TENOR_TYPE_NT,TAppr.FTP_TENOR_TYPE,TAppr.METHOD_BAL_TYPE_NT,TAppr.METHOD_BAL_TYPE,TAppr.APPLY_RATE_NT,TAppr.FTP_APPLY_RATE,TAppr.ADDON_APPLY_RATE,TAppr.LP_APPLY_RATE,TAppr.FTP_MT_STATUS_NT,TAppr.FTP_MT_STATUS,TAppr.REPRICING_FLAG_AT,TAppr.REPRICING_FLAG,TAppr.LP_TENOR_TYPE,TAppr.RECORD_INDICATOR_NT," +
-				"TAppr.RECORD_INDICATOR, TAppr.MAKER, TAppr.VERIFIER," +
+				"TAppr.RECORD_INDICATOR," +RecordIndicatorNtApprDesc+",TAppr.MAKER, TAppr.VERIFIER," +
 				"TAppr.INTERNAL_STATUS, "+dateFormat+"(TAppr.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED," +
 				dateFormat+"(TAppr.DATE_CREATION, "+dateFormatStr+") DATE_CREATION,TAppr.INTEREST_BASIS_NT,TAppr.INTEREST_BASIS " +
 				" From FTP_METHODS TAppr ");
@@ -80,7 +82,7 @@ public class FtpMethodsDao extends AbstractDao<FtpMethodsVb> {
 				"TPend.METHOD_TYPE_AT, TPend.METHOD_TYPE," +
 				"TPend.METHOD_SUB_TYPE_AT, TPend.METHOD_SUB_TYPE," +
 				"TPend.TENOR_TYPE_NT,TPend.FTP_TENOR_TYPE,TPend.METHOD_BAL_TYPE_NT,TPend.METHOD_BAL_TYPE,TPend.APPLY_RATE_NT,TPend.FTP_APPLY_RATE,TPend.ADDON_APPLY_RATE,TPend.LP_APPLY_RATE,TPend.FTP_MT_STATUS_NT,TPend.FTP_MT_STATUS,TPend.REPRICING_FLAG_AT,TPend.REPRICING_FLAG,TPend.LP_TENOR_TYPE,TPend.RECORD_INDICATOR_NT," +
-				"TPend.RECORD_INDICATOR, TPend.MAKER, TPend.VERIFIER," +
+				"TPend.RECORD_INDICATOR, "+RecordIndicatorNtPendDesc+",TPend.MAKER, TPend.VERIFIER," +
 				"TPend.INTERNAL_STATUS, "+dateFormat+"(TPend.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED," +
 				dateFormat+"(TPend.DATE_CREATION, "+dateFormatStr+") DATE_CREATION,TPend.INTEREST_BASIS_NT,TPend.INTEREST_BASIS " +
 				" From FTP_METHODS_PEND TPend ");
@@ -226,7 +228,8 @@ public class FtpMethodsDao extends AbstractDao<FtpMethodsVb> {
 		objParams[1] = new String(dObj.getRepricingFlag());
 
 		try
-		{if(!dObj.isVerificationRequired()){intStatus =0;}
+		{
+			//if(!dObj.isVerificationRequired()){intStatus =0;}
 			if(intStatus == 0)
 			{
 				logger.info("Executing approved query");
@@ -299,7 +302,7 @@ public class FtpMethodsDao extends AbstractDao<FtpMethodsVb> {
 		String query = "Insert Into FTP_METHODS_PEND ( METHOD_REFERENCE, METHOD_DESCRIPTION,FTP_CURVE_ID_AT,FTP_CURVE_ID,"+
 			" METHOD_TYPE_AT, METHOD_TYPE,  METHOD_SUB_TYPE_AT, METHOD_SUB_TYPE, TENOR_TYPE_NT,FTP_TENOR_TYPE,METHOD_BAL_TYPE_NT,METHOD_BAL_TYPE,APPLY_RATE_NT,FTP_APPLY_RATE,ADDON_APPLY_RATE,LP_APPLY_RATE,FTP_MT_STATUS_NT,FTP_MT_STATUS,REPRICING_FLAG_AT,REPRICING_FLAG,LP_TENOR_TYPE,RECORD_INDICATOR_NT, RECORD_INDICATOR,"+
 			" MAKER, VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION,INTEREST_BASIS_NT,INTEREST_BASIS) "+
-			" Values (?, ?, ?, ?, ?,?, ?, ?,?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "+systemDate+","+dateTimeConvert+",?,?)";
+			" Values (?, ?, ?, ?, ?,?, ?, ?,?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "+systemDate+","+dateTimeConvert+",?,?)";
 		Object[] args = {vObject.getMethodReference(), vObject.getMethodDescription(),vObject.getFtpCurveIdAt(),vObject.getFtpCurveId(), vObject.getMethodTypeAt(),
 				vObject.getMethodType(),vObject.getMethodSubTypeAt(),
 				vObject.getMethodSubType(), vObject.getFtpTenorTypeNt(),vObject.getFtpTenorType(),vObject.getMethodBalTypeNt(),vObject.getMethodBalType(),vObject.getFtpApplyRateNt(),vObject.getFtpApplyRate(),
