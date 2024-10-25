@@ -57,7 +57,7 @@ public class FtpMethodsWb extends AbstractWorkerBean<FtpMethodsVb>{
 			return null;
 		}
 	}
-	@Override
+/*	@Override
 	protected List<ReviewResultVb> transformToReviewResults(List<FtpMethodsVb> approvedCollection, List<FtpMethodsVb> pendingCollection) {
 		ArrayList collTemp = getPageLoadValues();
 		ResourceBundle rsb = CommonUtils.getResourceManger();
@@ -137,7 +137,7 @@ public class FtpMethodsWb extends AbstractWorkerBean<FtpMethodsVb>{
 				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getRecordIndicator() == -1?"":getNtDescription((List<NumSubTabVb>) collTemp.get(0), approvedCollection.get(0).getRecordIndicator()), !(approvedCollection.get(0).getRecordIndicator() == pendingCollection.get(0).getRecordIndicator()));
 		lResult.add(lRecordIndicator);
 		return lResult;
-	}
+	}*/
 	@Override
 	protected void setVerifReqDeleteType(FtpMethodsVb vObject){
 		ArrayList<CommonVb> lCommVbList =(ArrayList<CommonVb>) getCommonDao().findVerificationRequiredAndStaticDelete("FTP_METHODS");
@@ -146,7 +146,7 @@ public class FtpMethodsWb extends AbstractWorkerBean<FtpMethodsVb>{
 	}
 	@Override
 	protected void setAtNtValues(FtpMethodsVb vObject){
-		vObject.setRecordIndicatorNt(7);
+/*		vObject.setRecordIndicatorNt(7);
 		vObject.setStatusNt(1);
 		vObject.setMethodTypeAt(1303);
 		vObject.setRepricingFlagAt(1304);
@@ -156,7 +156,7 @@ public class FtpMethodsWb extends AbstractWorkerBean<FtpMethodsVb>{
 		vObject.setFtpCurveIdAt(1310);
 		vObject.setInterestBasisNt(6);
 		vObject.setFtpApplyRateNt(1304);
-		vObject.setMethodSubTypeAt(1360);
+		vObject.setMethodSubTypeAt(1360);*/
 	}
 	
 	

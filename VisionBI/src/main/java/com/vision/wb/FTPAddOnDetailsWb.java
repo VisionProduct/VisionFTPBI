@@ -37,7 +37,7 @@ public class FTPAddOnDetailsWb extends AbstractDynaWorkerBean<FTPCurveVb>{
 	}
 	@Override
 	protected void setAtNtValues(FTPCurveVb vObject) {
-		vObject.setFtpCurveIdAt(1310);
+//		vObject.setFtpCurveIdAt(1310);
 		vObject.setFtpCurveStatusNt(1);
 		vObject.setRecordIndicatorNt(7);
 	}

@@ -50,9 +50,16 @@ public class MagnifierDao extends AbstractDao<MagnifierResultVb> {
 		RowMapper mapper = new RowMapper() {
 			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
 				MagnifierResultVb magnifierResultVb = new MagnifierResultVb();
-				magnifierResultVb.setColumnOne(rs.getString(1));
-				magnifierResultVb.setColumnTwo(rs.getString(2));
-				magnifierResultVb.setColumnThree(rs.getString(3));
+				if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+					magnifierResultVb.setColumnOne(rs.getString(2));
+					magnifierResultVb.setColumnTwo(rs.getString(3));
+					magnifierResultVb.setColumnThree(rs.getString(4));
+				}else {
+					magnifierResultVb.setColumnOne(rs.getString(1));
+					magnifierResultVb.setColumnTwo(rs.getString(2));
+					magnifierResultVb.setColumnThree(rs.getString(3));					
+				}
+				
 				magnifierResultVb.setMagnifierResult(magnifierResultVb.getColumnOne()+","+magnifierResultVb.getColumnTwo()+","+magnifierResultVb.getColumnThree());
 				return magnifierResultVb;
 			}
@@ -151,8 +158,14 @@ public class MagnifierDao extends AbstractDao<MagnifierResultVb> {
 		RowMapper mapper = new RowMapper() {
 			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
 				MagnifierResultVb magnifierResultVb = new MagnifierResultVb();
-				magnifierResultVb.setColumnNine(rs.getString(1));
-				magnifierResultVb.setColumnTen(rs.getString(2));
+				if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+					magnifierResultVb.setColumnNine(rs.getString(2));
+					magnifierResultVb.setColumnTen(rs.getString(3));
+				}else {
+					magnifierResultVb.setColumnNine(rs.getString(1));
+					magnifierResultVb.setColumnTen(rs.getString(2));
+
+				}
 				magnifierResultVb.setMagnifierResult(magnifierResultVb.getColumnNine()+","+magnifierResultVb.getColumnTen());
 				return magnifierResultVb;
 			}

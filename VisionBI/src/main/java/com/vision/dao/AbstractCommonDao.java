@@ -38,29 +38,42 @@ import com.vision.vb.UserRestrictionVb;
 public abstract class AbstractCommonDao {
 	public static String databaseType;
 	
+	String toChar = "To_Char";
 	String dateFormat = "To_Char";
 	String dateFormatStr= "'DD-Mon-YYYY HH24:MI:SS'";
+	String dateAloneFormatStr= "'DD-Mon-YYYY'";
 	String systemDate = "SysDate";
 	String dateTimeConvert = "To_Date(?, 'DD-MM-YYYY HH24:MI:SS')";
 	String dateConvert = "To_Date(?, 'DD-MM-YYYY')";
 	String nullFun = "NVL";
+	String numberFormat = "'99,999,999,999,999,999,990.99990'";
 	
-	String makerApprDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TAPPR.MAKER,0) ) MAKER_NAME";
+	
+	String makerApprDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TAppr.MAKER,0) ) MAKER_NAME";
 	String makerPendDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TPend.MAKER,0) ) MAKER_NAME";
 	
-	String verifierApprDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TAPPR.VERIFIER,0) ) VERIFIER_NAME";
+	String verifierApprDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TAppr.VERIFIER,0) ) VERIFIER_NAME";
 	String verifierPendDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TPend.VERIFIER,0) ) VERIFIER_NAME";
 	
 	@Value("${app.databaseType}")
 	public void setDatabaseType(String privateName) {
 		AbstractCommonDao.databaseType = privateName;
 		if ("MSSQL".equalsIgnoreCase(privateName) || "SQLSERVER".equalsIgnoreCase(privateName)) {
+			toChar = "";
 			dateFormat = "Format";
 			dateFormatStr = "'dd-MM-yyyy HH:mm:ss'";
+			dateAloneFormatStr = "'dd-MM-yyyy'";
 			systemDate = "GetDate()";
 			dateTimeConvert = "CONVERT(datetime, ?, 103)";
 			dateConvert = "CONVERT(datetime, ?, 103)";
 			nullFun = "ISNULL";
+			
+			makerApprDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = CASE  WHEN TAppr.MAKER IS NULL THEN 0  ELSE TAppr.MAKER  END ) MAKER_NAME";
+			verifierApprDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = CASE  WHEN TAppr.VERIFIER IS NULL THEN 0  ELSE TAppr.VERIFIER  END ) VERIFIER_NAME";
+			
+			makerPendDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = CASE  WHEN TPend.MAKER IS NULL THEN 0  ELSE TPend.MAKER  END ) MAKER_NAME";
+			verifierPendDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = CASE  WHEN TPend.VERIFIER IS NULL THEN 0  ELSE TPend.VERIFIER  END ) VERIFIER_NAME";
+			numberFormat = "'##,###,##0.#0'";
 		}
 	}
 	
@@ -191,6 +204,21 @@ public abstract class AbstractCommonDao {
 
 	public String getSystemDate() {
 		String sql = "SELECT To_Char(SysDate, 'DD-MM-YYYY HH24:MI:SS') AS SYSDATE1 FROM DUAL";
+		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+			sql = "SELECT Format(GetDate(), 'dd-MM-yyyy HH:mm:ss') AS SYSDATE1 ";
+		}
+		RowMapper mapper = new RowMapper() {
+			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return (rs.getString("SYSDATE1"));
+			}
+		};
+		return (String) getJdbcTemplate().queryForObject(sql, null, mapper);
+	}
+	public String getSystemDate1() {
+		String sql = "SELECT To_Char(SysDate, 'DD-MM-YYYY') AS SYSDATE1 FROM DUAL";
+		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+			sql = "SELECT Format(GetDate(), 'dd-MM-yyyy') AS SYSDATE1 ";
+		}
 		RowMapper mapper = new RowMapper() {
 			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return (rs.getString("SYSDATE1"));
@@ -202,6 +230,9 @@ public abstract class AbstractCommonDao {
 
 	protected String getReferenceNo() {
 		String sql = "SELECT TO_CHAR(SYSTIMESTAMP,'yyyymmddhh24missff') as timestamp FROM DUAL";
+		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+			sql = "SELECT Format(SYSTIMESTAMP,'yyyymmddhh24missff') as timestamp ";
+		}
 		try {
 			RowMapper mapper = new RowMapper() {
 				public Object mapRow(ResultSet rs, int rowNum) throws SQLException {

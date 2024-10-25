@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ import com.vision.exception.ExceptionCode;
 import com.vision.util.CommonUtils;
 import com.vision.util.Constants;
 import com.vision.util.Paginationhelper;
+import com.vision.util.PaginationhelperMsSql;
 import com.vision.util.ValidationUtil;
 import com.vision.vb.AuditTrailDataVb;
 import com.vision.vb.CommonVb;
@@ -23,6 +25,9 @@ import com.vision.vb.CommonVb;
 @Component
 public class AbstractQueryDao<E extends CommonVb> extends AbstractCommonDao {
 
+	@Value("${app.databaseType}")
+	 private String databaseType;
+	
 	/**
 	 * Any subclass of this class must overwrite the bellow methods.
 	 * Can be taken as Abstract but not all the DAO class would be using these methods.
@@ -120,10 +125,14 @@ public class AbstractQueryDao<E extends CommonVb> extends AbstractCommonDao {
 
 		for(Ctr=0; Ctr < params.size(); Ctr++)
 			objParams[Ctr] = (Object) params.elementAt(Ctr);
+		if ("ORACLE".equalsIgnoreCase(databaseType)) {
+			pendingQuery.append(orderBy);
+		}
 		
-		pendingQuery.append(orderBy);
+		Paginationhelper<E> paginationhelper = new Paginationhelper<E>();
+		PaginationhelperMsSql<E> paginationhelperMsSql = new PaginationhelperMsSql<E>();
 		
-		Paginationhelper<E> paginationhelper = new Paginationhelper<E>(); 
+		
 		if(dObj.isVerificationRequired() && dObj.getRecordIndicator() != 0){
 			//Same set of parameters are needed for the Pending table query too
 			//So add another set of similar values to the objects array
@@ -141,21 +150,45 @@ public class AbstractQueryDao<E extends CommonVb> extends AbstractCommonDao {
 			}else{
 				query = approveQuery.toString() + " Union " + pendingQuery.toString();
 			}
-			if(dObj.getTotalRows()  <= 0){
-				result = paginationhelper.fetchPage(getJdbcTemplate(), query, 
-						objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);
-				dObj.setTotalRows(paginationhelper.getTotalRows());
-			}else{
-				result = paginationhelper.fetchPage(getJdbcTemplate(), query, 
-						objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper); 
+			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+				
+				query = ValidationUtil.convertQuery(query, orderBy);
+				
+				if(dObj.getTotalRows()  <= 0){
+					result = paginationhelperMsSql.fetchPage(getJdbcTemplate(), query, 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);
+					dObj.setTotalRows(paginationhelperMsSql.getTotalRows());
+				}else{
+					result = paginationhelperMsSql.fetchPage(getJdbcTemplate(), query, 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper); 
+				}
+			}else {
+				if(dObj.getTotalRows()  <= 0){
+					result = paginationhelper.fetchPage(getJdbcTemplate(), query, 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);
+					dObj.setTotalRows(paginationhelper.getTotalRows());
+				}else{
+					result = paginationhelper.fetchPage(getJdbcTemplate(), query, 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper); 
+				}
 			}
 		}else{
-			if(dObj.getTotalRows()  <= 0){
-				result = paginationhelper.fetchPage(getJdbcTemplate(), approveQuery.toString()+orderBy, 
-						objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);
-				dObj.setTotalRows(paginationhelper.getTotalRows());
-			}else{
-				result = paginationhelper.fetchPage(getJdbcTemplate(), approveQuery.toString()+orderBy, objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper);
+			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+				if(dObj.getTotalRows()  <= 0){
+					result = paginationhelperMsSql.fetchPage(getJdbcTemplate(), ValidationUtil.convertQuery(approveQuery.toString(), orderBy), 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);
+					dObj.setTotalRows(paginationhelperMsSql.getTotalRows());
+				}else{
+					result = paginationhelperMsSql.fetchPage(getJdbcTemplate(), ValidationUtil.convertQuery(approveQuery.toString(), orderBy), objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper);
+				}
+			}else {
+				if(dObj.getTotalRows()  <= 0){
+					result = paginationhelper.fetchPage(getJdbcTemplate(), approveQuery.toString()+orderBy, 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);
+					dObj.setTotalRows(paginationhelper.getTotalRows());
+				}else{
+					result = paginationhelper.fetchPage(getJdbcTemplate(), approveQuery.toString()+orderBy, objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper);
+				}
 			}
 		}
 		return result;

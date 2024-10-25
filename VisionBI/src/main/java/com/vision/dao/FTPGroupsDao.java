@@ -10,7 +10,9 @@ import java.util.List;
 import java.util.Vector;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DataSourceUtils;
@@ -23,21 +25,40 @@ import com.vision.exception.ExceptionCode;
 import com.vision.exception.RuntimeCustomException;
 import com.vision.util.CommonUtils;
 import com.vision.util.Constants;
+import com.vision.util.Paginationhelper;
+import com.vision.util.PaginationhelperMsSql;
 import com.vision.util.ValidationUtil;
 import com.vision.vb.AlphaSubTabVb;
+import com.vision.vb.DCManualQueryVb;
 import com.vision.vb.FTPCurveVb;
 import com.vision.vb.FTPGroupsVb;
 import com.vision.vb.FTPSourceConfigVb;
+import com.vision.vb.FtpAddonVb;
 import com.vision.vb.FtpMethodsVb;
+import com.vision.vb.FtpPremiumsVb;
 import com.vision.vb.SmartSearchVb;
+import com.vision.vb.VcConfigMainColumnsVb;
+import com.vision.vb.VcConfigMainTreeVb;
 
 @Component
 public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
+	@Value("${app.databaseType}")
+	 private String databaseType;
+	
 	@Autowired
 	FTPSourceConfigDao ftpSourceConfigDao;
 
 	@Autowired
 	FtpMethodsDao ftpMethodsDao;
+	
+	@Autowired
+	FtpCurvesDao ftpCurvesDao;
+	
+	@Autowired
+	FtpAddonDao ftpAddonDao;
+	
+	@Autowired
+	FtpPremiumsDao ftpPremiumsDao;
 
 	public FtpMethodsDao getFtpMethodsDao() {
 		return ftpMethodsDao;
@@ -54,100 +75,1897 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 	public void setFtpSourceConfigDao(FTPSourceConfigDao ftpSourceConfigDao) {
 		this.ftpSourceConfigDao = ftpSourceConfigDao;
 	}
-	String makerApprDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TAPPR.MAKER,0) ) MAKER_NAME";
-	String makerPendDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TPend.MAKER,0) ) MAKER_NAME";
-	
-	String verifierApprDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TAPPR.VERIFIER,0) ) VERIFIER_NAME";
-	String verifierPendDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TPend.VERIFIER,0) ) VERIFIER_NAME";
 
-	String VariableStatusNtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TAppr.FTP_GRP_STATUS",
+	String DataSourceAtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 10, "TAppr.DATA_SOURCE", "DATA_SOURCE_DESC");
+	String DataSourceAtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 10, "TPend.DATA_SOURCE", "DATA_SOURCE_DESC");
+
+	String FtpGroupAtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 1301, "TAppr.FTP_GROUP", "FTP_GROUP_DESC");
+	String FtpGroupAtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 1301, "TPend.FTP_GROUP", "FTP_GROUP_DESC");
+	
+	String StatusNtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TAppr.FTP_GRP_STATUS",
 			"FTP_GRP_STATUS_DESC");
-	String VariableStatusNtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TPend.FTP_GRP_STATUS",
+	String StatusNtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 1, "TPend.FTP_GRP_STATUS",
 			"FTP_GRP_STATUS_DESC");
 
 	String RecordIndicatorNtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 7, "TAppr.RECORD_INDICATOR",
 			"RECORD_INDICATOR_DESC");
 	String RecordIndicatorNtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 7, "TPend.RECORD_INDICATOR",
 			"RECORD_INDICATOR_DESC");
+	
+//	New Changes Start
+	
+	public List<FTPGroupsVb> getQueryPopupResultsByGroup(FTPGroupsVb dObj) {
+		List<FTPGroupsVb> collTemp = null;
+		Vector<Object> params = new Vector<Object>();
+		StringBuffer strBufApprove = new StringBuffer("Select Distinct TAppr.COUNTRY, TAppr.LE_BOOK, "
+				+ " TAppr.DATA_SOURCE,TAPPR.FTP_GROUP"
+				+ ",(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC  " + " From FTP_GROUPS TAppr");
+		StringBuffer strBufPending = new StringBuffer("Select Distinct TPend.COUNTRY, TPend.LE_BOOK, "
+				+ " TPend.DATA_SOURCE,TPend.FTP_GROUP"
+				+ ",(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC  " + " From FTP_GROUPS_PEND TPend");
+		String strWhereNotExists = new String( " Not Exists (Select 'X' From FTP_GROUPS_PEND TPend WHERE TAppr.COUNTRY = TPend.COUNTRY AND TAppr.LE_BOOK = TPend.LE_BOOK AND TAppr.DATA_SOURCE = TPend.DATA_SOURCE AND TAppr.FTP_GROUP = TPend.FTP_GROUP AND TAppr.FTP_SUB_GROUP_ID = TPend.FTP_SUB_GROUP_ID )");
+		try {
+			if (dObj.getSmartSearchOpt() != null && dObj.getSmartSearchOpt().size() > 0) {
+				int count = 1;
+				for (SmartSearchVb data : dObj.getSmartSearchOpt()) {
+					if (count == dObj.getSmartSearchOpt().size()) {
+						data.setJoinType("");
+					} else {
+						if (!ValidationUtil.isValid(data.getJoinType()) && !("AND".equalsIgnoreCase(data.getJoinType())
+								|| "OR".equalsIgnoreCase(data.getJoinType()))) {
+							data.setJoinType("AND");
+						}
+					}
+					String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
+					switch (data.getObject()) {
+					case "country":
+						CommonUtils.addToQuerySearch(" upper(TAppr.COUNTRY) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.COUNTRY) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					case "leBook":
+						CommonUtils.addToQuerySearch(" upper(TAppr.LE_BOOK) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.LE_BOOK) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					case "ftpGroupDesc":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_GROUP) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_GROUP) " + val, strBufPending, data.getJoinType());
+						break;				
+						
+					case "ftpSubGroupPriority":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_PRIORITY) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_PRIORITY) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					case "dataSource":
+						CommonUtils.addToQuerySearch(" upper(TAppr.DATA_SOURCE) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.DATA_SOURCE) " + val, strBufPending, data.getJoinType());
+						break;	
+						
+					case "ftpSubGroupDesc":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_DESC) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_DESC) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					case "recordIndicatorDesc":
+						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR) " + val, strBufPending, data.getJoinType());
+						break;						
+						
+					case "statusDesc":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_GRP_STATUS) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_GRP_STATUS) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					case "defaultGroup":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_DEFAULT_FLAG) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_DEFAULT_FLAG) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					default:
+					}
+					count++;
+				}
+			}
+			String orderBy = " Order By COUNTRY, LE_BOOK, DATA_SOURCE, FTP_GROUP ";
+			return getQueryPopupResults(dObj, strBufPending, strBufApprove, strWhereNotExists, orderBy, params,
+					getQueryPopupMapper());
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
+			if (params != null)
+				for (int i = 0; i < params.size(); i++)
+					logger.error("objParams[" + i + "]" + params.get(i).toString());
+			return null;
+		}
+	}
 
-	/*
-	 * FTPGroupsVb ftpSourceConfigVb = new FTPGroupsVb();
-	 * ftpSourceConfigVb.setCountry(rs.getString("COUNTRY"));
-	 * ftpSourceConfigVb.setLeBook(rs.getString("LE_BOOK"));
-	 * ftpSourceConfigVb.setDataSource(rs.getString("DATA_SOURCE"));
-	 * ftpSourceConfigVb.setDataSourceDescription(rs.getString("DATA_SOURCE_DESC"));
-	 * ftpSourceConfigVb.setFtpGroup(rs.getString("FTP_GROUP"));
-	 * ftpSourceConfigVb.setFtpReference(rs.getString("FTP_REFERENCE"));
-	 * ftpSourceConfigVb.setGroupSeq(rs.getInt("FTP_GROUP_SEQ"));
-	 * ftpSourceConfigVb.setFtpDescription(rs.getString("FTP_DESCRIPTION"));
-	 * ftpSourceConfigVb.setSourceReference(rs.getString("SOURCE_REFERENCE"));
-	 * ftpSourceConfigVb.setMethodReference(rs.getString("METHOD_REFERENCE"));
-	 * ftpSourceConfigVb.setMethodDescription(rs.getString("METHOD_DESCRIPTION"));
-	 * ftpSourceConfigVb.setDefaultGroup(rs.getString("FTP_DEFAULT_FLAG"));
-	 * ftpSourceConfigVb.setFtpGroupStatus(rs.getInt("FTP_GRP_STATUS"));
-	 * ftpSourceConfigVb.setStatusDesc(rs.getString("FTP_GRP_STATUS_DESC"));
-	 * ftpSourceConfigVb.setDbStatus(rs.getInt("FTP_GRP_STATUS"));
-	 * ftpSourceConfigVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
-	 * ftpSourceConfigVb.setRecordIndicatorDesc(rs.getString("RECORD_INDICATOR_DESC"
-	 * )); ftpSourceConfigVb.setMaker(rs.getInt("MAKER"));
-	 * ftpSourceConfigVb.setVerifier(rs.getInt("VERIFIER"));
-	 * ftpSourceConfigVb.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
-	 * ftpSourceConfigVb.setDateLastModified(rs.getString("DATE_LAST_MODIFIED"));
-	 * ftpSourceConfigVb.setDateCreation(rs.getString("DATE_CREATION")); return
-	 * ftpSourceConfigVb;
-	 */
+	public List<FTPGroupsVb> getQueryPopupResultsDetails(FTPGroupsVb dObj) {
+		List<FTPGroupsVb> collTemp = null;
+		Vector<Object> params = new Vector<Object>();
+		/*StringBuffer strBufApprove = new StringBuffer("SELECT * FROM (SELECT TAppr.COUNTRY,TAppr.LE_BOOK,TAppr.DATA_SOURCE,\n"
+				+ "(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC\n"
+				+ ",TAppr.FTP_GROUP,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC"
+				+ ",TAppr.FTP_SUB_GROUP_PRIORITY,\n" + "	 TAppr.SOURCE_REFERENCE,\n"
+				+ "(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB T1 WHERE ALPHA_TAB = SOURCE_REFERENCE_AT AND ALPHA_sub_TAB= SOURCE_REFERENCE ) SOURCE_REFERENCE_DESC,\n"
+				+ "				TAppr.METHOD_REFERENCE,\n"
+				+ "				(SELECT MIN(METHOD_DESCRIPTION) FROM FTP_METHODS WHERE METHOD_REFERENCE = TAppr.METHOD_REFERENCE) METHOD_DESCRIPTION,\n"
+				+ "				TAppr.FTP_DEFAULT_FLAG,\n" + "				TAppr.FTP_GRP_STATUS, "
+				+ VariableStatusNtApprDesc + ",TAppr.RECORD_INDICATOR, " + RecordIndicatorNtApprDesc
+				+ ",TAppr.MAKER,"+makerApprDesc+" ,TAppr.VERIFIER,"+verifierApprDesc+",TAppr.INTERNAL_STATUS,TAppr.DATE_CREATION,TAppr.DATE_LAST_MODIFIED \n"
+				+ "				FROM FTP_GROUPS TAppr) TAppr");*/
+		
+		/*StringBuffer strBufApprove = new StringBuffer("SELECT * FROM (SELECT TAppr.COUNTRY,TAppr.LE_BOOK,TAppr.DATA_SOURCE,  \n" + 
+				"				   (SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC  \n" + 
+				"				   ,TAppr.FTP_GROUP,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC \n" + 
+				"				   ,TAppr.FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+				"				   				TAppr.FTP_SUB_GROUP_ID,  \n" + 
+				"				   				FTP_SUB_GROUP_DESC,  \n" + 
+				"				   				METHOD_TYPE,\n" + 
+				"				   				(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_sub_TAB= METHOD_TYPE ) METHOD_TYPE_DESC ,  \n" + 
+				"				   				TAppr.FTP_DEFAULT_FLAG,      				TAppr.FTP_GRP_STATUS,     \n" + StatusNtApprDesc+
+				"				   ,TAppr.RECORD_INDICATOR,\n" +RecordIndicatorNtApprDesc+ 
+				"				   ,TAppr.MAKER, "+makerApprDesc+",  TAppr.VERIFIER, "+verifierApprDesc+",   TAppr.INTERNAL_STATUS,TAppr.DATE_CREATION,TAppr.DATE_LAST_MODIFIED   \n" + 
+				"				   				FROM FTP_GROUPS TAppr, FTP_METHODS FTP_METHOD\n" + 
+				"				   				WHERE  TAppr.COUNTRY = FTP_METHOD.COUNTRY\n" + 
+				"				   				AND TAppr.LE_BOOK = FTP_METHOD.LE_BOOK\n" + 
+				"				   				AND TAppr.FTP_SUB_GROUP_ID = FTP_METHOD.FTP_SUB_GROUP_ID) TAppr");*/
 
-	/*
-	 * public RowMapper getQueryPopupMapper(){ RowMapper mapper = new RowMapper() {
-	 * FTPGroupsVb vObjectParent = new FTPGroupsVb(); // FTPGroupsVb vObjectParent =
-	 * null; String previousConnectorId = ""; List<FTPGroupsVb> result = new
-	 * ArrayList<FTPGroupsVb>(); public Object mapRow(ResultSet rs, int rowNum)
-	 * throws SQLException { FTPGroupsVb childVb = new FTPGroupsVb();
-	 * 
-	 * 
-	 * String keyValue =
-	 * rs.getString("COUNTRY")+""+rs.getString("LE_BOOK")+""+rs.getString(
-	 * "DATA_SOURCE")+""+rs.getString("FTP_GROUP"); if
-	 * (!ValidationUtil.isValid(previousConnectorId)) { vObjectParent = new
-	 * FTPGroupsVb(rs.getString("COUNTRY"),
-	 * rs.getString("LE_BOOK"),rs.getString("DATA_SOURCE"),
-	 * rs.getString("FTP_GROUP")); previousConnectorId =
-	 * rs.getString("COUNTRY")+""+rs.getString("LE_BOOK")+""+rs.getString(
-	 * "DATA_SOURCE")+""+rs.getString("FTP_GROUP"); } else if
-	 * (!previousConnectorId.equalsIgnoreCase(keyValue)) {
-	 * result.add(vObjectParent); vObjectParent = new
-	 * FTPGroupsVb(rs.getString("COUNTRY"),
-	 * rs.getString("LE_BOOK"),rs.getString("DATA_SOURCE"),
-	 * rs.getString("FTP_GROUP")); previousConnectorId =
-	 * rs.getString("COUNTRY")+""+rs.getString("LE_BOOK")+""+rs.getString(
-	 * "DATA_SOURCE")+""+rs.getString("FTP_GROUP"); }
-	 * childVb.setCountry(rs.getString("COUNTRY"));
-	 * childVb.setLeBook(rs.getString("LE_BOOK"));
-	 * childVb.setDataSource(rs.getString("DATA_SOURCE"));
-	 * childVb.setDataSourceDescription(rs.getString("DATA_SOURCE_DESC"));
-	 * childVb.setFtpGroup(rs.getString("FTP_GROUP"));
-	 * childVb.setFtpReference(rs.getString("FTP_REFERENCE"));
-	 * childVb.setGroupSeq(rs.getInt("FTP_GROUP_SEQ"));
-	 * childVb.setFtpDescription(rs.getString("FTP_DESCRIPTION"));
-	 * childVb.setSourceReference(rs.getString("SOURCE_REFERENCE"));
-	 * childVb.setMethodReference(rs.getString("METHOD_REFERENCE"));
-	 * childVb.setMethodDescription(rs.getString("METHOD_DESCRIPTION"));
-	 * childVb.setDefaultGroup(rs.getString("FTP_DEFAULT_FLAG"));
-	 * childVb.setFtpGroupStatus(rs.getInt("FTP_GRP_STATUS"));
-	 * childVb.setStatusDesc(rs.getString("FTP_GRP_STATUS_DESC"));
-	 * childVb.setDbStatus(rs.getInt("FTP_GRP_STATUS"));
-	 * childVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
-	 * childVb.setRecordIndicatorDesc(rs.getString("RECORD_INDICATOR_DESC"));
-	 * childVb.setMaker(rs.getInt("MAKER"));
-	 * childVb.setVerifier(rs.getInt("VERIFIER"));
-	 * childVb.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
-	 * childVb.setDateLastModified(rs.getString("DATE_LAST_MODIFIED"));
-	 * childVb.setDateCreation(rs.getString("DATE_CREATION"));
-	 * 
-	 * vObjectParent.getChildList().add(childVb); return vObjectParent; }
-	 * 
-	 * }; return mapper; }
-	 */
+		String strApprGroupBy = " GROUP BY TAppr.COUNTRY, TAppr.LE_BOOK, TAppr.DATA_SOURCE, TAppr.FTP_GROUP,\n" + 
+				"         TAppr.FTP_SUB_GROUP_PRIORITY, TAppr.FTP_SUB_GROUP_ID, FTP_SUB_GROUP_DESC,\n" + 
+				"         TAppr.FTP_DEFAULT_FLAG, TAppr.FTP_GRP_STATUS, TAppr.RECORD_INDICATOR,\n" + 
+				"         TAppr.MAKER, TAppr.VERIFIER, TAppr.INTERNAL_STATUS, TAppr.DATE_CREATION,\n" + 
+				"         TAppr.DATE_LAST_MODIFIEd, TAppr.DATA_SOURCE_AT, TAppr.FTP_GROUP_AT ";
+		
+		String strPendGroupBy =  "GROUP BY TPend.COUNTRY, TPend.LE_BOOK, TPend.DATA_SOURCE, TPend.FTP_GROUP,\n" + 
+				"         TPend.FTP_SUB_GROUP_PRIORITY, TPend.FTP_SUB_GROUP_ID, FTP_SUB_GROUP_DESC,\n" + 
+				"         TPend.FTP_DEFAULT_FLAG, TPend.FTP_GRP_STATUS, TPend.RECORD_INDICATOR,\n" + 
+				"         TPend.MAKER, TPend.VERIFIER, TPend.INTERNAL_STATUS, TPend.DATE_CREATION,\n" + 
+				"         TPend.DATE_LAST_MODIFIEd, TPend.DATA_SOURCE_AT, TPend.FTP_GROUP_AT ";
+		
+		StringBuffer strBufApprove = new StringBuffer("SELECT * FROM (SELECT TAppr.COUNTRY,TAppr.LE_BOOK,TAppr.DATA_SOURCE,  \n" + 
+				"				   (SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC  \n" + 
+				"				   ,TAppr.FTP_GROUP,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC \n" + 
+				"				   ,TAppr.FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+				"				   				TAppr.FTP_SUB_GROUP_ID,  \n" + 
+				"				   				FTP_SUB_GROUP_DESC,  \n" + 
+				"				   				LISTAGG(METHOD_TYPE, ', ') WITHIN GROUP (ORDER BY METHOD_TYPE) AS METHOD_TYPE_DESC ,\n" + 
+//				"				   				(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_sub_TAB= METHOD_TYPE ) METHOD_TYPE_DESC ,  \n" + 
+				"				   				TAppr.FTP_DEFAULT_FLAG,      				TAppr.FTP_GRP_STATUS,     \n" + StatusNtApprDesc+
+				"				   ,TAppr.RECORD_INDICATOR,\n" +RecordIndicatorNtApprDesc+ 
+				"				   ,TAppr.MAKER, "+makerApprDesc+",  TAppr.VERIFIER, "+verifierApprDesc+",   TAppr.INTERNAL_STATUS,TAppr.DATE_CREATION,TAppr.DATE_LAST_MODIFIED   \n" + 
+				"				   				FROM FTP_GROUPS TAppr LEFT JOIN  FTP_METHODS FTP_METHOD\n" + 
+				"				   				ON  TAppr.COUNTRY = FTP_METHOD.COUNTRY\n" + 
+				"				   				AND TAppr.LE_BOOK = FTP_METHOD.LE_BOOK\n" + 
+				"				   				AND TAppr.FTP_SUB_GROUP_ID = FTP_METHOD.FTP_SUB_GROUP_ID"
+				+ " "+strApprGroupBy+" "
+				+ ") TAppr");
+		
+		StringBuffer strBufPending = new StringBuffer("SELECT * FROM (SELECT TPend.COUNTRY,TPend.LE_BOOK,TPend.DATA_SOURCE,  \n" + 
+				"				   (SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC  \n" + 
+				"				   ,TPend.FTP_GROUP,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC \n" + 
+				"				   ,TPend.FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+				"				   				TPend.FTP_SUB_GROUP_ID,  \n" + 
+				"				   				FTP_SUB_GROUP_DESC,  \n" + 
+				"				   				LISTAGG(METHOD_TYPE, ', ') WITHIN GROUP (ORDER BY METHOD_TYPE) AS METHOD_TYPE_DESC ,\n" + 
+//				"				   				(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_sub_TAB= METHOD_TYPE ) METHOD_TYPE_DESC ,  \n" + 
+				"				   				TPend.FTP_DEFAULT_FLAG,      				TPend.FTP_GRP_STATUS,     \n" + StatusNtPendDesc+
+				"				   ,TPend.RECORD_INDICATOR,\n" +RecordIndicatorNtPendDesc+ 
+				"				   ,TPend.MAKER, "+makerPendDesc+",  TPend.VERIFIER, "+verifierPendDesc+",   TPend.INTERNAL_STATUS,TPend.DATE_CREATION,TPend.DATE_LAST_MODIFIED   \n" + 
+				"				   				FROM FTP_GROUPS_PEND TPend LEFT JOIN  FTP_METHODS_PEND FTP_METHOD\n" + 
+				"				   				ON  TPend.COUNTRY = FTP_METHOD.COUNTRY\n" + 
+				"				   				AND TPend.LE_BOOK = FTP_METHOD.LE_BOOK\n" + 
+				"				   				AND TPend.FTP_SUB_GROUP_ID = FTP_METHOD.FTP_SUB_GROUP_ID"
+				+ " "+strPendGroupBy+" "
+				+ ") TPend");
+		try {
+			if (ValidationUtil.isValid(dObj.getCountry())) {
+				params.addElement("%" + dObj.getCountry().toUpperCase() + "%");
+				CommonUtils.addToQuery("UPPER(TAppr.COUNTRY) like ?", strBufApprove);
+				CommonUtils.addToQuery("UPPER(TPend.COUNTRY) like ?", strBufPending);
+			}
+			if (ValidationUtil.isValid(dObj.getLeBook())) {
+				params.addElement("%" + dObj.getLeBook().toUpperCase() + "%");
+				CommonUtils.addToQuery("UPPER(TAppr.LE_BOOK) like ?", strBufApprove);
+				CommonUtils.addToQuery("UPPER(TPend.LE_BOOK) like ?", strBufPending);
+			}
+			if (!"-1".equalsIgnoreCase(dObj.getDataSource())) {
+				params.addElement(dObj.getDataSource());
+				CommonUtils.addToQuery("TAppr.DATA_SOURCE = ?", strBufApprove);
+				CommonUtils.addToQuery("TPend.DATA_SOURCE = ?", strBufPending);
+			}
+			if (!"-1".equalsIgnoreCase(dObj.getFtpGroup())) {
+				params.addElement(dObj.getFtpGroup());
+				CommonUtils.addToQuery("TAppr.FTP_GROUP = ?", strBufApprove);
+				CommonUtils.addToQuery("TPend.FTP_GROUP = ?", strBufPending);
+			}
+			// check if the column [RECORD_INDICATOR] should be included in the query
+			if (dObj.getRecordIndicator() != -1) {
+				if (dObj.getRecordIndicator() > 3) {
+					params.addElement(new Integer(0));
+					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR > ?", strBufApprove);
+					CommonUtils.addToQuery("TPend.RECORD_INDICATOR > ?", strBufPending);
+				} else {
+					params.addElement(new Integer(dObj.getRecordIndicator()));
+					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR = ?", strBufApprove);
+					CommonUtils.addToQuery("TPend.RECORD_INDICATOR = ?", strBufPending);
+				}
+			}
+
+			
+			if (dObj.getSmartSearchOpt() != null && dObj.getSmartSearchOpt().size() > 0) {
+				int count = 1;
+				for (SmartSearchVb data : dObj.getSmartSearchOpt()) {
+					if (count == dObj.getSmartSearchOpt().size()) {
+						data.setJoinType("");
+					} else {
+						if (!ValidationUtil.isValid(data.getJoinType()) && !("AND".equalsIgnoreCase(data.getJoinType())
+								|| "OR".equalsIgnoreCase(data.getJoinType()))) {
+							data.setJoinType("AND");
+						}
+					}
+					String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
+					switch (data.getObject()) {
+					case "ftpSubGroupPriority":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_PRIORITY) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_PRIORITY) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					case "dataSource":
+						CommonUtils.addToQuerySearch(" upper(TAppr.DATA_SOURCE) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.DATA_SOURCE) " + val, strBufPending, data.getJoinType());
+						break;	
+						
+					case "ftpSubGroupDesc":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_DESC) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_DESC) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					case "recordIndicatorDesc":
+						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR) " + val, strBufPending, data.getJoinType());
+						break;						
+						
+					case "ftpGroupStatus":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_GRP_STATUS) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_GRP_STATUS) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					case "defaultGroup":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_DEFAULT_FLAG) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_DEFAULT_FLAG) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					default:
+					}
+					count++;
+				}
+			} 
+
+			String strWhereNotExists = new String( " Not Exists (Select 'X' From FTP_GROUPS_PEND TPend WHERE TAppr.COUNTRY = TPend.COUNTRY AND TAppr.LE_BOOK = TPend.LE_BOOK AND TAppr.DATA_SOURCE = TPend.DATA_SOURCE AND TAppr.FTP_GROUP = TPend.FTP_GROUP AND TAppr.FTP_SUB_GROUP_ID = TPend.FTP_SUB_GROUP_ID )");
+			
+			String orderBy = " ORDER BY COUNTRY, LE_BOOK, DATA_SOURCE, FTP_GROUP, FTP_SUB_GROUP_PRIORITY,FTP_SUB_GROUP_ID ";
+//			strBufApprove.append(strApprGroupBy);
+			
+			return getQueryPopupResults(dObj, strBufPending, strBufApprove, strWhereNotExists, orderBy, params,
+					getQueryPopupMapperDetails());
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
+			if (params != null)
+				for (int i = 0; i < params.size(); i++)
+					logger.error("objParams[" + i + "]" + params.get(i).toString());
+			return null;
+		}
+	}
+	public List<FTPGroupsVb> getQueryPopupResultsDetailsNew(FTPGroupsVb dObj) {
+		List<FTPGroupsVb> collTemp = null;
+		Vector<Object> params = new Vector<Object>();
+		StringBuffer strBufApprove = new StringBuffer("SELECT TAppr.COUNTRY,TAppr.LE_BOOK,TAppr.DATA_SOURCE,  \n" + 
+				"				   (SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC  \n" + 
+				"				   ,TAppr.FTP_GROUP,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC \n" + 
+				"				   ,TAppr.FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+				"				   				TAppr.FTP_SUB_GROUP_ID,  \n" + 
+				"				   				FTP_SUB_GROUP_DESC,  \n" + 
+				"				   				TAppr.FTP_DEFAULT_FLAG,      				TAppr.FTP_GRP_STATUS,     \n" + StatusNtApprDesc+
+				"				   ,TAppr.RECORD_INDICATOR,\n" +RecordIndicatorNtApprDesc+ 
+				"				   ,TAppr.MAKER, "+makerApprDesc+",  TAppr.VERIFIER, "+verifierApprDesc+",   TAppr.INTERNAL_STATUS,TAppr.DATE_CREATION,TAppr.DATE_LAST_MODIFIED   \n" + 
+				"				   				FROM FTP_GROUPS TAppr LEFT JOIN  FTP_METHODS FTP_METHOD\n" + 
+				"				   				ON  TAppr.COUNTRY = FTP_METHOD.COUNTRY\n" + 
+				"				   				AND TAppr.LE_BOOK = FTP_METHOD.LE_BOOK\n" + 
+				"				   				AND TAppr.FTP_SUB_GROUP_ID = FTP_METHOD.FTP_SUB_GROUP_ID ");
+		
+		StringBuffer strBufPending = new StringBuffer("SELECT TPend.COUNTRY,TPend.LE_BOOK,TPend.DATA_SOURCE,  \n" + 
+				"				   (SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC  \n" + 
+				"				   ,TPend.FTP_GROUP,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC \n" + 
+				"				   ,TPend.FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+				"				   				TPend.FTP_SUB_GROUP_ID,  \n" + 
+				"				   				FTP_SUB_GROUP_DESC,  \n" + 
+				"				   				TPend.FTP_DEFAULT_FLAG,      				TPend.FTP_GRP_STATUS,     \n" + StatusNtPendDesc+
+				"				   ,TPend.RECORD_INDICATOR,\n" +RecordIndicatorNtPendDesc+ 
+				"				   ,TPend.MAKER, "+makerPendDesc+",  TPend.VERIFIER, "+verifierPendDesc+",   TPend.INTERNAL_STATUS,TPend.DATE_CREATION,TPend.DATE_LAST_MODIFIED   \n" + 
+				"				   				FROM FTP_GROUPS_PEND TPend LEFT JOIN  FTP_METHODS_PEND FTP_METHOD\n" + 
+				"				   				ON  TPend.COUNTRY = FTP_METHOD.COUNTRY\n" + 
+				"				   				AND TPend.LE_BOOK = FTP_METHOD.LE_BOOK\n" + 
+				"				   				AND TPend.FTP_SUB_GROUP_ID = FTP_METHOD.FTP_SUB_GROUP_ID ");
+		try {
+			if (ValidationUtil.isValid(dObj.getCountry())) {
+				params.addElement("%" + dObj.getCountry().toUpperCase() + "%");
+				CommonUtils.addToQuery("UPPER(TAppr.COUNTRY) like ?", strBufApprove);
+				CommonUtils.addToQuery("UPPER(TPend.COUNTRY) like ?", strBufPending);
+			}
+			if (ValidationUtil.isValid(dObj.getLeBook())) {
+				params.addElement("%" + dObj.getLeBook().toUpperCase() + "%");
+				CommonUtils.addToQuery("UPPER(TAppr.LE_BOOK) like ?", strBufApprove);
+				CommonUtils.addToQuery("UPPER(TPend.LE_BOOK) like ?", strBufPending);
+			}
+			if (!"-1".equalsIgnoreCase(dObj.getDataSource())) {
+				params.addElement(dObj.getDataSource());
+				CommonUtils.addToQuery("TAppr.DATA_SOURCE = ?", strBufApprove);
+				CommonUtils.addToQuery("TPend.DATA_SOURCE = ?", strBufPending);
+			}
+			if (!"-1".equalsIgnoreCase(dObj.getFtpGroup())) {
+				params.addElement(dObj.getFtpGroup());
+				CommonUtils.addToQuery("TAppr.FTP_GROUP = ?", strBufApprove);
+				CommonUtils.addToQuery("TPend.FTP_GROUP = ?", strBufPending);
+			}
+			// check if the column [RECORD_INDICATOR] should be included in the query
+			if (dObj.getRecordIndicator() != -1) {
+				if (dObj.getRecordIndicator() > 3) {
+					params.addElement(new Integer(0));
+					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR > ?", strBufApprove);
+					CommonUtils.addToQuery("TPend.RECORD_INDICATOR > ?", strBufPending);
+				} else {
+					params.addElement(new Integer(dObj.getRecordIndicator()));
+					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR = ?", strBufApprove);
+					CommonUtils.addToQuery("TPend.RECORD_INDICATOR = ?", strBufPending);
+				}
+			}
+
+			
+			if (dObj.getSmartSearchOpt() != null && dObj.getSmartSearchOpt().size() > 0) {
+				int count = 1;
+				for (SmartSearchVb data : dObj.getSmartSearchOpt()) {
+					if (count == dObj.getSmartSearchOpt().size()) {
+						data.setJoinType("");
+					} else {
+						if (!ValidationUtil.isValid(data.getJoinType()) && !("AND".equalsIgnoreCase(data.getJoinType())
+								|| "OR".equalsIgnoreCase(data.getJoinType()))) {
+							data.setJoinType("AND");
+						}
+					}
+					String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
+					switch (data.getObject()) {
+					case "ftpSubGroupPriority":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_PRIORITY) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_PRIORITY) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					case "dataSource":
+						CommonUtils.addToQuerySearch(" upper(TAppr.DATA_SOURCE) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.DATA_SOURCE) " + val, strBufPending, data.getJoinType());
+						break;	
+						
+					case "ftpSubGroupDesc":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_DESC) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_DESC) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					case "recordIndicatorDesc":
+						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR) " + val, strBufPending, data.getJoinType());
+						break;						
+						
+					case "ftpGroupStatus":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_GRP_STATUS) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_GRP_STATUS) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					case "defaultGroup":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_DEFAULT_FLAG) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_DEFAULT_FLAG) " + val, strBufPending, data.getJoinType());
+						break;
+						
+					default:
+					}
+					count++;
+				}
+			} 
+
+			String strWhereNotExists = new String( " Not Exists (Select 'X' From FTP_GROUPS_PEND TPend WHERE TAppr.COUNTRY = TPend.COUNTRY AND TAppr.LE_BOOK = TPend.LE_BOOK AND TAppr.DATA_SOURCE = TPend.DATA_SOURCE AND TAppr.FTP_GROUP = TPend.FTP_GROUP AND TAppr.FTP_SUB_GROUP_ID = TPend.FTP_SUB_GROUP_ID )");
+			
+			String orderBy = " ORDER BY COUNTRY, LE_BOOK, DATA_SOURCE, FTP_GROUP, FTP_SUB_GROUP_PRIORITY,FTP_SUB_GROUP_ID ";
+//			strBufApprove.append(strApprGroupBy);
+			
+			return getQueryPopupResults(dObj, strBufPending, strBufApprove, strWhereNotExists, orderBy, params, getQueryPopupMapperDetails());
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
+			if (params != null)
+				for (int i = 0; i < params.size(); i++)
+					logger.error("objParams[" + i + "]" + params.get(i).toString());
+			return null;
+		}
+	}
+	protected List<FTPGroupsVb> getQueryPopupResults(FTPGroupsVb dObj,StringBuffer pendingQuery, StringBuffer approveQuery, 
+			String whereNotExistsQuery,	String orderBy, Vector<Object> params, RowMapper rowMapper){
+		Object objParams[]=null;
+		int Ctr = 0;
+		int Ctr2 = 0;
+		List<FTPGroupsVb> result;
+		// Now the params are ready with the values.Create an object array and insert the values into it
+		if(dObj.isVerificationRequired() && dObj.getRecordIndicator() != 0){
+			objParams = new Object[params.size()*2];
+		}else{
+			objParams = new Object[params.size()];
+		}
+
+		for(Ctr=0; Ctr < params.size(); Ctr++)
+			objParams[Ctr] = (Object) params.elementAt(Ctr);
+		
+//		pendingQuery.append(orderBy);
+		
+		Paginationhelper<FTPGroupsVb> paginationhelper = new Paginationhelper<FTPGroupsVb>(); 
+		PaginationhelperMsSql<FTPGroupsVb> paginationhelperMsSql = new PaginationhelperMsSql<FTPGroupsVb>();
+		if(dObj.isVerificationRequired() && dObj.getRecordIndicator() != 0){
+			//Same set of parameters are needed for the Pending table query too
+			//So add another set of similar values to the objects array
+			for(Ctr2=0 ; Ctr2 < params.size(); Ctr2++, Ctr++)
+				objParams[Ctr] = (Object) params.elementAt(Ctr2);
+			if(whereNotExistsQuery != null && !whereNotExistsQuery.isEmpty() && approveQuery != null)
+				CommonUtils.addToQuery(whereNotExistsQuery, approveQuery);
+			String query = "";
+			if(approveQuery == null || pendingQuery == null){
+				if(approveQuery == null){
+					query = pendingQuery.toString();
+				}else{
+					query = approveQuery.toString();
+				}
+			}else{
+				query = approveQuery.toString() + " Union " + pendingQuery.toString();
+			}
+			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+				query = ValidationUtil.convertQuery(query, orderBy);
+			}else {
+				query = query+" "+ orderBy;
+			}
+			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+				if(dObj.getTotalRows()  <= 0){
+					result = paginationhelperMsSql.fetchPage(getJdbcTemplate(), query, 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);
+					dObj.setTotalRows(paginationhelper.getTotalRows());
+				}else{
+					result = paginationhelperMsSql.fetchPage(getJdbcTemplate(), query, 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper); 
+				}
+			}else {
+				if(dObj.getTotalRows()  <= 0){
+					result = paginationhelper.fetchPage(getJdbcTemplate(), query, 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);
+					dObj.setTotalRows(paginationhelper.getTotalRows());
+				}else{
+					result = paginationhelper.fetchPage(getJdbcTemplate(), query, 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper); 
+				}				
+			}
+		}else{
+			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+				if(dObj.getTotalRows()  <= 0){
+					result = paginationhelperMsSql.fetchPage(getJdbcTemplate(), ValidationUtil.convertQuery(approveQuery.toString(), orderBy), 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);
+					dObj.setTotalRows(paginationhelper.getTotalRows());
+				}else{
+					result = paginationhelperMsSql.fetchPage(getJdbcTemplate(), ValidationUtil.convertQuery(approveQuery.toString(), orderBy), objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper);
+				}				
+			}else {
+				if(dObj.getTotalRows()  <= 0){
+					result = paginationhelper.fetchPage(getJdbcTemplate(), approveQuery.toString()+orderBy, 
+							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);
+					dObj.setTotalRows(paginationhelper.getTotalRows());
+				}else{
+					result = paginationhelper.fetchPage(getJdbcTemplate(), approveQuery.toString()+orderBy, objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper);
+				}				
+			}
+		}
+		return result;
+	}
+	
+	public List<FtpMethodsVb> getQueryResultMethods(FTPGroupsVb dObj) {
+		List<FtpMethodsVb> collTemp = null;
+
+		String strBufApprove = new String("SELECT\n" + 
+				"COUNTRY,\n" + 
+				"LE_BOOK,\n" + 
+				"FTP_SUB_GROUP_ID,\n" + 
+				"REPRICING_FLAG_AT,\n" + 
+				"REPRICING_FLAG,(SELECT ALPHA_SUBTAB_DESCRIPTION from ALPHA_SUB_TAB WHERE ALPHA_TAB = REPRICING_FLAG_AT AND ALPHA_SUB_TAB = REPRICING_FLAG ) REPRICING_FLAG_DESC,\n" + 
+				"METHOD_TYPE_AT,\n" + 
+				"METHOD_TYPE,(SELECT ALPHA_SUBTAB_DESCRIPTION from ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB = METHOD_TYPE )METHOD_TYPE_DESC,\n" + 
+				"TENOR_TYPE_NT,\n" + 
+				"FTP_TENOR_TYPE,(SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = TENOR_TYPE_NT AND NUM_SUB_TAB = FTP_TENOR_TYPE) FTP_TENOR_TYPE_DESC,\n" + 
+				"METHOD_BAL_TYPE_NT,\n" + 
+				"METHOD_BAL_TYPE,(SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = METHOD_BAL_TYPE_NT AND NUM_SUB_TAB = METHOD_BAL_TYPE ) METHOD_BAL_TYPE_DESC,\n" + 
+				"INTEREST_BASIS_NT,\n" + 
+				"INTEREST_BASIS,(SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = INTEREST_BASIS_NT AND NUM_SUB_TAB = INTEREST_BASIS) INTEREST_BASIS_DESC,\n" + 
+				"APPLY_RATE_NT,\n" + 
+				"FTP_APPLY_RATE,(SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = APPLY_RATE_NT AND NUM_SUB_TAB = FTP_APPLY_RATE ) FTP_APPLY_RATE_DESC ,\n" + 
+				"FTP_CURVE_ID,\n" + 
+				"FTP_MT_STATUS_NT,\n" + 
+				"FTP_MT_STATUS,\n" + 
+				"RECORD_INDICATOR_NT,\n" + 
+				"RECORD_INDICATOR,\n" + 
+				"MAKER,\n" + 
+				"VERIFIER,\n" + 
+				"INTERNAL_STATUS,\n" + 
+				"DATE_LAST_MODIFIED,\n" + 
+				"DATE_CREATION \n" + 
+				" FROM FTP_METHODS WHERE FTP_MT_STATUS = 0 and COUNTRY = ? and LE_BOOK = ? and FTP_SUB_GROUP_ID = ? ");
+
+//		if (ValidationUtil.isValid(dObj.getRepricingFlag())) {
+//			strBufApprove = new String(
+//					"SELECT METHOD_TYPE, METHOD_REFERENCE, METHOD_DESCRIPTION,(SELECT ALPHA_SUBTAB_DESCRIPTION from ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB = METHOD_TYPE )METHOD_TYPE_DESC "
+//							+ ", METHOD_SUB_TYPE, (SELECT ALPHA_SUBTAB_DESCRIPTION from ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_SUB_TYPE_AT AND ALPHA_SUB_TAB = METHOD_SUB_TYPE ) METHOD_SUB_TYPE_DESC , "
+//							+ "REPRICING_FLAG, (SELECT ALPHA_SUBTAB_DESCRIPTION from ALPHA_SUB_TAB WHERE ALPHA_TAB = REPRICING_FLAG_AT AND ALPHA_SUB_TAB = REPRICING_FLAG ) REPRICING_FLAG_DESC, "
+//							+ "FTP_TENOR_TYPE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = TENOR_TYPE_NT AND NUM_SUB_TAB = FTP_TENOR_TYPE) FTP_TENOR_TYPE_DESC,"
+//							+ "LP_TENOR_TYPE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = TENOR_TYPE_NT AND NUM_SUB_TAB = LP_TENOR_TYPE) LP_TENOR_TYPE_DESC,"
+//							+ "METHOD_BAL_TYPE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = METHOD_BAL_TYPE_NT AND NUM_SUB_TAB = METHOD_BAL_TYPE ) METHOD_BAL_TYPE_DESC,"
+//							+ "INTEREST_BASIS, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = INTEREST_BASIS_NT AND NUM_SUB_TAB = INTEREST_BASIS) INTEREST_BASIS_DESC,"
+//							+ "FTP_APPLY_RATE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = APPLY_RATE_NT AND NUM_SUB_TAB = FTP_APPLY_RATE ) FTP_APPLY_RATE_DESC ,"
+//							+ "ADDON_APPLY_RATE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = APPLY_RATE_NT AND NUM_SUB_TAB = ADDON_APPLY_RATE ) ADDON_APPLY_RATE_DESC ,"
+//							+ "LP_APPLY_RATE,  (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB =  APPLY_RATE_NT AND NUM_SUB_TAB = LP_APPLY_RATE )LP_APPLY_RATE_DESC ,"
+//							+ "FTP_CURVE_ID,FTP_MT_STATUS,RECORD_INDICATOR FROM FTP_METHODS WHERE METHOD_REFERENCE = ? AND FTP_MT_STATUS = 0 and REPRICING_FLAG='"
+//							+ dObj.getRepricingFlag() + "'");
+//		}
+		final int intKeyFieldsCount = 3;
+		Object objParams[] = new Object[intKeyFieldsCount];
+		objParams[0] = dObj.getMethodReference();
+
+		try {
+			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getMapperMethods());
+			return collTemp;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			logger.error("Error: getQueryResults Exception :   ");
+			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
+			return null;
+		}
+	}
+	
+	public List<FTPGroupsVb> getQueryResults(FTPGroupsVb dObj, int intStatus){
+		setServiceDefaults();
+		List<FTPGroupsVb> collTemp = null;
+		final int intKeyFieldsCount = 5;
+		String strQueryAppr = new String("Select TAppr.COUNTRY"
+			+ ",TAppr.LE_BOOK"
+			+ ",TAppr.DATA_SOURCE_AT"
+			+ ",TAppr.DATA_SOURCE,"+DataSourceAtApprDesc
+			+ ",TAppr.FTP_GROUP_AT"
+			+ ",TAppr.FTP_GROUP, "+FtpGroupAtApprDesc
+			+ ",TAppr.FTP_SUB_GROUP_ID"
+			+ ",TAppr.FTP_SUB_GROUP_PRIORITY"
+			+ ",TAppr.FTP_SUB_GROUP_DESC"
+			+ ",TAppr.FTP_DEFAULT_FLAG"
+			+ ",TAppr.FTP_GRP_STATUS_NT"
+			+ ",TAppr.FTP_GRP_STATUS,"+StatusNtApprDesc
+			+ ",TAppr.RECORD_INDICATOR_NT"
+			+ ",TAppr.RECORD_INDICATOR, "+RecordIndicatorNtApprDesc
+			+ ",TAppr.MAKER, "+makerApprDesc
+			+ ",TAppr.VERIFIER, "+verifierApprDesc
+			+ ",TAppr.INTERNAL_STATUS"
+			+ ", "+dateFormat+"(TAppr.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED"
+			+ ", "+dateFormat+"(TAppr.DATE_CREATION, "+dateFormatStr+") DATE_CREATION"+
+			" From FTP_GROUPS TAppr WHERE COUNTRY = ?  AND LE_BOOK = ?  AND DATA_SOURCE = ?  AND FTP_GROUP = ?  AND FTP_SUB_GROUP_ID = ?  ");
+		String strQueryPend = new String("Select TPend.COUNTRY"
+			+ ",TPend.LE_BOOK"
+			+ ",TPend.DATA_SOURCE_AT"
+			+ ",TPend.DATA_SOURCE, "+DataSourceAtPendDesc
+			+ ",TPend.FTP_GROUP_AT"
+			+ ",TPend.FTP_GROUP, "+FtpGroupAtPendDesc
+			+ ",TPend.FTP_SUB_GROUP_ID"
+			+ ",TPend.FTP_SUB_GROUP_PRIORITY"
+			+ ",TPend.FTP_SUB_GROUP_DESC"
+			+ ",TPend.FTP_DEFAULT_FLAG"
+			+ ",TPend.FTP_GRP_STATUS_NT"
+			+ ",TPend.FTP_GRP_STATUS,"+StatusNtPendDesc
+			+ ",TPend.RECORD_INDICATOR_NT"
+			+ ",TPend.RECORD_INDICATOR, "+RecordIndicatorNtPendDesc
+			+ ",TPend.MAKER, "+makerPendDesc
+			+ ",TPend.VERIFIER, "+verifierPendDesc
+			+ ",TPend.INTERNAL_STATUS"
+			+ ", "+dateFormat+"(TPend.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED"
+			+ ", "+dateFormat+"(TPend.DATE_CREATION, "+dateFormatStr+") DATE_CREATION"+
+			" From FTP_GROUPS_PEND TPend WHERE COUNTRY = ?  AND LE_BOOK = ?  AND DATA_SOURCE = ?  AND FTP_GROUP = ?  AND FTP_SUB_GROUP_ID = ?   ");
+
+		Object objParams[] = new Object[intKeyFieldsCount];
+		objParams[0] = dObj.getCountry();
+		objParams[1] = dObj.getLeBook();
+		objParams[2] = dObj.getDataSource();
+		objParams[3] = dObj.getFtpGroup();
+		objParams[4] = dObj.getFtpSubGroupId();
+
+		try{
+			if(!dObj.isVerificationRequired()){intStatus =0;}
+			if(intStatus == 0){
+				logger.info("Executing approved query");
+				collTemp = getJdbcTemplate().query(strQueryAppr.toString(),objParams,getMapper());
+			}else{
+				logger.info("Executing pending query");
+				collTemp = getJdbcTemplate().query(strQueryPend.toString(),objParams,getMapper());
+			}
+			return collTemp;
+		}catch(Exception ex){
+				ex.printStackTrace();
+				logger.error("Error: getQueryResults Exception :   ");
+				if(intStatus == 0)
+					logger.error(((strQueryAppr == null) ? "strQueryAppr is Null" : strQueryAppr.toString()));
+				else
+					logger.error(((strQueryPend == null) ? "strQueryPend is Null" : strQueryPend.toString()));
+
+				if (objParams != null)
+				for(int i=0 ; i< objParams.length; i++)
+					logger.error("objParams[" + i + "]" + objParams[i].toString());
+				return null;
+				}
+	}
+	
+	public List<FTPGroupsVb> getQueryAllSequences(FTPGroupsVb dObj, int intStatus){
+		setServiceDefaults();
+		StringBuffer strQueryAppr = new StringBuffer("Select DISTINCT "
+			+ "TAppr.FTP_SUB_GROUP_ID, "
+			+ "TAppr.FTP_SUB_GROUP_PRIORITY"+
+			" From FTP_GROUPS TAppr WHERE COUNTRY = ?  AND LE_BOOK = ?  AND DATA_SOURCE = ?  AND FTP_GROUP = ?");
+		StringBuffer strQueryPend = new StringBuffer("Select DISTINCT "
+			+ "TPend.FTP_SUB_GROUP_ID, "
+			+ " TPend.FTP_SUB_GROUP_PRIORITY"+
+			" From FTP_GROUPS_PEND TPend WHERE COUNTRY = ?  AND LE_BOOK = ?  AND DATA_SOURCE = ?  AND FTP_GROUP = ?");
+		
+		String strWhereNotExists = new String( " Not Exists (Select 'X' From FTP_GROUPS_PEND TPend WHERE TAppr.COUNTRY = TPend.COUNTRY AND TAppr.LE_BOOK = TPend.LE_BOOK AND TAppr.DATA_SOURCE = TPend.DATA_SOURCE AND TAppr.FTP_GROUP = TPend.FTP_GROUP AND TAppr.FTP_SUB_GROUP_ID = TPend.FTP_SUB_GROUP_ID )");
+		Vector<Object> params = new Vector<Object>();
+		final int intKeyFieldsCount = 4;
+		Object objParams[] = new Object[intKeyFieldsCount];
+		objParams[0] = dObj.getCountry();
+		objParams[1] = dObj.getLeBook();
+		objParams[2] = dObj.getDataSource();
+		objParams[3] = dObj.getFtpGroup();
+		
+		params.addElement(dObj.getCountry());
+		params.addElement(dObj.getLeBook());
+		params.addElement(dObj.getDataSource());
+		params.addElement(dObj.getFtpGroup());
+		try{
+			
+			RowMapper mapper = new RowMapper() {
+				public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+					FTPGroupsVb vObject = new FTPGroupsVb();
+					vObject.setFtpSubGroupId(rs.getString("FTP_SUB_GROUP_ID"));
+					vObject.setFtpSubGroupPriority(rs.getInt("FTP_SUB_GROUP_PRIORITY"));
+					return vObject;
+				}
+			};
+			String orderBy=" Order By FTP_SUB_GROUP_PRIORITY ";
+			return getQueryPopupResults(dObj, strQueryPend, strQueryAppr, strWhereNotExists, orderBy, params, mapper);
+		}catch(Exception ex){
+				ex.printStackTrace();
+				logger.error("Error: getQueryResults Exception :   ");
+				if(intStatus == 0)
+					logger.error(((strQueryAppr == null) ? "strQueryAppr is Null" : strQueryAppr.toString()));
+				else
+					logger.error(((strQueryPend == null) ? "strQueryPend is Null" : strQueryPend.toString()));
+
+				if (objParams != null)
+				for(int i=0 ; i< objParams.length; i++)
+					logger.error("objParams[" + i + "]" + objParams[i].toString());
+				return null;
+				}
+	}
+	@Override
+	protected RowMapper getMapper(){
+		RowMapper mapper = new RowMapper() {
+			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+				FTPGroupsVb vObject = new FTPGroupsVb();
+				if(rs.getString("COUNTRY")!= null){ 
+					vObject.setCountry(rs.getString("COUNTRY"));
+				}else{
+					vObject.setCountry("");
+				}
+				if(rs.getString("LE_BOOK")!= null){ 
+					vObject.setLeBook(rs.getString("LE_BOOK"));
+				}else{
+					vObject.setLeBook("");
+				}
+				vObject.setDataSourceAt(rs.getInt("DATA_SOURCE_AT"));
+				if(rs.getString("DATA_SOURCE")!= null){ 
+					vObject.setDataSource(rs.getString("DATA_SOURCE"));
+				}else{
+					vObject.setDataSource("");
+				}
+				if(rs.getString("DATA_SOURCE_DESC")!= null){ 
+					vObject.setDataSourceDescription(rs.getString("DATA_SOURCE_DESC"));
+				}
+				vObject.setFtpGroupAt(rs.getInt("FTP_GROUP_AT"));
+				if(rs.getString("FTP_GROUP")!= null){ 
+					vObject.setFtpGroup(rs.getString("FTP_GROUP"));
+				}else{
+					vObject.setFtpGroup("");
+				}
+				if(rs.getString("FTP_GROUP_DESC")!= null){ 
+					vObject.setFtpGroupDesc(rs.getString("FTP_GROUP_DESC"));
+				}
+				if(rs.getString("FTP_SUB_GROUP_ID")!= null){ 
+					vObject.setFtpSubGroupId(rs.getString("FTP_SUB_GROUP_ID"));
+				}else{
+					vObject.setFtpSubGroupId("");
+				}
+				vObject.setFtpSubGroupPriority(rs.getInt("FTP_SUB_GROUP_PRIORITY"));
+				if(rs.getString("FTP_SUB_GROUP_DESC")!= null){ 
+					vObject.setFtpSubGroupDesc(rs.getString("FTP_SUB_GROUP_DESC"));
+				}else{
+					vObject.setFtpSubGroupDesc("");
+				}
+				if(rs.getString("FTP_DEFAULT_FLAG")!= null){ 
+					vObject.setDefaultGroup(rs.getString("FTP_DEFAULT_FLAG"));
+				}else{
+					vObject.setDefaultGroup("");
+				}
+				vObject.setFtpGroupStatusNt(rs.getInt("FTP_GRP_STATUS_NT"));
+				vObject.setFtpGroupStatus(rs.getInt("FTP_GRP_STATUS"));
+				
+				vObject.setStatusDesc(rs.getString("FTP_GRP_STATUS_DESC"));
+				
+				vObject.setRecordIndicatorNt(rs.getInt("RECORD_INDICATOR_NT"));
+				vObject.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
+				vObject.setRecordIndicatorDesc(rs.getString("RECORD_INDICATOR_DESC"));
+				vObject.setMaker(rs.getInt("MAKER"));
+				if(ValidationUtil.isValid(rs.getString("MAKER_NAME")))
+					vObject.setMakerName(rs.getString("MAKER_NAME"));
+				vObject.setVerifier(rs.getInt("VERIFIER"));
+				if(ValidationUtil.isValid(rs.getString("VERIFIER_NAME")))
+					vObject.setVerifierName(rs.getString("VERIFIER_NAME"));
+				vObject.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
+				if(rs.getString("DATE_LAST_MODIFIED")!= null){ 
+					vObject.setDateLastModified(rs.getString("DATE_LAST_MODIFIED"));
+				}else{
+					vObject.setDateLastModified("");
+				}
+				if(rs.getString("DATE_CREATION")!= null){ 
+					vObject.setDateCreation(rs.getString("DATE_CREATION"));
+				}else{
+					vObject.setDateCreation("");
+				}
+				return vObject;
+			}
+		};
+		return mapper;
+	}
+	protected RowMapper getMapperMethods() {
+		RowMapper mapper = new RowMapper() {
+			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+				FtpMethodsVb ftpMethodsVb = new FtpMethodsVb();
+				ftpMethodsVb = new FtpMethodsVb();
+				ftpMethodsVb.setFtpCurveId(rs.getString("FTP_CURVE_ID"));
+				ftpMethodsVb.setMethodType(rs.getString("METHOD_TYPE"));
+				ftpMethodsVb.setMethodTypeDesc(rs.getString("METHOD_TYPE_DESC"));
+				ftpMethodsVb.setFtpTenorType(rs.getInt("FTP_TENOR_TYPE"));
+				ftpMethodsVb.setFtpTenorTypeDesc(rs.getString("FTP_TENOR_TYPE_DESC"));
+				ftpMethodsVb.setMethodBalType(rs.getInt("METHOD_BAL_TYPE"));
+				ftpMethodsVb.setMethodBalTypeDesc(rs.getString("METHOD_BAL_TYPE_DESC"));
+				ftpMethodsVb.setRepricingFlag(rs.getString("REPRICING_FLAG"));
+				ftpMethodsVb.setRepricingFlagDesc(rs.getString("REPRICING_FLAG_DESC"));
+				ftpMethodsVb.setFtpMtStatus(rs.getInt("FTP_MT_STATUS"));
+				ftpMethodsVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
+
+				ftpMethodsVb.setInterestBasis(rs.getInt("INTEREST_BASIS"));
+				ftpMethodsVb.setFtpApplyRate(rs.getInt("FTP_APPLY_RATE"));
+
+				ftpMethodsVb.setInterestBasisDesc(rs.getString("INTEREST_BASIS_DESC"));
+				ftpMethodsVb.setFtpApplyRateDesc(rs.getString("FTP_APPLY_RATE_DESC"));
+				return ftpMethodsVb;
+			}
+		};
+		return mapper;
+	}
+
+	@Override
+	protected List<FTPGroupsVb> doSelectPendingRecord(FTPGroupsVb vObject){
+		return getQueryResults(vObject, Constants.STATUS_PENDING);
+	}
+	@Override
+	protected ExceptionCode doInsertrOrUpdateApprRecordForNonTrans(FTPGroupsVb vObject) throws RuntimeCustomException {
+		List<FTPGroupsVb> collTemp = null;
+		FTPGroupsVb vObjectlocal = null;
+		ExceptionCode exceptionCode = null;
+		strErrorDesc = "";
+		strApproveOperation = Constants.MODIFY;
+		strCurrentOperation = Constants.MODIFY;
+		
+		if(ValidationUtil.isValid(vObject.getActionType())) {
+			strApproveOperation = vObject.getActionType();
+			strCurrentOperation = vObject.getActionType();
+		}
+		
+		setServiceDefaults();
+		vObject.setMaker(getIntCurrentUserId());
+		if ("RUNNING".equalsIgnoreCase(getBuildStatus(vObject))) {
+			exceptionCode = getResultObject(Constants.BUILD_IS_RUNNING);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		/*
+		 * if (getQueryResultsGroup(vObject) == 0){ exceptionCode =
+		 * getResultObject(Constants.ERRONEOUS_OPERATION); throw
+		 * buildRuntimeCustomException(exceptionCode); }
+		 */
+		// Even if record is not there in Appr. table reject the record
+		collTemp = getQueryResults(vObject, 0);
+		if (collTemp == null || collTemp.size() == 0) {
+			/*
+			 * exceptionCode =
+			 * getResultObject(Constants.ATTEMPT_TO_MODIFY_UNEXISTING_RECORD); throw
+			 * buildRuntimeCustomException(exceptionCode);
+			 */
+			vObject.setRecordIndicator(Constants.STATUS_ZERO);
+			vObject.setVerifier(getIntCurrentUserId());
+			retVal = doInsertionGroups(vObject);
+			if (retVal != Constants.SUCCESSFUL_OPERATION) {
+				exceptionCode = getResultObject(retVal);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			
+		}else {
+			vObject.setRecordIndicator(Constants.STATUS_ZERO);
+			vObject.setVerifier(getIntCurrentUserId());
+//			retVal = doUpdateDefaultFlag(vObject);
+			retVal = doUpdateAppr(vObject);
+			if (retVal != Constants.SUCCESSFUL_OPERATION) {
+				exceptionCode = getResultObject(retVal);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			String systemDate = getSystemDate();
+			vObject.setDateLastModified(systemDate);
+		}
+		// exceptionCode = writeAuditLog(vObject, vObjectlocal);
+		/*
+		 * if(exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION){
+		 * exceptionCode = getResultObject(Constants.AUDIT_TRAIL_ERROR); throw
+		 * buildRuntimeCustomException(exceptionCode); }
+		 */
+		
+		// Source Configuration Add / Modify 
+		for (FTPSourceConfigVb sourceConfigVb  : vObject.getFtpSourceConfigList() ) {
+			sourceConfigVb.setVerificationRequired(vObject.isVerificationRequired());
+			sourceConfigVb.setStaticDelete(vObject.isStaticDelete());
+			exceptionCode = ftpSourceConfigDao.doInsertrOrUpdateApprRecordForNonTrans(sourceConfigVb);
+			if(exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+				return exceptionCode;
+			}
+		}
+
+		// Method Configuration Add / Modify
+		for (FtpMethodsVb methodsVb  : vObject.getFtpMethodsList() ) {
+			methodsVb.setVerificationRequired(vObject.isVerificationRequired());
+			methodsVb.setStaticDelete(vObject.isStaticDelete());
+			exceptionCode = ftpMethodsDao.doInsertrOrUpdateApprRecordForNonTrans(methodsVb);
+			if(exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+				return exceptionCode;
+			}
+		}
+		
+		exceptionCode = getResultObject(Constants.SUCCESSFUL_OPERATION);
+		return exceptionCode;
+	}
+	
+	public ExceptionCode doUpdateRecordForNonTrans(FTPGroupsVb vObject) throws RuntimeCustomException {
+		List<FTPGroupsVb> collTemp = null;
+		FTPGroupsVb vObjectlocal = null;
+		ExceptionCode exceptionCode = null;
+		strApproveOperation = Constants.MODIFY;
+		strErrorDesc = "";
+		strCurrentOperation = Constants.MODIFY;
+		
+		if(ValidationUtil.isValid(vObject.getActionType())) {
+			strApproveOperation = vObject.getActionType();
+			strCurrentOperation = vObject.getActionType();
+		}
+		setServiceDefaults();
+		vObject.setMaker(getIntCurrentUserId());
+		// Search if record already exists in pending. If it already exists, check for
+		// status
+		collTemp = doSelectPendingRecord(vObject);
+		if (collTemp == null) {
+			exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		if (collTemp.size() > 0) {
+			vObjectlocal = ((ArrayList<FTPGroupsVb>) collTemp).get(0);
+
+			// Check if the record is pending for deletion. If so return the error
+			if (vObjectlocal.getRecordIndicator() == Constants.STATUS_DELETE) {
+				exceptionCode = getResultObject(Constants.RECORD_PENDING_FOR_DELETION);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			vObject.setDateCreation(vObjectlocal.getDateCreation());
+			if (vObjectlocal.getRecordIndicator() == Constants.STATUS_INSERT) {
+				vObject.setVerifier(0);
+				vObject.setRecordIndicator(Constants.STATUS_INSERT);
+				retVal = doUpdatePend(vObject);
+			} else {
+				vObject.setVerifier(0);
+				vObject.setRecordIndicator(Constants.STATUS_UPDATE);
+				retVal = doUpdatePend(vObject);
+			}
+			if (retVal != Constants.SUCCESSFUL_OPERATION) {
+				exceptionCode = getResultObject(retVal);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+		} else {
+			collTemp = null;
+			collTemp = selectApprovedRecord(vObject);
+
+			if (collTemp == null) {
+				exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+
+			// Even if record is not there in Appr. table reject the record
+			if (collTemp.size() == 0) {
+//				exceptionCode = getResultObject(Constants.ATTEMPT_TO_MODIFY_UNEXISTING_RECORD);
+//				throw buildRuntimeCustomException(exceptionCode);
+				// Try inserting the record
+				vObject.setVerifier(0);
+				vObject.setRecordIndicator(Constants.STATUS_INSERT);
+				String systemDate = getSystemDate();
+				vObject.setDateLastModified(systemDate);
+				vObject.setDateCreation(systemDate);
+				retVal = doInsertionPend(vObject);
+				if (retVal != Constants.SUCCESSFUL_OPERATION) {
+					exceptionCode = getResultObject(retVal);
+					throw buildRuntimeCustomException(exceptionCode);
+				}
+			}else {
+				// This is required for Audit Trail.
+				if (collTemp.size() > 0) {
+					vObjectlocal = ((ArrayList<FTPGroupsVb>) collTemp).get(0);
+					vObject.setDateCreation(vObjectlocal.getDateCreation());
+				}
+				vObject.setDateCreation(vObjectlocal.getDateCreation());
+				// Record is there in approved, but not in pending. So add it to pending
+				vObject.setVerifier(0);
+				vObject.setRecordIndicator(Constants.STATUS_UPDATE);
+				retVal = doInsertionPendWithDc(vObject);
+				if (retVal != Constants.SUCCESSFUL_OPERATION) {
+					exceptionCode = getResultObject(retVal);
+					throw buildRuntimeCustomException(exceptionCode);
+				}				
+			}
+			
+		}
+//		Source Configuration Add / Modify 
+		for (FTPSourceConfigVb sourceConfigVb  : vObject.getFtpSourceConfigList() ) {
+			sourceConfigVb.setVerificationRequired(vObject.isVerificationRequired());
+			sourceConfigVb.setStaticDelete(vObject.isStaticDelete());			
+			exceptionCode = ftpSourceConfigDao.doUpdateRecordForNonTrans(sourceConfigVb);
+			if(exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+				return exceptionCode;
+			}
+		}
+		
+		// Method Configuration Add / Modify
+		for (FtpMethodsVb methodsVb  : vObject.getFtpMethodsList() ) {
+			methodsVb.setVerificationRequired(vObject.isVerificationRequired());
+			methodsVb.setStaticDelete(vObject.isStaticDelete());
+			exceptionCode = ftpMethodsDao.doUpdateRecordForNonTrans(methodsVb);
+			if(exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+				return exceptionCode;
+			}
+		}
+		
+		return getResultObject(Constants.SUCCESSFUL_OPERATION);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public List<VcConfigMainColumnsVb> getQueryTreeColumnsDetails(VcConfigMainTreeVb vcTreeVb) throws DataAccessException {
+
+		setServiceDefaults();
+		
+		String sql = "SELECT VCC.TABLE_NAME, VCC.COLUMN_NAME, VCC.COLUMN_NAME COLUMN_ALIAS_NAME, VCC.SORT_COLUMN, VCC.COL_DISPLAY_TYPE,   \n" + 
+				"				 VCC.COL_ATTRIBUTE_TYPE, VCC.COL_EXPERSSION_TYPE, VCC.FORMAT_TYPE, (SELECT NUM_SUBTAB_DESCRIPTION FROM NUM_SUB_TAB WHERE NUM_TAB = 2012 AND NUM_SUB_TAB = VCC.FORMAT_TYPE) FORMAT_TYPE_DESC, \n" + 
+				"				 (SELECT MACROVAR_DESC FROM MACROVAR_TAGGING WHERE MACROVAR_NAME = 'JAVA' AND TAG_NAME = VCC.FORMAT_TYPE)JAVA_DATE_FORMAT, VCC.MAG_ENABLE_FLAG, VCC.MAG_TYPE,   \n" + 
+				"				 VCC.MAG_SELECTION_TYPE, VCC.TAB_COLUMN_STATUS, VCC.MAG_DEFAULT, VCC.MAG_QUERY_ID, VCC.MAG_DISPLAY_COLUMN,   \n" + 
+				"				 VCC.MAG_USE_COLUMN ,\n" + 
+				"				 VCC.COL_TYPE,  \n" + 
+				"				 (select DISPLAY_NAME from MACROVAR_TAGGING where MACROVAR_NAME = 'databaseType' AND MACROVAR_TYPE = 'DATE_FORMAT' AND TAG_NAME = VCC.FORMAT_TYPE) DATE_FORMATTING_SYNTAX,  \n" + 
+				"				 (select DISPLAY_NAME from MACROVAR_TAGGING where MACROVAR_NAME = 'databaseType' AND MACROVAR_TYPE = 'DATE_CONVERT' AND TAG_NAME = VCC.FORMAT_TYPE) DATE_CONVERSION_SYNTAX  \n" + 
+				"				 FROM  SOURCE_TAB_COLUMN_MAPPINGS VCC   \n" + 
+				"				 WHERE TAB_COLUMN_STATUS = 0 \n" + 
+				"				  ORDER BY SORT_COLUMN";
+		
+		Object args[] = {vcTreeVb.getCatalogId(), vcTreeVb.getTableId()};
+		
+		return getJdbcTemplate().query(sql, new RowMapper<VcConfigMainColumnsVb>() {
+			@Override
+			public VcConfigMainColumnsVb mapRow(ResultSet rs, int rowNum) throws SQLException {
+				VcConfigMainColumnsVb columnVb = new VcConfigMainColumnsVb();
+//				columnVb.setCatalogId(rs.getString("CATALOG_ID"));
+				columnVb.setTableId(rs.getString("TABLE_NAME"));
+//				columnVb.setColId(rs.getString("COL_ID"));
+				columnVb.setColName(rs.getString("COLUMN_NAME"));
+				columnVb.setAliasName(ValidationUtil.isValid(rs.getString("COLUMN_ALIAS_NAME"))?rs.getString("COLUMN_ALIAS_NAME"):rs.getString("COLUMN_NAME"));
+				columnVb.setSortColumn(rs.getString("SORT_COLUMN"));
+				columnVb.setColDisplayType(rs.getString("COL_DISPLAY_TYPE"));
+				columnVb.setColAttributeType(rs.getString("COL_ATTRIBUTE_TYPE"));
+				columnVb.setColExperssionType(rs.getString("COL_EXPERSSION_TYPE"));
+				columnVb.setFormatType(rs.getString("FORMAT_TYPE"));
+				columnVb.setFormatTypeDesc(rs.getString("FORMAT_TYPE_DESC"));
+				columnVb.setMagEnableFlag(rs.getString("MAG_ENABLE_FLAG"));
+				columnVb.setMagType(rs.getInt("MAG_TYPE"));
+				columnVb.setMagSelectionType(rs.getString("MAG_SELECTION_TYPE"));
+				columnVb.setVccStatus(rs.getInt("TAB_COLUMN_STATUS"));
+				columnVb.setMagDefault(rs.getString("MAG_DEFAULT"));
+				columnVb.setMagQueryId(rs.getString("MAG_QUERY_ID"));
+				columnVb.setMagDisplayColumn(rs.getString("MAG_DISPLAY_COLUMN"));
+				columnVb.setMagUseColumn(rs.getString("MAG_USE_COLUMN"));
+//				columnVb.setFolderIds(rs.getString("FOLDER_IDS"));
+				columnVb.setJavaFormatDesc(rs.getString("JAVA_DATE_FORMAT"));
+/*				if(ValidationUtil.isValid(rs.getString("EXPERSSION_TEXT"))){
+					columnVb.setExperssionText(rs.getString("EXPERSSION_TEXT").replaceAll("#TABLE_ALIAS#", ValidationUtil.isValid(rs.getString("TABLE_ALIAS_NAME"))?rs.getString("TABLE_ALIAS_NAME"):rs.getString("TABLE_NAME")));
+				}*/
+//				columnVb.setExperssionText(rs.getString("EXPERSSION_TEXT"));
+				columnVb.setColType(rs.getString("COL_TYPE"));
+//				columnVb.setMaskingFlag(rs.getString("MASKING_FLAG"));
+//				columnVb.setMaskingScript(rs.getString("MASKING_SCRIPT"));
+				columnVb.setDateFormattingSyntax(rs.getString("DATE_FORMATTING_SYNTAX"));
+				columnVb.setDateConversionSyntax(rs.getString("DATE_CONVERSION_SYNTAX"));
+//				if(ValidationUtil.isValid(rs.getString("INCLUDE_GROUP_COL")))
+//					columnVb.setIncludeGroupCol(rs.getString("INCLUDE_GROUP_COL").replaceAll("#TABLE_ALIAS#", ValidationUtil.isValid(rs.getString("TABLE_ALIAS_NAME"))?rs.getString("TABLE_ALIAS_NAME"):rs.getString("TABLE_NAME")));
+				return columnVb;
+			}
+		});
+	
+	}
+
+	public List<DCManualQueryVb> getSpecificManualQueryDetails(DCManualQueryVb dObj) throws DataAccessException {
+		String sql = "SELECT QUERY_ID, QUERY_DESCRIPTION, DATABASE_TYPE_AT, DATABASE_TYPE, "+
+				" DATABASE_CONNECTIVITY_DETAILS,LOOKUP_DATA_LOADING_AT, LOOKUP_DATA_LOADING, QUERY_VALID_FLAG, SQL_QUERY, "+
+				" STG_QUERY1, STG_QUERY2, STG_QUERY3, POST_QUERY, VCQ_STATUS_NT, VCQ_STATUS, "+
+				" RECORD_INDICATOR_NT, RECORD_INDICATOR, MAKER, VERIFIER,INTERNAL_STATUS, "+
+				 getDbFunction("DATEFUNC")+"(DATE_LAST_MODIFIED, '"+getDbFunction("DD_Mon_RRRR")+" "+getDbFunction("TIME")+"') DATE_LAST_MODIFIED, "+
+				 getDbFunction("DATEFUNC")+"(DATE_CREATION, '"+getDbFunction("DD_Mon_RRRR")+" "+getDbFunction("TIME")+"') DATE_CREATION, "+
+				" COLUMNS_METADATA, HASH_VARIABLE_SCRIPT,QUERY_CATEGORY FROM VC_QUERIES TAPPR WHERE QUERY_ID= ? ";
+		List<Object> argumentList = new ArrayList<Object>();
+		argumentList.add(dObj.getQueryId());
+		if(ValidationUtil.isValid(dObj.getDatabaseType())){
+			if("M_QUERY".equalsIgnoreCase(dObj.getDatabaseType())) {
+				dObj.setDatabaseType("MACROVAR");
+			}
+			sql = sql +" AND DATABASE_TYPE = ? ";
+			argumentList.add(dObj.getDatabaseType());
+		}
+		Object[] args = new Object[argumentList.size()];
+		argumentList.toArray(args);
+		try {
+			return  getJdbcTemplate().query(sql,args, getMapperManualuery());
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			return null;
+		}
+	}	
+	protected RowMapper getMapperManualuery(){
+		RowMapper mapper = new RowMapper() {
+			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DCManualQueryVb vObj = new DCManualQueryVb();
+				vObj.setQueryId(rs.getString("QUERY_ID"));
+				vObj.setQueryDescription(rs.getString("QUERY_DESCRIPTION"));
+				vObj.setDatabaseType(rs.getString("DATABASE_TYPE"));
+				vObj.setDatabaseConnectivityDetails(rs.getString("DATABASE_CONNECTIVITY_DETAILS"));
+				vObj.setLookupDataLoading(rs.getString("LOOKUP_DATA_LOADING"));
+				vObj.setSqlQuery(ValidationUtil.isValid(rs.getString("SQL_QUERY"))?rs.getString("SQL_QUERY"):"");
+				vObj.setStgQuery1(ValidationUtil.isValid(rs.getString("STG_QUERY1"))?rs.getString("STG_QUERY1"):"");
+				vObj.setStgQuery2(ValidationUtil.isValid(rs.getString("STG_QUERY2"))?rs.getString("STG_QUERY2"):"");
+				vObj.setStgQuery3(ValidationUtil.isValid(rs.getString("STG_QUERY3"))?rs.getString("STG_QUERY3"):"");
+				vObj.setPostQuery(ValidationUtil.isValid(rs.getString("POST_QUERY"))?rs.getString("POST_QUERY"):"");
+				vObj.setVcqStatusNt(rs.getInt("VCQ_STATUS_NT"));
+				vObj.setVcqStatus(rs.getInt("VCQ_STATUS"));
+				vObj.setDbStatus(rs.getInt("VCQ_STATUS"));
+				vObj.setRecordIndicatorNt(rs.getInt("RECORD_INDICATOR_NT"));
+				vObj.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
+				vObj.setMaker(rs.getLong("MAKER"));
+				vObj.setVerifier(rs.getLong("VERIFIER"));
+				vObj.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
+				vObj.setDateCreation(rs.getString("DATE_CREATION"));
+				vObj.setDateLastModified(rs.getString("DATE_LAST_MODIFIED"));
+				vObj.setQueryColumnXML(ValidationUtil.isValid(rs.getString("COLUMNS_METADATA"))?rs.getString("COLUMNS_METADATA"):"");
+				vObj.setHashVariableScript(ValidationUtil.isValid(rs.getString("HASH_VARIABLE_SCRIPT"))?rs.getString("HASH_VARIABLE_SCRIPT"):"");
+				vObj.setQueryValidFlag(ValidationUtil.isValid(rs.getString("QUERY_VALID_FLAG"))?"TRUE":"FALSE");
+				vObj.setQueryType(rs.getInt("QUERY_CATEGORY"));
+//				fetchMakerVerifierNames(vObj);
+				return vObj;
+			}
+		};
+		return mapper;
+	}
+
+	protected ExceptionCode doDeleteApprRecordForNonTrans(FTPGroupsVb vObject) throws RuntimeCustomException {
+		List<FTPGroupsVb> collTemp = null;
+		ExceptionCode exceptionCode = null;
+		strApproveOperation = Constants.DELETE;
+		strErrorDesc = "";
+		strCurrentOperation = Constants.DELETE;
+		setServiceDefaults();
+		FTPGroupsVb vObjectlocal = null;
+		vObject.setMaker(getIntCurrentUserId());
+		collTemp = selectApprovedRecord(vObject);
+		if (collTemp == null) {
+			exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		// If record already exists in the approved table, reject the addition
+		if (collTemp.size() > 0) {
+			int intStaticDeletionFlag = getStatus(((ArrayList<FTPGroupsVb>) collTemp).get(0));
+			if (intStaticDeletionFlag == Constants.PASSIVATE) {
+				exceptionCode = getResultObject(Constants.CANNOT_DELETE_AN_INACTIVE_RECORD);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+		} else {
+			exceptionCode = getResultObject(Constants.ATTEMPT_TO_DELETE_UNEXISTING_RECORD);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		vObjectlocal = ((ArrayList<FTPGroupsVb>) collTemp).get(0);
+		vObject.setDateCreation(vObjectlocal.getDateCreation());
+		if (vObject.isStaticDelete()) {
+			vObjectlocal.setMaker(getIntCurrentUserId());
+			vObject.setVerifier(getIntCurrentUserId());
+			vObject.setRecordIndicator(Constants.STATUS_ZERO);
+//			setStatus(vObject, Constants.PASSIVATE);
+			setStatus(vObjectlocal, Constants.PASSIVATE);
+			vObjectlocal.setVerifier(getIntCurrentUserId());
+			vObjectlocal.setRecordIndicator(Constants.STATUS_ZERO);
+			retVal = doUpdateAppr(vObjectlocal);
+			String systemDate = getSystemDate();
+			vObject.setDateLastModified(systemDate);
+		} else {
+			// delete the record from the Approve Table
+			retVal = doDeleteAppr(vObject);
+//			vObject.setRecordIndicator(-1);
+			String systemDate = getSystemDate();
+			vObject.setDateLastModified(systemDate);
+
+		}
+		if (retVal != Constants.SUCCESSFUL_OPERATION) {
+			exceptionCode = getResultObject(retVal);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		if (vObject.isStaticDelete()) {
+			setStatus(vObjectlocal, Constants.STATUS_ZERO);
+			setStatus(vObject, Constants.PASSIVATE);
+			exceptionCode = writeAuditLog(vObject, vObjectlocal);
+		} else {
+			exceptionCode = writeAuditLog(null, vObject);
+			vObject.setRecordIndicator(-1);
+		}
+		if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+			exceptionCode = getResultObject(Constants.AUDIT_TRAIL_ERROR);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		
+		
+		List<FTPSourceConfigVb> sourceConfigList = ftpSourceConfigDao.getQueryResultsByParent(vObject, 0);
+		if(sourceConfigList!=null && sourceConfigList.size()>0) {
+			for(FTPSourceConfigVb configVb : sourceConfigList) {
+				configVb.setVerificationRequired(vObject.isVerificationRequired());
+				configVb.setStaticDelete(vObject.isStaticDelete());
+				exceptionCode = ftpSourceConfigDao.doDeleteApprRecordForNonTrans(configVb);
+				if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+					strErrorDesc = exceptionCode.getErrorMsg();
+					exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+					throw buildRuntimeCustomException(exceptionCode);
+				}
+			}
+		}
+		List<FtpMethodsVb> ftpMethodsList = ftpMethodsDao.getQueryResultsByParent(vObject, 0);
+		if(ftpMethodsList!=null && ftpMethodsList.size() > 0) {
+			for(FtpMethodsVb methodsVb : ftpMethodsList) {
+				methodsVb.setVerificationRequired(vObject.isVerificationRequired());
+				methodsVb.setStaticDelete(vObject.isStaticDelete());
+				exceptionCode = ftpMethodsDao.doDeleteApprRecordForNonTrans(methodsVb);
+				if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+					strErrorDesc = exceptionCode.getErrorMsg();
+					exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+					throw buildRuntimeCustomException(exceptionCode);
+				}
+			}
+			for(FtpMethodsVb methodsVb : ftpMethodsList) {
+				List<FTPCurveVb> ftpCurveList = ftpCurvesDao.getQueryResultsByParent(methodsVb, 0, true);
+				if(ftpCurveList!=null && ftpCurveList.size()>0) {
+					for(FTPCurveVb ftpCurveVb : ftpCurveList) {
+						ftpCurveVb.setVerificationRequired(vObject.isVerificationRequired());
+						ftpCurveVb.setStaticDelete(vObject.isStaticDelete());
+						exceptionCode = ftpCurvesDao.doDeleteApprRecordForNonTrans(ftpCurveVb);
+						if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+							strErrorDesc = exceptionCode.getErrorMsg();
+							exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+							throw buildRuntimeCustomException(exceptionCode);
+						}
+					}
+				}
+				List<FtpAddonVb> ftpAddOnList = ftpAddonDao.getQueryResultsByParent(methodsVb, 0, true);
+				
+				if(ftpAddOnList != null && ftpAddOnList.size() > 0) {
+					for(FtpAddonVb ftpAddonVb : ftpAddOnList) {
+						ftpAddonVb.setVerificationRequired(vObject.isVerificationRequired());
+						ftpAddonVb.setStaticDelete(vObject.isStaticDelete());
+						exceptionCode = ftpAddonDao.doDeleteApprRecordForNonTrans(ftpAddonVb);
+						if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+							strErrorDesc = exceptionCode.getErrorMsg();
+							exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+							throw buildRuntimeCustomException(exceptionCode);
+						}
+					}
+				}
+				
+				List<FtpPremiumsVb> ftpPremiumsList = ftpPremiumsDao.getQueryResultsByParent(methodsVb, 0, true);
+				
+				if(ftpPremiumsList != null && ftpPremiumsList.size() > 0 ) {
+					for(FtpPremiumsVb ftpPremiumsVb : ftpPremiumsList) {
+						ftpPremiumsVb.setVerificationRequired(vObject.isVerificationRequired());
+						ftpPremiumsVb.setStaticDelete(vObject.isStaticDelete());
+						exceptionCode = ftpPremiumsDao.doDeleteApprRecordForNonTrans(ftpPremiumsVb);
+						if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+							strErrorDesc = exceptionCode.getErrorMsg();
+							exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+							throw buildRuntimeCustomException(exceptionCode);
+						}
+					}
+				}
+			}
+		}
+		return getResultObject(Constants.SUCCESSFUL_OPERATION);
+	}
+	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
+	public ExceptionCode doDeleteApprRecord(List<FTPGroupsVb> vObjects, FTPGroupsVb vObjectParam) throws RuntimeCustomException {
+		ExceptionCode exceptionCode = null;
+		strApproveOperation = Constants.DELETE;
+		strErrorDesc = "";
+		setServiceDefaults();
+		strCurrentOperation = Constants.DELETE;
+		try {
+			for (FTPGroupsVb vObject : vObjects) {
+//				if (vObject.isChecked()) {
+					vObject.setStaticDelete(vObjectParam.isStaticDelete());
+					vObject.setVerificationRequired(vObjectParam.isVerificationRequired());
+					exceptionCode = doDeleteApprRecordForNonTrans(vObject);
+					if (exceptionCode == null || exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+						throw buildRuntimeCustomException(exceptionCode);
+					}
+//				}
+			}
+			return getResultObject(Constants.SUCCESSFUL_OPERATION);
+		} catch (RuntimeCustomException rcException) {
+			throw rcException;
+		} catch (UncategorizedSQLException uSQLEcxception) {
+			strErrorDesc = parseErrorMsg(uSQLEcxception);
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		} catch (Exception ex) {
+			logger.error("Error in Delete.", ex);
+			strErrorDesc = ex.getMessage();
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+	}
+	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
+	public ExceptionCode doDeleteRecord(List<FTPGroupsVb> vObjects, FTPGroupsVb vObjectParam) throws RuntimeCustomException {
+		ExceptionCode exceptionCode = null;
+		strApproveOperation = Constants.DELETE;
+		strErrorDesc = "";
+		setServiceDefaults();
+		strCurrentOperation = Constants.DELETE;
+		try {
+			for (FTPGroupsVb vObject : vObjects) {
+//				if (vObject.isChecked()) {
+					vObject.setStaticDelete(vObjectParam.isStaticDelete());
+					vObject.setVerificationRequired(vObjectParam.isVerificationRequired());
+					exceptionCode = doDeleteRecordForNonTrans(vObject);
+					if (exceptionCode == null || exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+						throw buildRuntimeCustomException(exceptionCode);
+					}
+//				}
+			}
+			return getResultObject(Constants.SUCCESSFUL_OPERATION);
+		} catch (RuntimeCustomException rcException) {
+			throw rcException;
+		} catch (UncategorizedSQLException uSQLEcxception) {
+			strErrorDesc = parseErrorMsg(uSQLEcxception);
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		} catch (Exception ex) {
+			logger.error("Error in Delete.", ex);
+			strErrorDesc = ex.getMessage();
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+	}
+	protected ExceptionCode doDeleteRecordForNonTrans(FTPGroupsVb vObject) throws RuntimeCustomException {
+		FTPGroupsVb vObjectlocal = null;
+		List<FTPGroupsVb> collTemp = null;
+		ExceptionCode exceptionCode = null;
+		strApproveOperation = Constants.DELETE;
+		strErrorDesc = "";
+		strCurrentOperation = Constants.DELETE;
+		setServiceDefaults();
+		collTemp = selectApprovedRecord(vObject);
+
+		if (collTemp == null) {
+			logger.error("Collection is null");
+			exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		// If record already exists in the approved table, reject the addition
+		if (collTemp.size() > 0) {
+			vObjectlocal = ((ArrayList<FTPGroupsVb>) collTemp).get(0);
+			int intStaticDeletionFlag = getStatus(vObjectlocal);
+			if (intStaticDeletionFlag == Constants.PASSIVATE) {
+				exceptionCode = getResultObject(Constants.CANNOT_DELETE_AN_INACTIVE_RECORD);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+		} else {
+			exceptionCode = getResultObject(Constants.ATTEMPT_TO_DELETE_UNEXISTING_RECORD);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+
+		// check to see if the record already exists in the pending table
+		collTemp = doSelectPendingRecord(vObject);
+		if (collTemp == null) {
+			exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+
+		// If records are there, check for the status and decide what error to return
+		// back
+		if (collTemp.size() > 0) {
+			exceptionCode = getResultObject(Constants.TRYING_TO_DELETE_APPROVAL_PENDING_RECORD);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+
+		// insert the record into pending table with status 3 - deletion
+		if (vObjectlocal == null) {
+			exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		if (collTemp.size() > 0) {
+			vObjectlocal = ((ArrayList<FTPGroupsVb>) collTemp).get(0);
+			vObjectlocal.setDateCreation(vObject.getDateCreation());
+		}
+		// vObjectlocal.setDateCreation(vObject.getDateCreation());
+		vObjectlocal.setMaker(getIntCurrentUserId());
+		vObjectlocal.setRecordIndicator(Constants.STATUS_DELETE);
+		vObjectlocal.setVerifier(0);
+		retVal = doInsertionPendWithDc(vObjectlocal);
+		if (retVal != Constants.SUCCESSFUL_OPERATION) {
+			exceptionCode = getResultObject(retVal);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		vObject.setRecordIndicator(Constants.STATUS_DELETE);
+		vObject.setVerifier(0);
+		
+		
+		List<FTPSourceConfigVb> sourceConfigList = ftpSourceConfigDao.getQueryResultsByParent(vObject, 0);
+		if(sourceConfigList!=null && sourceConfigList.size()>0) {
+			for(FTPSourceConfigVb configVb : sourceConfigList) {
+				configVb.setVerificationRequired(vObject.isVerificationRequired());
+				configVb.setStaticDelete(vObject.isStaticDelete());
+				exceptionCode = ftpSourceConfigDao.doDeleteRecordForNonTrans(configVb);
+				if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+					strErrorDesc = exceptionCode.getErrorMsg();
+					exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+					throw buildRuntimeCustomException(exceptionCode);
+				}
+			}
+		}
+		List<FtpMethodsVb> ftpMethodsList = ftpMethodsDao.getQueryResultsByParent(vObject, 0);
+		if(ftpMethodsList!=null && ftpMethodsList.size() > 0) {
+			for(FtpMethodsVb methodsVb : ftpMethodsList) {
+				methodsVb.setVerificationRequired(vObject.isVerificationRequired());
+				methodsVb.setStaticDelete(vObject.isStaticDelete());
+				exceptionCode = ftpMethodsDao.doDeleteRecordForNonTrans(methodsVb);
+				if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+					strErrorDesc = exceptionCode.getErrorMsg();
+					exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+					throw buildRuntimeCustomException(exceptionCode);
+				}
+			}
+			for(FtpMethodsVb methodsVb : ftpMethodsList) {
+				List<FTPCurveVb> ftpCurveList = ftpCurvesDao.getQueryResultsByParent(methodsVb, 0, true);
+				if(ftpCurveList!=null && ftpCurveList.size()>0) {
+					for(FTPCurveVb ftpCurveVb : ftpCurveList) {
+						ftpCurveVb.setVerificationRequired(vObject.isVerificationRequired());
+						ftpCurveVb.setStaticDelete(vObject.isStaticDelete());
+						exceptionCode = ftpCurvesDao.doDeleteRecordForNonTrans(ftpCurveVb);
+						if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+							strErrorDesc = exceptionCode.getErrorMsg();
+							exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+							throw buildRuntimeCustomException(exceptionCode);
+						}
+					}
+				}
+				List<FtpAddonVb> ftpAddOnList = ftpAddonDao.getQueryResultsByParent(methodsVb, 0, true);
+				
+				if(ftpAddOnList != null && ftpAddOnList.size() > 0) {
+					for(FtpAddonVb ftpAddonVb : ftpAddOnList) {
+						ftpAddonVb.setVerificationRequired(vObject.isVerificationRequired());
+						ftpAddonVb.setStaticDelete(vObject.isStaticDelete());
+						exceptionCode = ftpAddonDao.doDeleteRecordForNonTrans(ftpAddonVb);
+						if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+							strErrorDesc = exceptionCode.getErrorMsg();
+							exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+							throw buildRuntimeCustomException(exceptionCode);
+						}
+					}
+				}
+				
+				List<FtpPremiumsVb> ftpPremiumsList = ftpPremiumsDao.getQueryResultsByParent(methodsVb, 0, true);
+				
+				if(ftpPremiumsList != null && ftpPremiumsList.size() > 0 ) {
+					for(FtpPremiumsVb ftpPremiumsVb : ftpPremiumsList) {
+						ftpPremiumsVb.setVerificationRequired(vObject.isVerificationRequired());
+						ftpPremiumsVb.setStaticDelete(vObject.isStaticDelete());
+						exceptionCode = ftpPremiumsDao.doDeleteRecordForNonTrans(ftpPremiumsVb);
+						if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+							strErrorDesc = exceptionCode.getErrorMsg();
+							exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+							throw buildRuntimeCustomException(exceptionCode);
+						}
+					}
+				}
+			}
+		}
+		
+		return getResultObject(Constants.SUCCESSFUL_OPERATION);
+	}
+	
+	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
+	public ExceptionCode doBulkReject(List<FTPGroupsVb> vObjects, FTPGroupsVb vObject) throws RuntimeCustomException {
+
+		strErrorDesc = "";
+		strCurrentOperation = Constants.REJECT;
+		setServiceDefaults();
+		ExceptionCode exceptionCode = null;
+		try {
+			boolean foundFlag = false;
+			for (FTPGroupsVb object : vObjects) {
+//				if (object.getRecordIndicator() > 0 && object.isChecked()) {
+				if (object.getRecordIndicator() > 0) {
+					foundFlag = true;
+					object.setVerificationRequired(vObject.isVerificationRequired());
+					strErrorDesc = frameErrorMessage(object, Constants.REJECT);
+					exceptionCode = doRejectRecord(object);
+					if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+						int index = exceptionCode.getErrorMsg().trim().indexOf(serviceDesc + " - Reject - Failed -");
+						if (index >= 0) {
+							strErrorDesc += " " + exceptionCode.getErrorMsg().replaceFirst(serviceDesc + " - Reject - Failed -", "-");
+						} else {
+							strErrorDesc += " " + exceptionCode.getErrorMsg();
+						}
+						break;
+					}
+				}
+			}
+			if (foundFlag == false) {
+				logger.error("No Records To Reject");
+				exceptionCode = getResultObject(Constants.NO_RECORDS_TO_REJECT);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+
+			// When it has come out of the loop, check whether it has exited successfully or
+			// with error
+			if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+				logger.error("Error in Bulk Reject. " + exceptionCode.getErrorMsg());
+				exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			// return code to indicate successful operation
+			return exceptionCode;
+		} catch (UncategorizedSQLException uSQLEcxception) {
+			strErrorDesc = parseErrorMsg(uSQLEcxception);
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		} catch (Exception ex) {
+			logger.error("Error in Bulk Reject.", ex);
+			strErrorDesc = ex.getMessage();
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+	}
+	
+	public ExceptionCode doRejectRecord(FTPGroupsVb vObject) throws RuntimeCustomException {
+		FTPGroupsVb vObjectlocal = null;
+		List<FTPGroupsVb> collTemp = null;
+		ExceptionCode exceptionCode = null;
+		setServiceDefaults();
+		strErrorDesc = "";
+		strCurrentOperation = Constants.REJECT;
+		vObject.setMaker(getIntCurrentUserId());
+		try {
+			if (vObject.getRecordIndicator() == 1 || vObject.getRecordIndicator() == 3)
+				vObject.setRecordIndicator(0);
+			else
+				vObject.setRecordIndicator(-1);
+			// See if such a pending request exists in the pending table
+			collTemp = doSelectPendingRecord(vObject);
+			if (collTemp == null) {
+				exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			if (collTemp.size() == 0) {
+				exceptionCode = getResultObject(Constants.NO_SUCH_PENDING_RECORD);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			vObjectlocal = ((ArrayList<FTPGroupsVb>) collTemp).get(0);
+			// Delete the record from the Pending table
+			if (deletePendingRecord(vObjectlocal) == 0) {
+				exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			
+			List<FTPSourceConfigVb> sourceConfigList = ftpSourceConfigDao.getQueryResultsByParent(vObject, 1);
+			if(sourceConfigList!=null && sourceConfigList.size()>0) {
+				for(FTPSourceConfigVb configVb : sourceConfigList) {
+					configVb.setVerificationRequired(vObject.isVerificationRequired());
+					configVb.setStaticDelete(vObject.isStaticDelete());
+					exceptionCode = ftpSourceConfigDao.doRejectForTransaction(configVb);
+					if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+						strErrorDesc = exceptionCode.getErrorMsg();
+						exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+						throw buildRuntimeCustomException(exceptionCode);
+					}
+				}
+			}
+			List<FtpMethodsVb> ftpMethodsList = ftpMethodsDao.getQueryResultsByParent(vObject, 1);
+			if(ftpMethodsList!=null && ftpMethodsList.size() > 0) {
+				for(FtpMethodsVb methodsVb : ftpMethodsList) {
+					methodsVb.setVerificationRequired(vObject.isVerificationRequired());
+					methodsVb.setStaticDelete(vObject.isStaticDelete());
+					exceptionCode = ftpMethodsDao.doRejectForTransaction(methodsVb);
+					if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+						strErrorDesc = exceptionCode.getErrorMsg();
+						exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+						throw buildRuntimeCustomException(exceptionCode);
+					}
+				}
+				for(FtpMethodsVb methodsVb : ftpMethodsList) {
+					List<FTPCurveVb> ftpCurveList = ftpCurvesDao.getQueryResultsByParent(methodsVb, 1, false);
+					if(ftpCurveList!=null && ftpCurveList.size()>0) {
+						for(FTPCurveVb ftpCurveVb : ftpCurveList) {
+							ftpCurveVb.setVerificationRequired(vObject.isVerificationRequired());
+							ftpCurveVb.setStaticDelete(vObject.isStaticDelete());
+							exceptionCode = ftpCurvesDao.doRejectForTransaction(ftpCurveVb);
+							if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+								strErrorDesc = exceptionCode.getErrorMsg();
+								exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+								throw buildRuntimeCustomException(exceptionCode);
+							}
+						}
+					}
+					List<FtpAddonVb> ftpAddOnList = ftpAddonDao.getQueryResultsByParent(methodsVb, 1, false);
+					
+					if(ftpAddOnList != null && ftpAddOnList.size() > 0) {
+						for(FtpAddonVb ftpAddonVb : ftpAddOnList) {
+							ftpAddonVb.setVerificationRequired(vObject.isVerificationRequired());
+							ftpAddonVb.setStaticDelete(vObject.isStaticDelete());
+							exceptionCode = ftpAddonDao.doRejectForTransaction(ftpAddonVb);
+							if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+								strErrorDesc = exceptionCode.getErrorMsg();
+								exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+								throw buildRuntimeCustomException(exceptionCode);
+							}
+						}
+					}
+					
+					List<FtpPremiumsVb> ftpPremiumsList = ftpPremiumsDao.getQueryResultsByParent(methodsVb, 1, false);
+					
+					if(ftpPremiumsList != null && ftpPremiumsList.size() > 0 ) {
+						for(FtpPremiumsVb ftpPremiumsVb : ftpPremiumsList) {
+							ftpPremiumsVb.setVerificationRequired(vObject.isVerificationRequired());
+							ftpPremiumsVb.setStaticDelete(vObject.isStaticDelete());
+							exceptionCode = ftpPremiumsDao.doRejectForTransaction(ftpPremiumsVb);
+							if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+								strErrorDesc = exceptionCode.getErrorMsg();
+								exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+								throw buildRuntimeCustomException(exceptionCode);
+							}
+						}
+					}
+				}
+			}
+			
+			return getResultObject(Constants.SUCCESSFUL_OPERATION);
+		} catch (UncategorizedSQLException uSQLEcxception) {
+			strErrorDesc = parseErrorMsg(uSQLEcxception);
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		} catch (Exception ex) {
+			logger.error("Error in Reject.", ex);
+			logger.error(((vObject == null) ? "vObject is Null" : vObject.toString()));
+			strErrorDesc = ex.getMessage();
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+	}
+	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
+	public ExceptionCode bulkApprove(List<FTPGroupsVb> vObjects,  FTPGroupsVb vObject) throws RuntimeCustomException {
+		strErrorDesc = "";
+		strCurrentOperation = Constants.APPROVE;
+		ExceptionCode exceptionCode = null;
+		setServiceDefaults();
+		try {
+			boolean foundFlag = false;
+			for (FTPGroupsVb object : vObjects) {
+				if (object.getRecordIndicator() > 0) {
+					foundFlag = true;
+					object.setVerificationRequired(vObject.isVerificationRequired());
+					strErrorDesc = frameErrorMessage(object, Constants.APPROVE);
+					exceptionCode = doApproveRecord(object, vObject.isStaticDelete());
+					if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+						int index = exceptionCode.getErrorMsg().trim().indexOf(serviceDesc + " - Approve - Failed -");
+						if (index >= 0) {
+							strErrorDesc += " " + exceptionCode.getErrorMsg().replaceFirst(serviceDesc + " - Approve - Failed -", "-");
+						} else {
+							strErrorDesc += " " + exceptionCode.getErrorMsg();
+						}
+						break;
+					}
+				}
+			}
+			if (foundFlag == false) {
+				logger.error("No Records To Approve");
+				exceptionCode = getResultObject(Constants.NO_RECORDS_TO_APPROVE);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			// When it has come out of the loop, check whether it has exited successfully or
+			// with error
+			if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+				logger.error("Error in Bulk Approve. " + exceptionCode.getErrorMsg());
+				exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			return exceptionCode;
+		} catch (UncategorizedSQLException uSQLEcxception) {
+			strErrorDesc = parseErrorMsg(uSQLEcxception);
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		} catch (Exception ex) {
+			logger.error("Error in Bulk Approve.", ex);
+			strErrorDesc = ex.getMessage();
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+	}
+	public ExceptionCode doApproveRecord(FTPGroupsVb vObject, boolean staticDelete) throws RuntimeCustomException {
+		FTPGroupsVb oldContents = null;
+		FTPGroupsVb vObjectlocal = null;
+		List<FTPGroupsVb> collTemp = null;
+		ExceptionCode exceptionCode = null;
+		strCurrentOperation = Constants.APPROVE;
+		setServiceDefaults();
+		try {
+			// See if such a pending request exists in the pending table
+			vObject.setVerifier(getIntCurrentUserId());
+			vObject.setRecordIndicator(Constants.STATUS_ZERO);
+			collTemp = doSelectPendingRecord(vObject);
+			if (collTemp == null) {
+				exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+
+			if (collTemp.size() == 0) {
+				exceptionCode = getResultObject(Constants.NO_SUCH_PENDING_RECORD);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+
+			vObjectlocal = ((ArrayList<FTPGroupsVb>) collTemp).get(0);
+
+			if (vObjectlocal.getMaker() == getIntCurrentUserId()) {
+				exceptionCode = getResultObject(Constants.MAKER_CANNOT_APPROVE);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+
+			// If it's NOT addition, collect the existing record contents from the
+			// Approved table and keep it aside, for writing audit information later.
+			if (vObjectlocal.getRecordIndicator() != Constants.STATUS_INSERT) {
+				collTemp = selectApprovedRecord(vObject);
+				if (collTemp == null || collTemp.isEmpty()) {
+					exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+					throw buildRuntimeCustomException(exceptionCode);
+				}
+				oldContents = ((ArrayList<FTPGroupsVb>) collTemp).get(0);
+			}
+
+			if (vObjectlocal.getRecordIndicator() == Constants.STATUS_INSERT) { // Add authorization
+				// Write the contents of the Pending table record to the Approved table
+				vObjectlocal.setRecordIndicator(Constants.STATUS_ZERO);
+				vObjectlocal.setVerifier(getIntCurrentUserId());
+				retVal = doInsertionGroups(vObjectlocal);
+				if (retVal != Constants.SUCCESSFUL_OPERATION) {
+					exceptionCode = getResultObject(retVal);
+					throw buildRuntimeCustomException(exceptionCode);
+				}
+
+				String systemDate = getSystemDate();
+				vObject.setDateLastModified(systemDate);
+				vObject.setDateCreation(systemDate);
+				strApproveOperation = Constants.ADD;
+			} else if (vObjectlocal.getRecordIndicator() == Constants.STATUS_UPDATE) { // Modify authorization
+
+				collTemp = selectApprovedRecord(vObject);
+				if (collTemp == null || collTemp.isEmpty()) {
+					exceptionCode = getResultObject(Constants.ERRONEOUS_OPERATION);
+					throw buildRuntimeCustomException(exceptionCode);
+				}
+
+				// If record already exists in the approved table, reject the addition
+				if (collTemp.size() > 0) {
+					// retVal = doUpdateAppr(vObjectlocal, MISConstants.ACTIVATE);
+					vObjectlocal.setVerifier(getIntCurrentUserId());
+					vObjectlocal.setRecordIndicator(Constants.STATUS_ZERO);
+					retVal = doUpdateAppr(vObjectlocal);
+				}
+				// Modify the existing contents of the record in Approved table
+				if (retVal != Constants.SUCCESSFUL_OPERATION) {
+					exceptionCode = getResultObject(retVal);
+					throw buildRuntimeCustomException(exceptionCode);
+				}
+				String systemDate = getSystemDate();
+				vObject.setDateLastModified(systemDate);
+				// Set the current operation to write to audit log
+				strApproveOperation = Constants.MODIFY;
+			} else if (vObjectlocal.getRecordIndicator() == Constants.STATUS_DELETE) { // Delete authorization
+				if (staticDelete) {
+					// Update the existing record status in the Approved table to delete
+					setStatus(vObjectlocal, Constants.PASSIVATE);
+					vObjectlocal.setRecordIndicator(Constants.STATUS_ZERO);
+					vObjectlocal.setVerifier(getIntCurrentUserId());
+					retVal = doUpdateAppr(vObjectlocal);
+					if (retVal != Constants.SUCCESSFUL_OPERATION) {
+						exceptionCode = getResultObject(retVal);
+						throw buildRuntimeCustomException(exceptionCode);
+					}
+					setStatus(vObject, Constants.PASSIVATE);
+					String systemDate = getSystemDate();
+					vObject.setDateLastModified(systemDate);
+
+				} else {
+					// Delete the existing record from the Approved table
+					retVal = doDeleteAppr(vObjectlocal);
+					if (retVal != Constants.SUCCESSFUL_OPERATION) {
+						exceptionCode = getResultObject(retVal);
+						throw buildRuntimeCustomException(exceptionCode);
+					}
+					String systemDate = getSystemDate();
+					vObject.setDateLastModified(systemDate);
+				}
+				// Set the current operation to write to audit log
+				strApproveOperation = Constants.DELETE;
+			} else {
+				exceptionCode = getResultObject(Constants.INVALID_STATUS_FLAG_IN_DATABASE);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+
+			// Delete the record from the Pending table
+			retVal = deletePendingRecord(vObjectlocal);
+
+			if (retVal != Constants.SUCCESSFUL_OPERATION) {
+				exceptionCode = getResultObject(retVal);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+
+			// Set the internal status to Approved
+			vObject.setInternalStatus(0);
+			vObject.setRecordIndicator(Constants.STATUS_ZERO);
+			if (vObjectlocal.getRecordIndicator() == Constants.STATUS_DELETE && !staticDelete) {
+				exceptionCode = writeAuditLog(null, oldContents);
+				vObject.setRecordIndicator(-1);
+			} else
+				exceptionCode = writeAuditLog(vObjectlocal, oldContents);
+
+			if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+				exceptionCode = getResultObject(Constants.AUDIT_TRAIL_ERROR);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			
+			List<FTPSourceConfigVb> sourceConfigList = ftpSourceConfigDao.getQueryResultsByParent(vObject, 1);
+			if(sourceConfigList!=null && sourceConfigList.size()>0) {
+				for(FTPSourceConfigVb configVb : sourceConfigList) {
+					configVb.setVerificationRequired(vObject.isVerificationRequired());
+					configVb.setStaticDelete(vObject.isStaticDelete());
+					exceptionCode = ftpSourceConfigDao.doApproveForTransaction(configVb, staticDelete);
+					if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+						strErrorDesc = exceptionCode.getErrorMsg();
+						exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+						throw buildRuntimeCustomException(exceptionCode);
+					}
+				}
+			}
+			List<FtpMethodsVb> ftpMethodsList = ftpMethodsDao.getQueryResultsByParent(vObject, 1);
+			if(ftpMethodsList!=null && ftpMethodsList.size() > 0) {
+				for(FtpMethodsVb methodsVb : ftpMethodsList) {
+					methodsVb.setVerificationRequired(vObject.isVerificationRequired());
+					methodsVb.setStaticDelete(vObject.isStaticDelete());
+					exceptionCode = ftpMethodsDao.doApproveForTransaction(methodsVb, staticDelete);
+					if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+						strErrorDesc = exceptionCode.getErrorMsg();
+						exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+						throw buildRuntimeCustomException(exceptionCode);
+					}
+				}
+				for(FtpMethodsVb methodsVb : ftpMethodsList) {
+					List<FTPCurveVb> ftpCurveList = ftpCurvesDao.getQueryResultsByParent(methodsVb, 1, false);
+					if(ftpCurveList!=null && ftpCurveList.size()>0) {
+						for(FTPCurveVb ftpCurveVb : ftpCurveList) {
+							ftpCurveVb.setVerificationRequired(vObject.isVerificationRequired());
+							ftpCurveVb.setStaticDelete(vObject.isStaticDelete());
+							exceptionCode = ftpCurvesDao.doApproveForTransaction(ftpCurveVb, staticDelete);
+							if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+								strErrorDesc = exceptionCode.getErrorMsg();
+								exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+								throw buildRuntimeCustomException(exceptionCode);
+							}
+						}
+					}
+					List<FtpAddonVb> ftpAddOnList = ftpAddonDao.getQueryResultsByParent(methodsVb, 1, false);
+					
+					if(ftpAddOnList != null && ftpAddOnList.size() > 0) {
+						for(FtpAddonVb ftpAddonVb : ftpAddOnList) {
+							ftpAddonVb.setVerificationRequired(vObject.isVerificationRequired());
+							ftpAddonVb.setStaticDelete(vObject.isStaticDelete());
+							exceptionCode = ftpAddonDao.doApproveForTransaction(ftpAddonVb, staticDelete);
+							if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+								strErrorDesc = exceptionCode.getErrorMsg();
+								exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+								throw buildRuntimeCustomException(exceptionCode);
+							}
+						}
+					}
+					
+					List<FtpPremiumsVb> ftpPremiumsList = ftpPremiumsDao.getQueryResultsByParent(methodsVb, 1, false);
+					
+					if(ftpPremiumsList != null && ftpPremiumsList.size() > 0 ) {
+						for(FtpPremiumsVb ftpPremiumsVb : ftpPremiumsList) {
+							ftpPremiumsVb.setVerificationRequired(vObject.isVerificationRequired());
+							ftpPremiumsVb.setStaticDelete(vObject.isStaticDelete());
+							exceptionCode = ftpPremiumsDao.doApproveForTransaction(ftpPremiumsVb, staticDelete);
+							if (exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+								strErrorDesc = exceptionCode.getErrorMsg();
+								exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+								throw buildRuntimeCustomException(exceptionCode);
+							}
+						}
+					}
+				}
+			}
+			
+			
+			
+			
+			return getResultObject(Constants.SUCCESSFUL_OPERATION);
+		} catch (UncategorizedSQLException uSQLEcxception) {
+			strErrorDesc = parseErrorMsg(uSQLEcxception);
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		} catch (Exception ex) {
+			logger.error("Error in Approve.", ex);
+			logger.error(((vObject == null) ? "vObject is Null" : vObject.toString()));
+			strErrorDesc = ex.getMessage();
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+	
 	public RowMapper getQueryPopupMapper() {
 		RowMapper mapper = new RowMapper() {
 			List<FTPGroupsVb> result = new ArrayList<FTPGroupsVb>();
@@ -158,13 +1976,14 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 				ftpSourceConfigVb.setLeBook(rs.getString("LE_BOOK"));
 				ftpSourceConfigVb.setDataSource(rs.getString("DATA_SOURCE"));
 				ftpSourceConfigVb.setFtpGroup(rs.getString("FTP_GROUP"));
+				ftpSourceConfigVb.setFtpGroupDesc(rs.getString("FTP_GROUP_DESC"));
 				return ftpSourceConfigVb;
 			}
 
 		};
 		return mapper;
 	}
-
+	
 	public RowMapper getQueryPopupMapperDetails() {
 		RowMapper mapper = new RowMapper() {
 			List<FTPGroupsVb> result = new ArrayList<FTPGroupsVb>();
@@ -177,13 +1996,11 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 				ftpSourceConfigVb.setDataSourceDescription(rs.getString("DATA_SOURCE_DESC"));
 				ftpSourceConfigVb.setFtpGroup(rs.getString("FTP_GROUP"));
 				ftpSourceConfigVb.setFtpGroupDesc(rs.getString("FTP_GROUP_DESC"));
-				// ftpSourceConfigVb.setFtpReference(rs.getString("FTP_REFERENCE"));
-				ftpSourceConfigVb.setGroupSeq(rs.getInt("FTP_GROUP_SEQ"));
-//				ftpSourceConfigVb.setFtpDescription(rs.getString("FTP_DESCRIPTION"));
-				ftpSourceConfigVb.setSourceReference(rs.getString("SOURCE_REFERENCE"));
-				ftpSourceConfigVb.setSourceReferenceDesc(rs.getString("SOURCE_REFERENCE_DESC"));
-				ftpSourceConfigVb.setMethodReference(rs.getString("METHOD_REFERENCE"));
-				ftpSourceConfigVb.setMethodDescription(rs.getString("METHOD_DESCRIPTION"));
+				ftpSourceConfigVb.setFtpSubGroupPriority(rs.getInt("FTP_SUB_GROUP_PRIORITY"));
+				ftpSourceConfigVb.setFtpSubGroupId(rs.getString("FTP_SUB_GROUP_ID"));
+				ftpSourceConfigVb.setFtpSubGroupDesc(rs.getString("FTP_SUB_GROUP_DESC"));
+//				ftpSourceConfigVb.setMethodType(rs.getString("METHOD_TYPE"));
+//				ftpSourceConfigVb.setMethodTypeDesc(rs.getString("METHOD_TYPE_DESC"));
 				ftpSourceConfigVb.setDefaultGroup(rs.getString("FTP_DEFAULT_FLAG"));
 				ftpSourceConfigVb.setFtpGroupStatus(rs.getInt("FTP_GRP_STATUS"));
 				ftpSourceConfigVb.setStatusDesc(rs.getString("FTP_GRP_STATUS_DESC"));
@@ -204,825 +2021,64 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 		return mapper;
 	}
 
-	@Override
-	protected RowMapper getMapper() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FTPGroupsVb ftpSourceConfigVb = new FTPGroupsVb();
-				ftpSourceConfigVb.setCountry(rs.getString("COUNTRY"));
-				ftpSourceConfigVb.setLeBook(rs.getString("LE_BOOK"));
-				ftpSourceConfigVb.setDataSource(rs.getString("DATA_SOURCE"));
-				ftpSourceConfigVb.setSourceReference(rs.getString("FTP_GROUP"));
-				// ftpSourceConfigVb.setFtpReference(rs.getString("FTP_REFERENCE"));
-				ftpSourceConfigVb.setGroupSeq(rs.getInt("FTP_GROUP_SEQ"));
-//				ftpSourceConfigVb.setFtpDescription(rs.getString("FTP_DESCRIPTION"));
-				ftpSourceConfigVb.setSourceReference(rs.getString("SOURCE_REFERENCE"));
-				ftpSourceConfigVb.setMethodReference(rs.getString("METHOD_REFERENCE"));
-				ftpSourceConfigVb.setMethodDescription(rs.getString("METHOD_DESCRIPTION"));
-				ftpSourceConfigVb.setDefaultGroup(rs.getString("FTP_DEFAULT_FLAG"));
-				ftpSourceConfigVb.setFtpGroupStatus(rs.getInt("FTP_GRP_STATUS"));
-				ftpSourceConfigVb.setDbStatus(rs.getInt("FTP_GRP_STATUS"));
-				ftpSourceConfigVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
-				ftpSourceConfigVb.setMaker(rs.getInt("MAKER"));
-				ftpSourceConfigVb.setVerifier(rs.getInt("VERIFIER"));
-				ftpSourceConfigVb.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
-				ftpSourceConfigVb.setDateLastModified(rs.getString("DATE_LAST_MODIFIED"));
-				ftpSourceConfigVb.setDateCreation(rs.getString("DATE_CREATION"));
-				return ftpSourceConfigVb;
-			}
-		};
-		return mapper;
-	}
-
-	protected RowMapper getFtpRatesDetailsMapper() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FTPCurveVb ftpCurveVb = new FTPCurveVb();
-				/*
-				 * ftpCurveVb.setTenorBucketApplicationCode((rs.getInt("TENOR_APPLICATION_CODE")
-				 * )); ftpCurveVb.setTenorBucketCode(rs.getString("TENOR_CODE"));
-				 * ftpCurveVb.setVisionSbu(rs.getString("VISION_SBU"));
-				 * ftpCurveVb.setCurrency(rs.getString("CURRENCY"));
-				 * ftpCurveVb.setIntStart(rs.getString("INT_RATE_START"));
-				 * ftpCurveVb.setIntEnd(rs.getString("INT_RATE_END"));
-				 * ftpCurveVb.setAmountStart(rs.getString("AMOUNT_START"));
-				 * ftpCurveVb.setAmountEnd(rs.getString("AMOUNT_END"));
-				 */
-				ftpCurveVb.setEffectiveDate(rs.getString("EFFECTIVE_DATE"));
-				ftpCurveVb.setFtpRateId(rs.getString("FTP_RATE_ID"));
-				ftpCurveVb.setFtpCurveId(rs.getString("FTP_CURVE"));
-				ftpCurveVb.setAddOnDepositRate(rs.getString("ADDON_DEPOSIT_RATE"));
-				ftpCurveVb.setSubsidy(rs.getString("SUBSIDY"));
-				ftpCurveVb.setAddOnLendingRate(rs.getString("ADDON_LENDING_RATE"));
-				ftpCurveVb.setRequiredReserveRate(rs.getString("REQUIRED_RESERVE_RATE"));
-				ftpCurveVb.setGlAllocationRate(rs.getString("GL_ALLOCATION_RATE"));
-				ftpCurveVb.setInsuranceRate(rs.getString("INSURANCE_RATE"));
-				ftpCurveVb.setAddOnAttRate1(rs.getString("ADDON_ATT_RATE1"));
-				ftpCurveVb.setAddOnAttRate1(rs.getString("ADDON_ATT_RATE1"));
-				ftpCurveVb.setAddOnAttRate1(rs.getString("ADDON_ATT_RATE1"));
-				ftpCurveVb.setAddOnAttRate2(rs.getString("ADDON_ATT_RATE2"));
-				ftpCurveVb.setAddOnAttRate3(rs.getString("ADDON_ATT_RATE3"));
-				ftpCurveVb.setAddOnAttRate4(rs.getString("ADDON_ATT_RATE4"));
-				ftpCurveVb.setRecordIndicatorNt(rs.getInt("RECORD_INDICATOR_NT"));
-				ftpCurveVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
-				ftpCurveVb.setMaker(rs.getInt("MAKER"));
-				ftpCurveVb.setVerifier(rs.getInt("VERIFIER"));
-//				ftpCurveVb.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
-				return ftpCurveVb;
-			}
-		};
-		return mapper;
-	}
-
-	protected RowMapper getGroupMapper() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FTPGroupsVb ftpSourceConfigVb = new FTPGroupsVb();
-				ftpSourceConfigVb.setCountry(rs.getString("COUNTRY"));
-				ftpSourceConfigVb.setLeBook(rs.getString("LE_BOOK"));
-				ftpSourceConfigVb.setDataSource(rs.getString("DATA_SOURCE"));
-				ftpSourceConfigVb.setFtpGroup(rs.getString("FTP_GROUP"));
-//			    ftpSourceConfigVb.setFtpReference(rs.getString("FTP_REFERENCE"));
-				ftpSourceConfigVb.setGroupSeq(rs.getInt("FTP_GROUP_SEQ"));
-				ftpSourceConfigVb.setDefaultGroup(rs.getString("FTP_DEFAULT_FLAG"));
-				ftpSourceConfigVb.setDataSourceDescription(rs.getString("SOURCE_REFERENCE"));
-				ftpSourceConfigVb.setMethodReference(rs.getString("METHOD_REFERENCE"));
-				return ftpSourceConfigVb;
-			}
-		};
-		return mapper;
-	}
-
-	protected RowMapper getTenorBucketsMapper() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FTPCurveVb ftpSourceConfigVb = new FTPCurveVb();
-				ftpSourceConfigVb.setTenorBucketCode(rs.getString("TENOR_CODE"));
-				ftpSourceConfigVb.setTenorDecription(rs.getString("TENOR_DESCRIPTION"));
-				return ftpSourceConfigVb;
-			}
-		};
-		return mapper;
-	}
-
-	protected RowMapper getCurveMapper() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FTPCurveVb ftpSourceConfigVb = new FTPCurveVb();
-				ftpSourceConfigVb.setFtpCurveId(rs.getString("FTP_CURVE_ID"));
-				/* ftpSourceConfigVb.setEffectiveDate(rs.getString("EFFECTIVE_DATE")); */
-				ftpSourceConfigVb.setActualEffectiveDate(rs.getString("EFFECTIVE_DATE"));
-				ftpSourceConfigVb.setTenorBucketApplicationCode(rs.getInt("TENOR_APPLICATION_CODE"));
-				ftpSourceConfigVb.setTenorBucketCode(rs.getString("TENOR_CODE"));
-				ftpSourceConfigVb.setVisionSbu(rs.getString("VISION_SBU_ATTRIBUTE"));
-				ftpSourceConfigVb.setCurrency(rs.getString("CURRENCY"));
-				ftpSourceConfigVb.setIntStart(rs.getString("INT_RATE_START"));
-				ftpSourceConfigVb.setIntEnd(rs.getString("INT_RATE_END"));
-				ftpSourceConfigVb.setAmountStart(rs.getString("AMOUNT_START"));
-				ftpSourceConfigVb.setAmountEnd(rs.getString("AMOUNT_END"));
-				ftpSourceConfigVb.setFtpRateId(rs.getString("FTP_RATE_ID"));
-				ftpSourceConfigVb.setSubRate(rs.getString("FTP_CURVE"));
-				ftpSourceConfigVb.setFtpCurveStatus(rs.getInt("FTP_CURVE_STATUS"));
-				ftpSourceConfigVb.setDbStatus(rs.getInt("FTP_CURVE_STATUS"));
-				ftpSourceConfigVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
-				ftpSourceConfigVb.setMaker(rs.getInt("MAKER"));
-				ftpSourceConfigVb.setVerifier(rs.getInt("VERIFIER"));
-				ftpSourceConfigVb.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
-				ftpSourceConfigVb.setDateLastModified(rs.getString("DATE_LAST_MODIFIED"));
-				ftpSourceConfigVb.setDateCreation(rs.getString("DATE_CREATION"));
-				ftpSourceConfigVb.setMaker(rs.getInt("MAKER"));
-				ftpSourceConfigVb.setVerifier(rs.getInt("VERIFIER"));
-				ftpSourceConfigVb.setRecordIndicatorDesc(rs.getString("RECORD_INDICATOR_DESC"));
-				ftpSourceConfigVb.setProductAttribute(rs.getString("PRODUCT_ATTRIBUTE"));
-				ftpSourceConfigVb.setProductAttributeDesc(rs.getString("PRODUCT_ATTRIBUTE_DESC"));
-				ftpSourceConfigVb.setCurrencyDesc(rs.getString("CURRENCY_DESC"));
-				ftpSourceConfigVb.setTenorBucketCodeDesc(rs.getString("TENOR_DESC"));
-				ftpSourceConfigVb.setVisionSbuDesc(rs.getString("VISIONSBU_DESC"));
-				return ftpSourceConfigVb;
-			}
-		};
-		return mapper;
-	}
-
-	protected RowMapper getAddOnMapper() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FTPCurveVb ftpSourceConfigVb = new FTPCurveVb();
-				ftpSourceConfigVb.setFtpCurveId(rs.getString("FTP_CURVE_ID"));
-				ftpSourceConfigVb.setActualEffectiveDate(rs.getString("EFFECTIVE_DATE"));
-				ftpSourceConfigVb.setCustomerId(rs.getString("CUSTOMER_ID"));
-				ftpSourceConfigVb.setContractId(rs.getString("CONTRACT_ID"));
-				ftpSourceConfigVb.setAddOnRate(rs.getString("ADDON_RATE"));
-				ftpSourceConfigVb.setSubRate(rs.getString("SUBSIDY_RATE"));
-				ftpSourceConfigVb.setFtpCurveStatus(rs.getInt("FTP_ADDON_STATUS"));
-				ftpSourceConfigVb.setDbStatus(rs.getInt("FTP_ADDON_STATUS"));
-				ftpSourceConfigVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
-				ftpSourceConfigVb.setMaker(rs.getInt("MAKER"));
-				ftpSourceConfigVb.setVerifier(rs.getInt("VERIFIER"));
-				ftpSourceConfigVb.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
-				ftpSourceConfigVb.setDateLastModified(rs.getString("DATE_LAST_MODIFIED"));
-				ftpSourceConfigVb.setDateCreation(rs.getString("DATE_CREATION"));
-				ftpSourceConfigVb.setMaker(rs.getInt("MAKER"));
-				ftpSourceConfigVb.setVerifier(rs.getInt("VERIFIER"));
-				ftpSourceConfigVb.setRecordIndicatorDesc(rs.getString("RECORD_INDICATOR_DESC"));
-				ftpSourceConfigVb.setCustomerIdDesc(rs.getString("CUSTOMER_DESC"));
-				ftpSourceConfigVb.setContractIdDesc(rs.getString("CONTRACT_DESC"));
-				return ftpSourceConfigVb;
-			}
-		};
-		return mapper;
-	}
-
-	protected RowMapper getPremiumMapper() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FTPCurveVb ftpSourceConfigVb = new FTPCurveVb();
-				ftpSourceConfigVb.setFtpCurveId(rs.getString("FTP_CURVE_ID"));
-				ftpSourceConfigVb.setEffectiveDate(rs.getString("EFFECTIVE_DATE"));
-				ftpSourceConfigVb.setTenorBucketApplicationCode(rs.getInt("FTP_TENOR_APPLICATION_CODE"));
-				ftpSourceConfigVb.setTenorBucketCode(rs.getString("FTP_TENOR_CODE"));
-				ftpSourceConfigVb.setLpTenorBucketApplicationCode(rs.getInt("LP_TENOR_APPLICATION_CODE"));
-				ftpSourceConfigVb.setLpTenorBucketCode(rs.getString("LP_TENOR_CODE"));
-				ftpSourceConfigVb.setVisionSbu(rs.getString("VISION_SBU_ATTRIBUTE"));
-				ftpSourceConfigVb.setCurrency(rs.getString("CURRENCY"));
-				ftpSourceConfigVb.setFtpRateId(rs.getString("LP_RATE_ID"));
-				ftpSourceConfigVb.setSubRate(rs.getString("LP_RATE"));
-				ftpSourceConfigVb.setCurrencyDesc(rs.getString("CURRENCY_DESC"));
-				return ftpSourceConfigVb;
-			}
-		};
-		return mapper;
-	}
-
-	protected RowMapper getPopMapperPremium() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FTPCurveVb ftpSourceConfigVb = new FTPCurveVb();
-				ftpSourceConfigVb.setFtpCurveId(rs.getString("FTP_CURVE_ID"));
-				ftpSourceConfigVb.setEffectiveDate(rs.getString("EFFECTIVE_DATE"));
-				ftpSourceConfigVb.setTenorBucketApplicationCode(rs.getInt("FTP_TENOR_APPLICATION_CODE"));
-				ftpSourceConfigVb.setLpTenorBucketApplicationCode(rs.getInt("LP_TENOR_APPLICATION_CODE"));
-				ftpSourceConfigVb.setVisionSbu(rs.getString("VISION_SBU_ATTRIBUTE"));
-				ftpSourceConfigVb.setCurrency(rs.getString("CURRENCY"));
-				return ftpSourceConfigVb;
-			}
-		};
-		return mapper;
-	}
-
-	protected RowMapper getMapperSource() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FTPSourceConfigVb ftpSourceConfigVb = new FTPSourceConfigVb();
-				ftpSourceConfigVb.setSequence(rs.getInt("SOURCE_SEQUENCE"));
-				ftpSourceConfigVb.setTableName(rs.getString("TABLE_NAME"));
-				ftpSourceConfigVb.setColName(rs.getString("COLUMN_NAME"));
-				ftpSourceConfigVb.setOperand(rs.getString("OPERAND"));
-				ftpSourceConfigVb.setConditionValue1(rs.getString("CONDITION_VALUE1"));
-				ftpSourceConfigVb.setConditionValue2(rs.getString("CONDITION_VALUE2"));
-				ftpSourceConfigVb.setFtpSourceConfigStatus(rs.getInt("FTP_SC_STATUS"));
-				ftpSourceConfigVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
-				return ftpSourceConfigVb;
-			}
-		};
-		return mapper;
-	}
-
-	protected RowMapper getMapperMethods() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FtpMethodsVb ftpMethodsVb = new FtpMethodsVb();
-				ftpMethodsVb = new FtpMethodsVb();
-				ftpMethodsVb.setFtpCurveId(rs.getString("FTP_CURVE_ID"));
-				ftpMethodsVb.setMethodType(rs.getString("METHOD_TYPE"));
-				ftpMethodsVb.setMethodTypeDesc(rs.getString("METHOD_TYPE_DESC"));
-				ftpMethodsVb.setMethodSubType(rs.getString("METHOD_SUB_TYPE"));
-				ftpMethodsVb.setMethodSubTypeDesc(rs.getString("METHOD_SUB_TYPE_DESC"));
-				ftpMethodsVb.setFtpTenorType(rs.getInt("FTP_TENOR_TYPE"));
-				ftpMethodsVb.setFtpTenorTypeDesc(rs.getString("FTP_TENOR_TYPE_DESC"));
-				ftpMethodsVb.setMethodBalType(rs.getInt("METHOD_BAL_TYPE"));
-				ftpMethodsVb.setMethodBalTypeDesc(rs.getString("METHOD_BAL_TYPE_DESC"));
-				ftpMethodsVb.setRepricingFlag(rs.getString("REPRICING_FLAG"));
-				ftpMethodsVb.setRepricingFlagDesc(rs.getString("REPRICING_FLAG_DESC"));
-				ftpMethodsVb.setLpTenorType(rs.getInt("LP_TENOR_TYPE"));
-				ftpMethodsVb.setLpTenorTypeDesc(rs.getString("LP_TENOR_TYPE_DESC"));
-				ftpMethodsVb.setStatus(rs.getInt("FTP_MT_STATUS"));
-				ftpMethodsVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
-
-				ftpMethodsVb.setInterestBasis(rs.getInt("INTEREST_BASIS"));
-				ftpMethodsVb.setFtpApplyRate(rs.getInt("FTP_APPLY_RATE"));
-				ftpMethodsVb.setAddonApplyRate(rs.getInt("ADDON_APPLY_RATE"));
-				ftpMethodsVb.setLpApplyRate(rs.getInt("LP_APPLY_RATE"));
-				ftpMethodsVb.setMethodReference(rs.getString("METHOD_REFERENCE"));
-				ftpMethodsVb.setMethodDescription(rs.getString("METHOD_DESCRIPTION"));
-
-				ftpMethodsVb.setInterestBasisDesc(rs.getString("INTEREST_BASIS_DESC"));
-				ftpMethodsVb.setFtpApplyRateDesc(rs.getString("FTP_APPLY_RATE_DESC"));
-				ftpMethodsVb.setAddonApplyRateDesc(rs.getString("ADDON_APPLY_RATE_DESC"));
-				ftpMethodsVb.setLpApplyRateDesc(rs.getString("LP_APPLY_RATE_DESC"));
-				return ftpMethodsVb;
-			}
-		};
-		return mapper;
-	}
-
-	public List<FTPGroupsVb> getQueryPopupResults1(FTPGroupsVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer("Select Distinct TAppr.COUNTRY, TAppr.LE_BOOK, "
-				+ " TAppr.DATA_SOURCE,TAPPR.FTP_GROUP " + " From FTP_GROUPS TAppr");
-		try {
-			if (ValidationUtil.isValid(dObj.getCountry())) {
-				params.addElement("%" + dObj.getCountry().toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(TAppr.COUNTRY) like ?", strBufApprove);
-			}
-			if (ValidationUtil.isValid(dObj.getLeBook())) {
-				params.addElement("%" + dObj.getLeBook().toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(TAppr.LE_BOOK) like ?", strBufApprove);
-			}
-			if (!"-1".equalsIgnoreCase(dObj.getDataSource())) {
-				params.addElement(dObj.getDataSource());
-				CommonUtils.addToQuery("TAppr.DATA_SOURCE = ?", strBufApprove);
-			}
-			if (!"-1".equalsIgnoreCase(dObj.getFtpGroup())) {
-				params.addElement(dObj.getFtpGroup());
-				CommonUtils.addToQuery("TAppr.FTP_GROUP = ?", strBufApprove);
-			}
-			// check if the column [RECORD_INDICATOR] should be included in the query
-			if (dObj.getRecordIndicator() != -1) {
-				if (dObj.getRecordIndicator() > 3) {
-					params.addElement(new Integer(0));
-					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR > ?", strBufApprove);
-				} else {
-					params.addElement(new Integer(dObj.getRecordIndicator()));
-					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR = ?", strBufApprove);
-				}
-			}
-			String orderBy = " Order By COUNTRY, LE_BOOK, DATA_SOURCE, FTP_GROUP ";
-			return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params,
-					getQueryPopupMapperDetails());
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
-			if (params != null)
-				for (int i = 0; i < params.size(); i++)
-					logger.error("objParams[" + i + "]" + params.get(i).toString());
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryPopupResults(FTPGroupsVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer("SELECT TAppr.COUNTRY,TAppr.LE_BOOK,TAppr.DATA_SOURCE,\n"
-				+ "(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC\n"
-				+ ",TAppr.FTP_GROUP,TAppr.FTP_GROUP_SEQ,\n"
-				+ "	TAppr.SOURCE_REFERENCE,\n"
-				+ "(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB T1 WHERE ALPHA_TAB = SOURCE_REFERENCE_AT AND ALPHA_sub_TAB= SOURCE_REFERENCE ) SOURCE_REFERENCE_DESC,\n"
-				+ "	TAppr.METHOD_REFERENCE,\n"
-				+ "	(SELECT MIN(METHOD_DESCRIPTION) FROM FTP_METHODS WHERE METHOD_REFERENCE = TAppr.METHOD_REFERENCE) METHOD_DESCRIPTION,\n"
-				+ "	TAppr.FTP_DEFAULT_FLAG, " 
-				+ "	TAppr.FTP_GRP_STATUS, "
-				+ VariableStatusNtApprDesc + ",TAppr.RECORD_INDICATOR, " + RecordIndicatorNtApprDesc
-				+ ",TAppr.MAKER,"+makerApprDesc+",TAppr.VERIFIER,"+verifierApprDesc+",TAppr.INTERNAL_STATUS,TAppr.DATE_CREATION,TAppr.DATE_LAST_MODIFIED "
-				+ "	FROM FTP_GROUPS TAppr");
-		StringBuffer strBufPending = new StringBuffer("");
-		try {
-			/*
-			 * if (ValidationUtil.isValid(dObj.getCountry())) { params.addElement("%" +
-			 * dObj.getCountry().toUpperCase() + "%" );
-			 * CommonUtils.addToQuery("UPPER(TAppr.COUNTRY) like ?", strBufApprove); } if
-			 * (ValidationUtil.isValid(dObj.getLeBook())) { params.addElement("%" +
-			 * dObj.getLeBook().toUpperCase() + "%" );
-			 * CommonUtils.addToQuery("UPPER(TAppr.LE_BOOK) like ?", strBufApprove); } if
-			 * (!"-1".equalsIgnoreCase(dObj.getDataSource())){
-			 * params.addElement(dObj.getDataSource());
-			 * CommonUtils.addToQuery("TAppr.DATA_SOURCE = ?", strBufApprove); } if
-			 * (!"-1".equalsIgnoreCase(dObj.getFtpGroup())){
-			 * params.addElement(dObj.getFtpGroup());
-			 * CommonUtils.addToQuery("TAppr.FTP_GROUP = ?", strBufApprove); } //check if
-			 * the column [RECORD_INDICATOR] should be included in the query if
-			 * (dObj.getRecordIndicator() != -1){ if (dObj.getRecordIndicator() > 3){
-			 * params.addElement(new Integer(0));
-			 * CommonUtils.addToQuery("TAppr.RECORD_INDICATOR > ?", strBufApprove); }else{
-			 * params.addElement(new Integer(dObj.getRecordIndicator()));
-			 * CommonUtils.addToQuery("TAppr.RECORD_INDICATOR = ?", strBufApprove); } }
-			 */
-			/*
-			CommonUtils.addToQuery(" TAppr.COUNTRY = T2.COUNTRY" + "	AND TAppr.LE_BOOK = T2.LE_BOOK"
-					+ "	AND TAppr.FTP_REFERENCE = T2.FTP_REFERENCE ", strBufApprove);
-			*/
-			if (dObj.getSmartSearchOpt() != null && dObj.getSmartSearchOpt().size() > 0) {
-				int count = 1;
-				for (SmartSearchVb data : dObj.getSmartSearchOpt()) {
-					if (count == dObj.getSmartSearchOpt().size()) {
-						data.setJoinType("");
-					} else {
-						if (!ValidationUtil.isValid(data.getJoinType()) && !("AND".equalsIgnoreCase(data.getJoinType())
-								|| "OR".equalsIgnoreCase(data.getJoinType()))) {
-							data.setJoinType("AND");
-						}
-					}
-					String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
-					switch (data.getObject()) {
-					case "country":
-						CommonUtils.addToQuerySearch(" upper(TAppr.COUNTRY) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.COUNTRY) " + val, strBufPending, data.getJoinType());
-						break;
-
-					case "leBook":
-						CommonUtils.addToQuerySearch(" upper(TAppr.LE_BOOK) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.LE_BOOK) " + val, strBufPending, data.getJoinType());
-						break;
-
-					case "dataSource":
-						CommonUtils.addToQuerySearch(" upper(TAppr.DATA_SOURCE) " + val, strBufApprove,
-								data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.DATA_SOURCE) " + val, strBufPending,
-								data.getJoinType());
-						break;
-
-					case "ftpGroup":
-						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_GROUP) " + val, strBufApprove,
-								data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.FTP_GROUP) " + val, strBufPending,
-								data.getJoinType());
-						break;
-					case "recordIndicator":
-						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR) " + val, strBufApprove,
-								data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR) " + val, strBufPending,
-								data.getJoinType());
-						break;
-
-					default:
-					}
-					count++;
-				}
-			}
-
-			String orderBy = " ORDER BY TAppr.COUNTRY, TAppr.LE_BOOK, DATA_SOURCE, FTP_GROUP, SOURCE_REFERENCE, FTP_GROUP_SEQ ";
-
-			return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params,
-					getQueryPopupMapperDetails());
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
-			if (params != null)
-				for (int i = 0; i < params.size(); i++)
-					logger.error("objParams[" + i + "]" + params.get(i).toString());
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryResults(FTPGroupsVb dObj, int status) {
-		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer(
-				"SELECT T1.COUNTRY,T1.LE_BOOK,T1.DATA_SOURCE,T1.FTP_GROUP,T1.FTP_GROUP_SEQ,"
-						+ "	T1.SOURCE_REFERENCE,T1.METHOD_REFERENCE,"
-						+ "  (SELECT MIN(METHOD_DESCRIPTION) FROM FTP_METHODS WHERE METHOD_REFERENCE = T1.METHOD_REFERENCE) METHOD_DESCRIPTION,"
-						+ "   T1.FTP_DEFAULT_FLAG,"
-						+ "	T1.FTP_GRP_STATUS,T1.RECORD_INDICATOR,T1.MAKER,T1.VERIFIER,T1.INTERNAL_STATUS,T1.DATE_CREATION,T1.DATE_LAST_MODIFIED "
-						+ "   FROM FTP_GROUPS T1 ");
-		try {
-			if (ValidationUtil.isValid(dObj.getCountry())) {
-				params.addElement("%" + dObj.getCountry().toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(T1.COUNTRY) like ?", strBufApprove);
-			}
-			if (ValidationUtil.isValid(dObj.getLeBook())) {
-				params.addElement("%" + dObj.getLeBook().toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(T1.LE_BOOK) like ?", strBufApprove);
-			}
-			if (!"-1".equalsIgnoreCase(dObj.getDataSource())) {
-				params.addElement(dObj.getDataSource());
-				CommonUtils.addToQuery("T1.DATA_SOURCE = ?", strBufApprove);
-			}
-			if (!"-1".equalsIgnoreCase(dObj.getFtpGroup())) {
-				params.addElement(dObj.getFtpGroup());
-				CommonUtils.addToQuery("T1.FTP_GROUP = ?", strBufApprove);
-			}
-			/*
-			 * CommonUtils.addToQuery(" T1.COUNTRY = T2.COUNTRY" +
-			 * "	AND T1.LE_BOOK = T2.LE_BOOK" +
-			 * "	AND T1.FTP_REFERENCE = T2.FTP_REFERENCE ", strBufApprove);
-			 */
-			String orderBy = " Order By FTP_GROUP_SEQ";
-			return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
-			if (params != null)
-				for (int i = 0; i < params.size(); i++)
-					logger.error("objParams[" + i + "]" + params.get(i).toString());
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryResultsSource(FTPGroupsVb dObj) {
-		dObj.setRecordIndicator(0);
-		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer(
-				"SELECT SOURCE_SEQUENCE,TABLE_NAME,COLUMN_NAME,OPERAND,CONDITION_VALUE1,CONDITION_VALUE2,FTP_SC_STATUS,RECORD_INDICATOR "
-						+ " FROM FTP_SOURCE_CONFIG ");
-		try {
-			if (ValidationUtil.isValid(dObj.getCountry())) {
-				params.addElement("%" + dObj.getCountry().toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(COUNTRY) like ?", strBufApprove);
-			}
-			if (ValidationUtil.isValid(dObj.getLeBook())) {
-				params.addElement("%" + dObj.getLeBook().toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(LE_BOOK) like ?", strBufApprove);
-			}
-			if (!"-1".equalsIgnoreCase(dObj.getSourceReference())) {
-				params.addElement(dObj.getSourceReference());
-				CommonUtils.addToQuery("SOURCE_REFERENCE = ?", strBufApprove);
-			}
-			String orderBy = " Order By SOURCE_SEQUENCE";
-			return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params,
-					getMapperSource());
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
-			if (params != null)
-				for (int i = 0; i < params.size(); i++)
-					logger.error("objParams[" + i + "]" + params.get(i).toString());
-			return null;
-		}
-	}
-
-	public List<FtpMethodsVb> getQueryResultMethods(FTPGroupsVb dObj) {
-		List<FtpMethodsVb> collTemp = null;
-		final int intKeyFieldsCount = 1;
-
-		String strBufApprove = new String(
-				"SELECT METHOD_TYPE, METHOD_REFERENCE, METHOD_DESCRIPTION,(SELECT ALPHA_SUBTAB_DESCRIPTION from ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB = METHOD_TYPE )METHOD_TYPE_DESC "
-						+ ", METHOD_SUB_TYPE, (SELECT ALPHA_SUBTAB_DESCRIPTION from ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_SUB_TYPE_AT AND ALPHA_SUB_TAB = METHOD_SUB_TYPE ) METHOD_SUB_TYPE_DESC , "
-						+ "REPRICING_FLAG, (SELECT ALPHA_SUBTAB_DESCRIPTION from ALPHA_SUB_TAB WHERE ALPHA_TAB = REPRICING_FLAG_AT AND ALPHA_SUB_TAB = REPRICING_FLAG ) REPRICING_FLAG_DESC, "
-						+ "FTP_TENOR_TYPE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = TENOR_TYPE_NT AND NUM_SUB_TAB = FTP_TENOR_TYPE) FTP_TENOR_TYPE_DESC,"
-						+ "LP_TENOR_TYPE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = TENOR_TYPE_NT AND NUM_SUB_TAB = LP_TENOR_TYPE) LP_TENOR_TYPE_DESC,"
-						+ "METHOD_BAL_TYPE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = METHOD_BAL_TYPE_NT AND NUM_SUB_TAB = METHOD_BAL_TYPE ) METHOD_BAL_TYPE_DESC,"
-						+ "INTEREST_BASIS, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = INTEREST_BASIS_NT AND NUM_SUB_TAB = INTEREST_BASIS) INTEREST_BASIS_DESC,"
-						+ "FTP_APPLY_RATE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = APPLY_RATE_NT AND NUM_SUB_TAB = FTP_APPLY_RATE ) FTP_APPLY_RATE_DESC ,"
-						+ "ADDON_APPLY_RATE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = APPLY_RATE_NT AND NUM_SUB_TAB = ADDON_APPLY_RATE ) ADDON_APPLY_RATE_DESC ,"
-						+ "LP_APPLY_RATE,  (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB =  APPLY_RATE_NT AND NUM_SUB_TAB = LP_APPLY_RATE )LP_APPLY_RATE_DESC ,"
-						+ "FTP_CURVE_ID,FTP_MT_STATUS,RECORD_INDICATOR FROM FTP_METHODS WHERE METHOD_REFERENCE = ? AND FTP_MT_STATUS = 0");
-
-		if (ValidationUtil.isValid(dObj.getRepricingFlag())) {
-			/*
-			 * strBufApprove = new
-			 * String("SELECT METHOD_TYPE, METHOD_SUB_TYPE, REPRICING_FLAG,FTP_TENOR_TYPE,LP_TENOR_TYPE,METHOD_BAL_TYPE,INTEREST_BASIS,FTP_APPLY_RATE,ADDON_APPLY_RATE,LP_APPLY_RATE,"
-			 * +
-			 * "FTP_CURVE_ID,FTP_MT_STATUS,RECORD_INDICATOR FROM FTP_METHODS WHERE METHOD_REFERENCE = ? AND FTP_MT_STATUS = 0 and REPRICING_FLAG='"
-			 * +dObj.getRepricingFlag()+"'");
-			 */
-
-			strBufApprove = new String(
-					"SELECT METHOD_TYPE, METHOD_REFERENCE, METHOD_DESCRIPTION,(SELECT ALPHA_SUBTAB_DESCRIPTION from ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB = METHOD_TYPE )METHOD_TYPE_DESC "
-							+ ", METHOD_SUB_TYPE, (SELECT ALPHA_SUBTAB_DESCRIPTION from ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_SUB_TYPE_AT AND ALPHA_SUB_TAB = METHOD_SUB_TYPE ) METHOD_SUB_TYPE_DESC , "
-							+ "REPRICING_FLAG, (SELECT ALPHA_SUBTAB_DESCRIPTION from ALPHA_SUB_TAB WHERE ALPHA_TAB = REPRICING_FLAG_AT AND ALPHA_SUB_TAB = REPRICING_FLAG ) REPRICING_FLAG_DESC, "
-							+ "FTP_TENOR_TYPE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = TENOR_TYPE_NT AND NUM_SUB_TAB = FTP_TENOR_TYPE) FTP_TENOR_TYPE_DESC,"
-							+ "LP_TENOR_TYPE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = TENOR_TYPE_NT AND NUM_SUB_TAB = LP_TENOR_TYPE) LP_TENOR_TYPE_DESC,"
-							+ "METHOD_BAL_TYPE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = METHOD_BAL_TYPE_NT AND NUM_SUB_TAB = METHOD_BAL_TYPE ) METHOD_BAL_TYPE_DESC,"
-							+ "INTEREST_BASIS, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = INTEREST_BASIS_NT AND NUM_SUB_TAB = INTEREST_BASIS) INTEREST_BASIS_DESC,"
-							+ "FTP_APPLY_RATE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = APPLY_RATE_NT AND NUM_SUB_TAB = FTP_APPLY_RATE ) FTP_APPLY_RATE_DESC ,"
-							+ "ADDON_APPLY_RATE, (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB = APPLY_RATE_NT AND NUM_SUB_TAB = ADDON_APPLY_RATE ) ADDON_APPLY_RATE_DESC ,"
-							+ "LP_APPLY_RATE,  (SELECT NUM_SUBTAB_DESCRIPTION from NUM_SUB_TAB WHERE NUM_TAB =  APPLY_RATE_NT AND NUM_SUB_TAB = LP_APPLY_RATE )LP_APPLY_RATE_DESC ,"
-							+ "FTP_CURVE_ID,FTP_MT_STATUS,RECORD_INDICATOR FROM FTP_METHODS WHERE METHOD_REFERENCE = ? AND FTP_MT_STATUS = 0 and REPRICING_FLAG='"
-							+ dObj.getRepricingFlag() + "'");
-		}
-
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = dObj.getMethodReference();
-
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getMapperMethods());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryResultsGroup(FTPGroupsVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 5;
-		String strBufApprove = "SELECT COUNTRY,LE_BOOK,DATA_SOURCE,FTP_GROUP,FTP_GROUP_SEQ,FTP_DEFAULT_FLAG ,SOURCE_REFERENCE , METHOD_REFERENCE FROM FTP_GROUPS WHERE COUNTRY = ? "
-				+ " AND LE_BOOK = ? AND DATA_SOURCE = ? AND FTP_GROUP = ? AND FTP_GROUP_SEQ = ? ";
-
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = dObj.getCountry();
-		objParams[1] = dObj.getLeBook();
-		objParams[2] = dObj.getDataSource();
-		objParams[3] = dObj.getFtpGroup();
-		objParams[4] = dObj.getGroupSeq();
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getGroupMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryResultControls(FTPGroupsVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 4;
-		String strBufApprove = new String("Select Distinct TAppr.COUNTRY, TAppr.LE_BOOK, "
-				+ " TAppr.DATA_SOURCE,TAPPR.FTP_GROUP "
-				+ " From FTP_GROUPS TAppr where Country = ? and LE_Book = ? and Data_Source = ? and FTP_Group =?");
-
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = dObj.getCountry();
-		objParams[1] = dObj.getLeBook();
-		objParams[2] = dObj.getDataSource();
-		objParams[3] = dObj.getFtpGroup();
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getGroupMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryResultGroup(FTPGroupsVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 7;
-		String strBufApprove = new String("Select Distinct TAppr.COUNTRY, TAppr.LE_BOOK, "
-				+ " TAppr.DATA_SOURCE,TAPPR.FTP_GROUP,TAPPR.FTP_GROUP_SEQ,TAPPR.FTP_DEFAULT_FLAG ,TAPPR.SOURCE_REFERENCE,TAPPR.METHOD_REFERENCE"
-				+ " From FTP_GROUPS TAppr where Country = ? and LE_Book = ? and Data_Source = ? and  SOURCE_REFERENCE = ? and METHOD_REFERENCE =? and  FTP_Group =? and FTP_GROUP_SEQ = ? ");
-
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = dObj.getCountry();
-		objParams[1] = dObj.getLeBook();
-		objParams[2] = dObj.getDataSource();
-		objParams[3] = dObj.getSourceReferenceDesc();
-		objParams[4] = dObj.getMethodReference();
-		objParams[5] = dObj.getFtpGroup();
-		objParams[6] = dObj.getGroupSeq();
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getGroupMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryResultCurves(FTPCurveVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 2;
-		String strBufApprove = new String(
-				"SELECT FTP_CURVE_ID,TO_CHAR(EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE,TENOR_APPLICATION_CODE,TENOR_CODE,VISION_SBU_ATTRIBUTE,"
-						+ " CURRENCY,TO_CHAR(INT_RATE_START,'9,990.999999990') INT_RATE_START,TO_CHAR(INT_RATE_END,'9,990.999999990') INT_RATE_END,TO_CHAR(AMOUNT_START,'99,999,999,999,999,999,990.99990') AMOUNT_START ,TO_CHAR(AMOUNT_END,'99,999,999,999,999,999,990.99990') AMOUNT_END,FTP_CURVE_STATUS,"
-						+ " (SELECT TO_CHAR(FTP_CURVE,'9,990.999999990') FTP_CURVE FROM FTP_TERM_RATES WHERE "
-						+ " FTP_RATE_ID = T1.FTP_RATE_ID AND EFFECTIVE_DATE = (SELECT MAX(EFFECTIVE_DATE) FROM FTP_TERM_RATES WHERE FTP_RATE_ID = T1.FTP_RATE_ID ) AND EFFECTIVE_DATE >= T1.EFFECTIVE_DATE) FTP_CURVE,"
-						+ " RECORD_INDICATOR,MAKER,VERIFIER,INTERNAL_STATUS,DATE_LAST_MODIFIED,DATE_CREATION,FTP_RATE_ID FROM FTP_CURVES T1"
-						+ " WHERE FTP_CURVE_ID = ? AND EFFECTIVE_DATE= TO_DATE(?,'DD-MM-RRRR') ");
-
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = dObj.getFtpCurveId();
-		objParams[1] = dObj.getEffectiveDate();
-
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getCurveMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getFTPRatesDataDao(FTPGroupsVb dObj, FTPCurveVb vObject) {
-		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer(
-				"Select Distinct  TAppr.FTP_RATE_ID ,TO_CHAR(EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE, "
-						+ " TO_CHAR(TAppr.FTP_CURVE,'9,990.999999990')FTP_CURVE, TO_CHAR (TAppr.ADDON_DEPOSIT_RATE, '9,990.999999990')ADDON_DEPOSIT_RATE,TO_CHAR (TAppr.SUBSIDY, '9,990.999999990')SUBSIDY,TO_CHAR (TAppr.ADDON_LENDING_RATE, '9,990.999999990')ADDON_LENDING_RATE,TO_CHAR (TAppr.REQUIRED_RESERVE_RATE, '9,990.999999990')REQUIRED_RESERVE_RATE ,"
-						+ " TO_CHAR (TAppr.GL_ALLOCATION_RATE, '9,990.999999990')GL_ALLOCATION_RATE,TO_CHAR (TAppr.INSURANCE_RATE, '9,990.999999990')INSURANCE_RATE,TO_CHAR (TAppr.ADDON_ATT_RATE1, '9,990.999999990')ADDON_ATT_RATE1,TO_CHAR (TAppr.ADDON_ATT_RATE2, '9,990.999999990')ADDON_ATT_RATE2,TO_CHAR (TAppr.ADDON_ATT_RATE3, '9,990.999999990')ADDON_ATT_RATE3,TO_CHAR (TAppr.ADDON_ATT_RATE4, '9,990.999999990')ADDON_ATT_RATE4,TAppr.MAKER, TAppr.VERIFIER, TAppr.RECORD_INDICATOR_NT,TAppr.RECORD_INDICATOR "
-						+ " From FTP_TERM_RATES TAppr ");
-		/*
-		 * StringBuffer strBufPending = new
-		 * StringBuffer("Select Distinct TPend.FTP_RATE_ID ,TO_CHAR(EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE, "
-		 * +
-		 * " TPend.FTP_CURVE,TPend.ADDON_DEPOSIT_RATE,TPend.SUBSIDY,TPend.ADDON_LENDING_RATE,TPend.REQUIRED_RESERVE_RATE ,"
-		 * +
-		 * " TPend.GL_ALLOCATION_RATE,TPend.INSURANCE_RATE,TPend.ADDON_ATT_RATE1,TPend.ADDON_ATT_RATE2,TPend.ADDON_ATT_RATE3,TPend.ADDON_ATT_RATE4,TPend.MAKER, TPend.VERIFIER, TPend.RECORD_INDICATOR_NT,TPend.RECORD_INDICATOR "
-		 * + " From FTP_TERM_RATES_PEND TPend ");
-		 */
-
-		try {
-			if (ValidationUtil.isValid(vObject.getFtpRateId())) {
-				params.addElement(vObject.getFtpRateId());
-				CommonUtils.addToQuery("TAppr.FTP_RATE_ID = ?", strBufApprove);
-				/* CommonUtils.addToQuery("TPend.FTP_RATE_ID = ?", strBufPending); */
-			}
-			if (ValidationUtil.isValid(vObject.getEffectiveDate())) {
-				params.addElement(vObject.getEffectiveDate());
-				CommonUtils.addToQuery("TAppr.EFFECTIVE_DATE <= TO_DATE(?,'DD-MM-RRRR') ", strBufApprove);
-				/*
-				 * CommonUtils.addToQuery("TPend.EFFECTIVE_DATE <= TO_DATE(?,'DD-MM-RRRR')",
-				 * strBufPending);
-				 */
-			}
-
-			// check if the column [RECORD_INDICATOR] should be included in the query
-			if (vObject.getRecordIndicator() != -1) {
-				if (vObject.getRecordIndicator() > 3) {
-					params.addElement(new Integer(0));
-					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR > ?", strBufApprove);
-					/* CommonUtils.addToQuery("TPend.RECORD_INDICATOR > ?", strBufPending); */
-				} else {
-					params.addElement(new Integer(vObject.getRecordIndicator()));
-					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR = ?", strBufApprove);
-					/* CommonUtils.addToQuery("TPend.RECORD_INDICATOR = ?", strBufPending); */
-				}
-			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
-			logger.error("UNION");
-			/*
-			 * logger.error(((strBufPending==null)?
-			 * "strBufPending is Null":strBufPending.toString()));
-			 */
-
-			if (params != null)
-				for (int i = 0; i < params.size(); i++)
-					logger.error("objParams[" + i + "]" + params.get(i).toString());
-			return null;
-		}
-
-		String orderBy = " Order By EFFECTIVE_DATE DESC";
-		return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params,
-				getFtpRatesDetailsMapper());
-	}
-
-	public List<FTPGroupsVb> getQueryPopupResultsCurves(String ftpCurve, String effectiveDate, FTPGroupsVb dObj,
-			Boolean flag) {
-		dObj.setRecordIndicator(0);
-		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer();
-		if (flag) {
-			strBufApprove = new StringBuffer(
-					"SELECT FTP_CURVE_ID,TO_CHAR (t1.EFFECTIVE_DATE, 'DD-MM-RRRR') EFFECTIVE_DATE,"
-							+ " TENOR_APPLICATION_CODE,TENOR_CODE,(SELECT TENOR_DESCRIPTION FROM TENOR_BUCKETS WHERE TENOR_APPLICATION_CODE = T1.TENOR_APPLICATION_CODE AND TENOR_CODE = T1.TENOR_CODE)TENOR_DESC,NVL (VISION_SBU_ATTRIBUTE, '000') VISION_SBU_ATTRIBUTE,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = 300 AND ALPHA_SUB_TAB = T1.VISION_SBU_ATTRIBUTE)VISIONSBU_DESC,"
-							+ " CURRENCY,(SELECT  CCY_DESCRIPTION  DESCRIPTION FROM CURRENCIES WHERE CCY_STATUS = 0 AND CURRENCY = T1.CURRENCY)CURRENCY_DESC ,TO_CHAR (INT_RATE_START, '9,990.999999990') INT_RATE_START,"
-							+ " TO_CHAR (INT_RATE_END, '9,990.999999990') INT_RATE_END,TO_CHAR (AMOUNT_START, '99,999,999,999,999,999,990.99990')"
-							+ " AMOUNT_START,TO_CHAR (AMOUNT_END, '99,999,999,999,999,999,990.99990') AMOUNT_END,"
-							+ " FTP_CURVE_STATUS,FTP_RATE_ID,(SELECT TO_CHAR (t3.FTP_CURVE, '9,990.999999990') FTP_CURVE"
-							+ " FROM FTP_TERM_RATES t3 WHERE     t3.FTP_RATE_ID = T1.FTP_RATE_ID "
-							+ " AND t3.EFFECTIVE_DATE = (SELECT MAX (EFFECTIVE_DATE) FROM FTP_TERM_RATES t2"
-							+ " WHERE t2.FTP_RATE_ID = T1.FTP_RATE_ID and  t2.EFFECTIVE_DATE <= t1.Effective_Date)) FTP_CURVE,"
-							+ " RECORD_INDICATOR,(SELECT NUM_SUBTAB_DESCRIPTION FROM NUM_SUB_TAB WHERE NUM_TAB = RECORD_INDICATOR_NT AND NUM_SUB_TAB = RECORD_INDICATOR )RECORD_INDICATOR_DESC ,MAKER,VERIFIER,INTERNAL_STATUS,DATE_LAST_MODIFIED,"
-							+ " DATE_CREATION,PRODUCT_ATTRIBUTE , (SELECT DISTINCT PRODUCT_ATT_DESCRIPTION  FROM product_narrow where PRODUCT_ATTRIBUTE = T1.PRODUCT_ATTRIBUTE) PRODUCT_ATTRIBUTE_DESC  FROM FTP_CURVES T1 WHERE"
-							+ " EFFECTIVE_DATE = (SELECT MAX(EFFECTIVE_DATE) FROM FTP_CURVES t2 WHERE t2.FTP_CURVE_ID = T1.FTP_CURVE_ID"
-							+ " AND t2.EFFECTIVE_DATE <= TO_DATE ('" + effectiveDate + "', 'DD-MM-RRRR')) ");
-		} else {
-			strBufApprove = new StringBuffer(
-					"SELECT FTP_CURVE_ID,TO_CHAR (t1.EFFECTIVE_DATE, 'DD-MM-RRRR') EFFECTIVE_DATE,"
-							+ " TENOR_APPLICATION_CODE,TENOR_CODE,(SELECT TENOR_DESCRIPTION FROM TENOR_BUCKETS WHERE TENOR_APPLICATION_CODE = T1.TENOR_APPLICATION_CODE AND TENOR_CODE = T1.TENOR_CODE)TENOR_DESC,NVL (VISION_SBU_ATTRIBUTE, '000') VISION_SBU_ATTRIBUTE,"
-							+ "(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = 300 AND ALPHA_SUB_TAB = T1.VISION_SBU_ATTRIBUTE)VISIONSBU_DESC"
-							+ " CURRENCY,(SELECT  CCY_DESCRIPTION  DESCRIPTION FROM CURRENCIES WHERE CCY_STATUS = 0 AND CURRENCY = T1.CURRENCY)CURRENCY_DESC ,TO_CHAR (INT_RATE_START, '9,990.999999990') INT_RATE_START,"
-							+ " TO_CHAR (INT_RATE_END, '9,990.999999990') INT_RATE_END,TO_CHAR (AMOUNT_START, '99,999,999,999,999,999,990.99990')"
-							+ " AMOUNT_START,TO_CHAR (AMOUNT_END, '99,999,999,999,999,999,990.99990') AMOUNT_END,"
-							+ " FTP_CURVE_STATUS,FTP_RATE_ID,(SELECT TO_CHAR (t3.FTP_CURVE, '9,990.999999990') FTP_CURVE"
-							+ " FROM FTP_TERM_RATES t3 WHERE     t3.FTP_RATE_ID = T1.FTP_RATE_ID "
-							+ " AND t3.EFFECTIVE_DATE = (SELECT MAX (EFFECTIVE_DATE) FROM FTP_TERM_RATES t2"
-							+ " WHERE t2.FTP_RATE_ID = T1.FTP_RATE_ID and  t2.EFFECTIVE_DATE <= t1.Effective_Date)) FTP_CURVE,"
-							+ " RECORD_INDICATOR,(SELECT NUM_SUBTAB_DESCRIPTION FROM NUM_SUB_TAB WHERE NUM_TAB = RECORD_INDICATOR_NT AND NUM_SUB_TAB = RECORD_INDICATOR )RECORD_INDICATOR_DESC ,MAKER,VERIFIER,INTERNAL_STATUS,DATE_LAST_MODIFIED,"
-							+ " DATE_CREATION,PRODUCT_ATTRIBUTE ,(SELECT DISTINCT  PRODUCT_ATT_DESCRIPTION  FROM product_narrow where PRODUCT_ATTRIBUTE = T1.PRODUCT_ATTRIBUTE) PRODUCT_ATTRIBUTE_DESC  FROM FTP_CURVES T1 WHERE"
-							+ " EFFECTIVE_DATE = (SELECT MAX(EFFECTIVE_DATE) FROM FTP_CURVES t2 WHERE t2.FTP_CURVE_ID = T1.FTP_CURVE_ID"
-							+ " AND t2.EFFECTIVE_DATE = TO_DATE ('" + effectiveDate + "', 'DD-MM-RRRR')) ");
-		}
-
-		try {
-			if (ValidationUtil.isValid(ftpCurve)) {
-				params.addElement("%" + ftpCurve.toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(FTP_CURVE_ID) like ?", strBufApprove);
-			}
-			/*
-			 * if (ValidationUtil.isValid(effectiveDate) && flag) {
-			 * params.addElement(effectiveDate);
-			 * CommonUtils.addToQuery("EFFECTIVE_DATE >= TO_DATE(?,'DD-MM-RRRR')",
-			 * strBufApprove); }else{ params.addElement(effectiveDate);
-			 * CommonUtils.addToQuery("EFFECTIVE_DATE = TO_DATE(?,'DD-MM-RRRR')",
-			 * strBufApprove); }
-			 */
-			String orderBy = " Order By TENOR_APPLICATION_CODE";
-
-			Object objParams[] = objParams = new Object[params.size()];
-
-			for (int Ctr = 0; Ctr < params.size(); Ctr++)
-				objParams[Ctr] = (Object) params.elementAt(Ctr);
-			List<FTPCurveVb> collTemp = getJdbcTemplate().query(strBufApprove.toString() + " " + orderBy, objParams,
-					getCurveMapper());
-			dObj.setTotalRows(collTemp.size() );
-			return getQueryPopupResults(dObj,new StringBuffer(), strBufApprove, "", orderBy, params,getCurveMapper());
-//			return getJdbcTemplate().query(strBufApprove.toString() + " " + orderBy, objParams, getCurveMapper());
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
-			if (params != null)
-				for (int i = 0; i < params.size(); i++)
-					logger.error("objParams[" + i + "]" + params.get(i).toString());
-			return null;
-		}
-	}
-
-	@Override
-	protected List<FTPGroupsVb> selectApprovedRecord(FTPGroupsVb vObject) {
-		return getQueryResultsGroup(vObject);
-	}
-
 	public int doInsertionGroups(FTPGroupsVb vObject) {
 		setServiceDefaults();
 		if(!ValidationUtil.isValid(vObject.getDefaultGroup()))
 			vObject.setDefaultGroup("N");
 		vObject.setFtpGroupStatus(0);
-		String query = "Insert Into FTP_GROUPS( "
-				+ " COUNTRY, LE_BOOK, DATA_SOURCE_AT, DATA_SOURCE, FTP_GROUP_AT, FTP_GROUP, SOURCE_REFERENCE , SOURCE_REFERENCE_AT ,METHOD_REFERENCE ,FTP_GROUP_SEQ, "
-				+ "FTP_DEFAULT_FLAG, "
-				+ " FTP_GRP_STATUS_NT, FTP_GRP_STATUS,RECORD_INDICATOR_NT, "
-				+ " RECORD_INDICATOR, MAKER, VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION) "
-				+ " Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,? ," + systemDate + ", " + systemDate + ")";
 
-		Object args[] = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSourceAt(), vObject.getDataSource(),
-				vObject.getFtpGroupAt(), vObject.getFtpGroup(), vObject.getSourceReference(),vObject.getSourceReferenceAt(),
-				vObject.getMethodReference(), vObject.getGroupSeq(), vObject.getDefaultGroup(),
+		String query = "Insert Into FTP_GROUPS (COUNTRY, LE_BOOK, DATA_SOURCE_AT, DATA_SOURCE, FTP_GROUP_AT, FTP_GROUP, FTP_SUB_GROUP_ID, "
+				+ "FTP_SUB_GROUP_PRIORITY, FTP_SUB_GROUP_DESC, FTP_DEFAULT_FLAG, FTP_GRP_STATUS_NT, FTP_GRP_STATUS, RECORD_INDICATOR_NT, RECORD_INDICATOR, "
+				+ "MAKER, VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION)"
+				+ "Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "+systemDate+", "+systemDate+")";
+		Object[] args = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSourceAt(), vObject.getDataSource(),
+				vObject.getFtpGroupAt(), vObject.getFtpGroup(), vObject.getFtpSubGroupId(),
+				vObject.getFtpSubGroupPriority(), vObject.getFtpSubGroupDesc(), vObject.getDefaultGroup(),
 				vObject.getFtpGroupStatusNt(), vObject.getFtpGroupStatus(), vObject.getRecordIndicatorNt(),
 				vObject.getRecordIndicator(), vObject.getMaker(), vObject.getVerifier(), vObject.getInternalStatus() };
-		return getJdbcTemplate().update(query, args);
-	}
 
-//	public int doInsertionControls(FTPGroupsVb vObject){
-//		String query = "Insert Into FTP_CONTROLS( " + 
-//			" COUNTRY, LE_BOOK, FTP_REFERENCE, FTP_DESCRIPTION, SOURCE_REFERENCE_AT,SOURCE_REFERENCE, " + 
-//			" METHOD_REFERENCE,FTP_CONTROLS_STATUS_NT, FTP_CONTROLS_STATUS,RECORD_INDICATOR_NT, " + 
-//			" RECORD_INDICATOR, MAKER, VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION) " + 
-//			" Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "+systemDate+", "+systemDate+")";
-//
-//		Object args[] = {vObject.getCountry(), vObject.getLeBook(), vObject.getFtpReference(),
-//			 vObject.getFtpDescription(), vObject.getSourceReferenceAt(), vObject.getSourceReference(),
-//			 vObject.getMethodReference() , vObject.getFtpControlStatusNt(),vObject.getFtpControlStatus(),
-//			 vObject.getRecordIndicatorNt(), vObject.getRecordIndicator(),
-//			 vObject.getMaker(), vObject.getVerifier(), vObject.getInternalStatus()};
-//		return getJdbcTemplate().update(query,args);
-//	}
-//	public int getCountFtpReference(FTPGroupsVb vObjMain){
-//		String sql = "Select COUNT(1) from FTP_CONTROLS WHERE FTP_REFERENCE = '"+vObjMain.getFtpReference()+"' AND SOURCE_REFERENCE = '"+vObjMain.getSourceReference()+"' AND METHOD_REFERENCE = '"+vObjMain.getMethodReference()+"' ";
-//		int i = getJdbcTemplate().queryForObject(sql, Integer.class);
-//		return i;
-//	}
+		 return getJdbcTemplate().update(query,args);
+		 
+	}
+	public int doInsertionPend(FTPGroupsVb vObject) {
+		setServiceDefaults();
+		if(!ValidationUtil.isValid(vObject.getDefaultGroup()))
+			vObject.setDefaultGroup("N");
+		vObject.setFtpGroupStatus(0);
+
+		String query = "Insert Into FTP_GROUPS_PEND (COUNTRY, LE_BOOK, DATA_SOURCE_AT, DATA_SOURCE, FTP_GROUP_AT, FTP_GROUP, FTP_SUB_GROUP_ID, "
+				+ "FTP_SUB_GROUP_PRIORITY, FTP_SUB_GROUP_DESC, FTP_DEFAULT_FLAG, FTP_GRP_STATUS_NT, FTP_GRP_STATUS, RECORD_INDICATOR_NT, RECORD_INDICATOR, "
+				+ "MAKER, VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION)"
+				+ "Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "+systemDate+", "+systemDate+")";
+		Object[] args = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSourceAt(), vObject.getDataSource(),
+				vObject.getFtpGroupAt(), vObject.getFtpGroup(), vObject.getFtpSubGroupId(),
+				vObject.getFtpSubGroupPriority(), vObject.getFtpSubGroupDesc(), vObject.getDefaultGroup(),
+				vObject.getFtpGroupStatusNt(), vObject.getFtpGroupStatus(), vObject.getRecordIndicatorNt(),
+				vObject.getRecordIndicator(), vObject.getMaker(), vObject.getVerifier(), vObject.getInternalStatus() };
+
+		 return getJdbcTemplate().update(query,args);
+		 
+	}
+	
+	public int doInsertionPendWithDc(FTPGroupsVb vObject) {
+		setServiceDefaults();
+		if(!ValidationUtil.isValid(vObject.getDefaultGroup()))
+			vObject.setDefaultGroup("N");
+		vObject.setFtpGroupStatus(0);
+
+		String query = "Insert Into FTP_GROUPS_PEND (COUNTRY, LE_BOOK, DATA_SOURCE_AT, DATA_SOURCE, FTP_GROUP_AT, FTP_GROUP, FTP_SUB_GROUP_ID, "
+				+ "FTP_SUB_GROUP_PRIORITY, FTP_SUB_GROUP_DESC, FTP_DEFAULT_FLAG, FTP_GRP_STATUS_NT, FTP_GRP_STATUS, RECORD_INDICATOR_NT, RECORD_INDICATOR, "
+				+ "MAKER, VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION)"
+				+ "Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "+systemDate+", "+dateTimeConvert+")";
+		Object[] args = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSourceAt(), vObject.getDataSource(),
+				vObject.getFtpGroupAt(), vObject.getFtpGroup(), vObject.getFtpSubGroupId(),
+				vObject.getFtpSubGroupPriority(), vObject.getFtpSubGroupDesc(), vObject.getDefaultGroup(),
+				vObject.getFtpGroupStatusNt(), vObject.getFtpGroupStatus(), vObject.getRecordIndicatorNt(),
+				vObject.getRecordIndicator(), vObject.getMaker(), vObject.getVerifier(), vObject.getInternalStatus(), vObject.getDateCreation() };
+
+		 return getJdbcTemplate().update(query,args);
+		 
+	}
 	@Override
 	protected void setServiceDefaults() {
 		serviceName = "FtpGroups";
@@ -1031,395 +2087,132 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 		childTableName = "FTP_GROUPS";
 		intCurrentUserId = CustomContextHolder.getContext().getVisionId();
 	}
-
-	public List<FTPGroupsVb> getQueryResultAddOn(FTPCurveVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 2;
-		String strBufApprove = new String(
-				"SELECT FTP_CURVE_ID,TO_CHAR(EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE,CUSTOMER_ID,CONTRACT_ID,TO_CHAR(ADDON_RATE,'9,990.999999990')ADDON_RATE,TO_CHAR(SUBSIDY_RATE,'9,990.999999990') SUBSIDY_RATE,FTP_ADDON_STATUS,"
-						+ " RECORD_INDICATOR,MAKER,VERIFIER,INTERNAL_STATUS,DATE_LAST_MODIFIED,DATE_CREATION FROM FTP_ADDON"
-						+ " WHERE FTP_CURVE_ID = ? AND EFFECTIVE_DATE= TO_DATE(?,'DD-MM-RRRR') ");
-		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-			strBufApprove = new String(
-					"SELECT FTP_CURVE_ID,FORMAT(EFFECTIVE_DATE,'dd-MM-yyyy') EFFECTIVE_DATE,CUSTOMER_ID,CONTRACT_ID,"
-							+ "FORMAT(ADDON_RATE,'#,##0.000000000')ADDON_RATE,FORMAT(SUBSIDY_RATE,'#,##0.000000000') SUBSIDY_RATE,FTP_ADDON_STATUS,"
-							+ " RECORD_INDICATOR,MAKER,VERIFIER,INTERNAL_STATUS,DATE_LAST_MODIFIED,DATE_CREATION FROM FTP_ADDON"
-							+ " WHERE FTP_CURVE_ID = ? AND EFFECTIVE_DATE= FORMAT(?,'dd-MM-yyyy') ");
-		}
-
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = dObj.getFtpCurveId();
-		objParams[1] = dObj.getEffectiveDate();
-		/*
-		 * objParams[2] = dObj.getCustomerId(); objParams[3] = dObj.getContractId();
-		 */
-
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getAddOnMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryResultPremium(FTPCurveVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 8;
-		String strBufApprove = new String(
-				"SELECT T1.FTP_CURVE_ID,TO_CHAR(T1.EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE ,T1.FTP_TENOR_APPLICATION_CODE,T1.FTP_TENOR_CODE,"
-						+ " T1.LP_TENOR_APPLICATION_CODE,T1.LP_TENOR_CODE,"
-						+ " T1.VISION_SBU_ATTRIBUTE,T1.CURRENCY,(SELECT  CCY_DESCRIPTION  DESCRIPTION FROM CURRENCIES WHERE CCY_STATUS = 0 AND CURRENCY = T1.CURRENCY)CURRENCY_DESC,T1.LP_RATE_ID,(SELECT LP_RATE FROM LP_TERM_RATES WHERE "
-						+ " LP_RATE_ID = T1.LP_RATE_ID AND EFFECTIVE_DATE = T1.EFFECTIVE_DATE) LP_RATE "
-						+ " FROM FTP_PREMIUMS T1 WHERE FTP_CURVE_ID = ? AND EFFECTIVE_DATE = to_date(?,'DD-MM-RRRR') AND FTP_TENOR_APPLICATION_CODE  = ? "
-						+ " AND FTP_TENOR_CODE = ? AND LP_TENOR_APPLICATION_CODE = ? "
-						+ " AND LP_TENOR_CODE = ? AND VISION_SBU_ATTRIBUTE = ? AND CURRENCY =?");
-		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-			strBufApprove = new String(
-					"SELECT T1.FTP_CURVE_ID,FORMAT(T1.EFFECTIVE_DATE,'dd-MM-yyyy') EFFECTIVE_DATE ,T1.FTP_TENOR_APPLICATION_CODE,T1.FTP_TENOR_CODE,"
-							+ " T1.LP_TENOR_APPLICATION_CODE,T1.LP_TENOR_CODE,"
-							+ " T1.VISION_SBU_ATTRIBUTE,T1.CURRENCY,(SELECT  CCY_DESCRIPTION  DESCRIPTION FROM CURRENCIES WHERE CCY_STATUS = 0 AND CURRENCY = T1.CURRENCY)CURRENCY_DESC,T1.LP_RATE_ID,(SELECT LP_RATE FROM LP_TERM_RATES WHERE "
-							+ " LP_RATE_ID = T1.LP_RATE_ID AND EFFECTIVE_DATE = T1.EFFECTIVE_DATE) LP_RATE "
-							+ " FROM FTP_PREMIUMS T1 WHERE FTP_CURVE_ID = ? AND EFFECTIVE_DATE = FORMAT(?,'dd-MM-yyyy') AND FTP_TENOR_APPLICATION_CODE  = ? "
-							+ " AND FTP_TENOR_CODE = ? AND LP_TENOR_APPLICATION_CODE = ? "
-							+ " AND LP_TENOR_CODE = ? AND VISION_SBU_ATTRIBUTE = ? AND CURRENCY =?");
-		}
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = dObj.getFtpCurveId();
-		objParams[1] = dObj.getEffectiveDate();
-		objParams[2] = dObj.getTenorBucketApplicationCode();
-		objParams[3] = dObj.getTenorBucketCode();
-		objParams[4] = dObj.getLpTenorBucketApplicationCode();
-		objParams[5] = dObj.getLpTenorBucketCode();
-		objParams[6] = dObj.getVisionSbu();
-		objParams[7] = dObj.getCurrency();
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getPremiumMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryPopupResultsLp(FTPGroupsVb vObject, FTPCurveVb dObj) {
-		vObject.setRecordIndicator(0);
-		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer(
-				"SELECT DISTINCT TO_CHAR(EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE,FTP_CURVE_ID,FTP_TENOR_APPLICATION_CODE,LP_TENOR_APPLICATION_CODE,"
-						+ " NVL(VISION_SBU_ATTRIBUTE,'000') VISION_SBU_ATTRIBUTE,CURRENCY FROM FTP_PREMIUMS ");
-		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-			strBufApprove = new StringBuffer(
-					"SELECT DISTINCT FORMAT(EFFECTIVE_DATE,'dd-MM-yyyy') EFFECTIVE_DATE,FTP_CURVE_ID,FTP_TENOR_APPLICATION_CODE,LP_TENOR_APPLICATION_CODE,"
-							+ " NVL(VISION_SBU_ATTRIBUTE,'000') VISION_SBU_ATTRIBUTE,CURRENCY FROM FTP_PREMIUMS ");
-		}
-		try {
-			if (ValidationUtil.isValid(dObj.getFtpCurveId())) {
-				params.addElement(dObj.getFtpCurveId());
-				CommonUtils.addToQuery("FTP_CURVE_ID  = ?", strBufApprove);
-			}
-			if (dObj.getTenorBucketApplicationCode() != -1) {
-				params.addElement(dObj.getTenorBucketApplicationCode());
-				CommonUtils.addToQuery("FTP_TENOR_APPLICATION_CODE = ?", strBufApprove);
-			}
-			if (dObj.getLpTenorBucketApplicationCode() != -1) {
-				params.addElement(dObj.getLpTenorBucketApplicationCode());
-				CommonUtils.addToQuery("LP_TENOR_APPLICATION_CODE = ?", strBufApprove);
-			}
-			if (ValidationUtil.isValid(dObj.getEffectiveDate())) {
-				params.addElement(dObj.getEffectiveDate());
-				if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-					CommonUtils.addToQuery("EFFECTIVE_DATE <= " + dateConvert + " ", strBufApprove);
-				} else {
-					CommonUtils.addToQuery("EFFECTIVE_DATE <= TO_DATE(?,'DD-MM-RRRR') ", strBufApprove);
-				}
-			}
-			if (!"-1".equalsIgnoreCase(dObj.getVisionSbu())) {
-				params.addElement(dObj.getVisionSbu());
-				CommonUtils.addToQuery("NVL(VISION_SBU_ATTRIBUTE,'000') = ?", strBufApprove);
-			}
-			if (ValidationUtil.isValid(dObj.getCurrency())) {
-				params.addElement(dObj.getCurrency());
-				CommonUtils.addToQuery(" CURRENCY = ? ", strBufApprove);
-			}
-			String orderBy = " Order By EFFECTIVE_DATE DESC";
-			return getQueryPopupResults(vObject, new StringBuffer(), strBufApprove, "", orderBy, params,
-					getPopMapperPremium());
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
-			if (params != null)
-				for (int i = 0; i < params.size(); i++)
-					logger.error("objParams[" + i + "]" + params.get(i).toString());
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryPopupResultPremium(FTPCurveVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 6;
-		String strBufApprove = new String(
-				"SELECT T1.FTP_CURVE_ID,TO_CHAR(T1.EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE,T1.FTP_TENOR_APPLICATION_CODE,T1.FTP_TENOR_CODE,"
-						+ " T1.LP_TENOR_APPLICATION_CODE,T1.LP_TENOR_CODE,"
-						+ " T1.VISION_SBU_ATTRIBUTE,T1.CURRENCY, (SELECT  CCY_DESCRIPTION  DESCRIPTION FROM CURRENCIES WHERE CCY_STATUS = 0 AND CURRENCY = T1.CURRENCY)CURRENCY_DESC,T1.LP_RATE_ID,"
-						+ " (SELECT TO_CHAR(LP_RATE,'9,990.999999990') LP_RATE FROM LP_TERM_RATES WHERE "
-						+ " LP_RATE_ID = T1.LP_RATE_ID AND EFFECTIVE_DATE = (SELECT MAX(EFFECTIVE_DATE) FROM LP_TERM_RATES "
-						+ " WHERE LP_RATE_ID = T1.LP_RATE_ID AND EFFECTIVE_DATE <= T1.EFFECTIVE_DATE)) LP_RATE "
-						+ " FROM FTP_PREMIUMS T1 WHERE FTP_CURVE_ID = ? AND EFFECTIVE_DATE = to_date(?,'DD-MM-RRRR') AND FTP_TENOR_APPLICATION_CODE  = ? "
-						+ " AND LP_TENOR_APPLICATION_CODE = ? "
-						+ " AND NVL(VISION_SBU_ATTRIBUTE,'000') = ? AND CURRENCY =?");
-		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-			strBufApprove = new String(
-					"SELECT T1.FTP_CURVE_ID,format(T1.EFFECTIVE_DATE,'dd-MM-yyyy') EFFECTIVE_DATE,T1.FTP_TENOR_APPLICATION_CODE,T1.FTP_TENOR_CODE,"
-							+ " T1.LP_TENOR_APPLICATION_CODE,T1.LP_TENOR_CODE,"
-							+ " T1.VISION_SBU_ATTRIBUTE,T1.CURRENCY,(SELECT  CCY_DESCRIPTION  DESCRIPTION FROM CURRENCIES WHERE CCY_STATUS = 0 AND CURRENCY = T1.CURRENCY)CURRENCY_DESC,T1.LP_RATE_ID,"
-							+ " (SELECT format(LP_RATE,'#,##0.000000000') LP_RATE FROM LP_TERM_RATES WHERE "
-							+ " LP_RATE_ID = T1.LP_RATE_ID AND EFFECTIVE_DATE = (SELECT MAX(EFFECTIVE_DATE) FROM LP_TERM_RATES "
-							+ " WHERE LP_RATE_ID = T1.LP_RATE_ID AND EFFECTIVE_DATE <= T1.EFFECTIVE_DATE)) LP_RATE "
-							+ " FROM FTP_PREMIUMS T1 WHERE FTP_CURVE_ID = ? AND EFFECTIVE_DATE = to_date(?,'dd-MM-yyyy') AND FTP_TENOR_APPLICATION_CODE  = ? "
-							+ " AND LP_TENOR_APPLICATION_CODE = ? " + " AND " + nullFun
-							+ "(VISION_SBU_ATTRIBUTE,'000') = ? AND CURRENCY =?");
-		}
-
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = dObj.getFtpCurveId();
-		objParams[1] = dObj.getEffectiveDate();
-		objParams[2] = dObj.getTenorBucketApplicationCode();
-		objParams[3] = dObj.getLpTenorBucketApplicationCode();
-		objParams[4] = dObj.getVisionSbu();
-		objParams[5] = dObj.getCurrency();
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getPremiumMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryPopupResultsAddOn(String ftpCurve, String effectiveDate, FTPGroupsVb dObj,
-			Boolean flag) {
-		dObj.setRecordIndicator(0);
-		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer();
-		if (flag) {
-			strBufApprove = new StringBuffer(
-					"SELECT FTP_CURVE_ID,TO_CHAR(EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE,CUSTOMER_ID,(SELECT DISTINCT CUSTOMER_NAME FROM CUSTOMERS WHERE CUSTOMER_STATUS = 0 AND CUSTOMER_ID = T1.CUSTOMER_ID)CUSTOMER_DESC,CONTRACT_ID,(SELECT ACCOUNT_NAME FROM ACCOUNTS WHERE ACCOUNT_STATUS =0 AND ACCOUNT_NO = T1.CONTRACT_ID) CONTRACT_DESC,TO_CHAR(ADDON_RATE,'9,990.999999990') ADDON_RATE,TO_CHAR(SUBSIDY_RATE,'9,990.999999990') SUBSIDY_RATE,FTP_ADDON_STATUS,"
-							+ " RECORD_INDICATOR,(SELECT NUM_SUBTAB_DESCRIPTION FROM NUM_SUB_TAB WHERE NUM_TAB = RECORD_INDICATOR_NT AND NUM_SUB_TAB = RECORD_INDICATOR )RECORD_INDICATOR_DESC,MAKER,VERIFIER,INTERNAL_STATUS,DATE_LAST_MODIFIED,DATE_CREATION FROM FTP_ADDON T1"
-							+ " WHERE EFFECTIVE_DATE = (Select max(Effective_date) from FTP_ADDON T2 WHERE t2.FTP_CURVE_ID = T1.FTP_CURVE_ID AND T2.EFFECTIVE_DATE <= TO_DATE('"
-							+ effectiveDate + "','DD-MM-RRRR')) ");
-			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-				strBufApprove = new StringBuffer(
-						"SELECT FTP_CURVE_ID,format(EFFECTIVE_DATE,'dd-MM-yyyy') EFFECTIVE_DATE,CUSTOMER_ID,(SELECT DISTINCT CUSTOMER_NAME FROM CUSTOMERS WHERE CUSTOMER_STATUS = 0 AND CUSTOMER_ID = T1.CUSTOMER_ID)CUSTOMER_DESC,CONTRACT_ID,(SELECT ACCOUNT_NAME FROM ACCOUNTS WHERE ACCOUNT_STATUS =0 AND ACCOUNT_NO = T1.CONTRACT_ID) CONTRACT_DESC,format(ADDON_RATE,'#,##0.000000000') ADDON_RATE,format(SUBSIDY_RATE,'#,##0.000000000') SUBSIDY_RATE,FTP_ADDON_STATUS,"
-								+ " RECORD_INDICATOR,(SELECT NUM_SUBTAB_DESCRIPTION FROM NUM_SUB_TAB WHERE NUM_TAB = RECORD_INDICATOR_NT AND NUM_SUB_TAB = RECORD_INDICATOR )RECORD_INDICATOR_DESC,MAKER,VERIFIER,INTERNAL_STATUS,DATE_LAST_MODIFIED,DATE_CREATION FROM FTP_ADDON T1"
-								+ " WHERE EFFECTIVE_DATE = (Select max(Effective_date) from FTP_ADDON T2 WHERE t2.FTP_CURVE_ID = T1.FTP_CURVE_ID AND T2.EFFECTIVE_DATE <= conver(datetime, '"
-								+ effectiveDate + "',103)) ");
-			}
-		} else {
-			strBufApprove = new StringBuffer(
-					"SELECT FTP_CURVE_ID,TO_CHAR(EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE,CUSTOMER_ID,(SELECT DISTINCT CUSTOMER_NAME FROM CUSTOMERS WHERE CUSTOMER_STATUS = 0 AND CUSTOMER_ID = T1.CUSTOMER_ID)CUSTOMER_DESC,CONTRACT_ID,(SELECT ACCOUNT_NAME FROM ACCOUNTS WHERE ACCOUNT_STATUS =0 AND ACCOUNT_NO = T1.CONTRACT_ID) CONTRACT_DESC,TO_CHAR(ADDON_RATE,'9,990.999999990') ADDON_RATE,TO_CHAR(SUBSIDY_RATE,'9,990.999999990') SUBSIDY_RATE,FTP_ADDON_STATUS,"
-							+ " RECORD_INDICATOR,(SELECT NUM_SUBTAB_DESCRIPTION FROM NUM_SUB_TAB WHERE NUM_TAB = RECORD_INDICATOR_NT AND NUM_SUB_TAB = RECORD_INDICATOR )RECORD_INDICATOR_DESC,MAKER,VERIFIER,INTERNAL_STATUS,DATE_LAST_MODIFIED,DATE_CREATION FROM FTP_ADDON"
-							+ " WHERE EFFECTIVE_DATE = (Select max(Effective_date) from FTP_ADDON where EFFECTIVE_DATE = TO_DATE('"
-							+ effectiveDate + "','DD-MM-RRRR')) ");
-			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-				strBufApprove = new StringBuffer(
-						"SELECT FTP_CURVE_ID,format(EFFECTIVE_DATE,'dd-MM-yyyy') EFFECTIVE_DATE,CUSTOMER_ID,(SELECT DISTINCT CUSTOMER_NAME FROM CUSTOMERS WHERE CUSTOMER_STATUS = 0 AND CUSTOMER_ID = T1.CUSTOMER_ID)CUSTOMER_DESC,CONTRACT_ID,(SELECT ACCOUNT_NAME FROM ACCOUNTS WHERE ACCOUNT_STATUS =0 AND ACCOUNT_NO = T1.CONTRACT_ID) CONTRACT_DESC,format(ADDON_RATE,'#,##0.000000000') ADDON_RATE,TO_CHAR(SUBSIDY_RATE,'#,##0.000000000') SUBSIDY_RATE,FTP_ADDON_STATUS,"
-								+ " RECORD_INDICATOR,(SELECT NUM_SUBTAB_DESCRIPTION FROM NUM_SUB_TAB WHERE NUM_TAB = RECORD_INDICATOR_NT AND NUM_SUB_TAB = RECORD_INDICATOR )RECORD_INDICATOR_DESC,MAKER,VERIFIER,INTERNAL_STATUS,DATE_LAST_MODIFIED,DATE_CREATION FROM FTP_ADDON"
-								+ " WHERE EFFECTIVE_DATE = (Select max(Effective_date) from FTP_ADDON where EFFECTIVE_DATE = conver(datetime, '"
-								+ effectiveDate + "',103) ");
-			}
-		}
-		try {
-			if (ValidationUtil.isValid(ftpCurve)) {
-				params.addElement("%" + ftpCurve.toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(FTP_CURVE_ID) like ?", strBufApprove);
-			}
-			String orderBy = " Order By CUSTOMER_ID";
-//			return getQueryPopupResults(dObj,new StringBuffer(), strBufApprove, "", orderBy, params,getAddOnMapper());
-
-			Object objParams[] = objParams = new Object[params.size()];
-
-			for (int Ctr = 0; Ctr < params.size(); Ctr++)
-				objParams[Ctr] = (Object) params.elementAt(Ctr);
-			List<FTPGroupsVb> collTemp = getJdbcTemplate().query(strBufApprove.toString() + " " + orderBy, objParams, getAddOnMapper());
-			dObj.setTotalRows(collTemp.size());
-			return getQueryPopupResults(dObj,new StringBuffer(), strBufApprove, "", orderBy, params,getAddOnMapper());
-//			return getJdbcTemplate().query(strBufApprove.toString() + " " + orderBy, objParams, getAddOnMapper());
-
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
-			if (params != null)
-				for (int i = 0; i < params.size(); i++)
-					logger.error("objParams[" + i + "]" + params.get(i).toString());
-			return null;
-		}
-	}
-
-	protected ExceptionCode doInsertApprRecordForNonTrans(FTPGroupsVb vObject) throws RuntimeCustomException {
-		ExceptionCode exceptionCode = new ExceptionCode();
-		ArrayList<FTPGroupsVb> collTempGroups = new ArrayList<FTPGroupsVb>();
-		collTempGroups = (ArrayList<FTPGroupsVb>) getQueryResultGroup(vObject);
-		int retVal = 0;
-		setServiceDefaults();
-		vObject.setMaker(getIntCurrentUserId());
-		vObject.setVerifier(getIntCurrentUserId());
-		if (collTempGroups.size() > 0) {
-			int intStaticDeletionFlag = getStatus(((ArrayList<FTPGroupsVb>) collTempGroups).get(0));
-			if (intStaticDeletionFlag == Constants.PASSIVATE) {
-				logger.error("Collection size is greater than zero - Duplicate record found, but inactive");
-				exceptionCode = getResultObject(Constants.RECORD_ALREADY_PRESENT_BUT_INACTIVE);
-				throw buildRuntimeCustomException(exceptionCode);
-			} else {
-				logger.error("Collection size is greater than zero - Duplicate record found");
-				exceptionCode = getResultObject(Constants.DUPLICATE_KEY_INSERTION);
-				throw buildRuntimeCustomException(exceptionCode);
-			}
-		}
-//		if(getCountFtpReference(vObject) == 0){
-//			exceptionCode.setErrorCode(Constants.ERRONEOUS_OPERATION);
-//			exceptionCode.setErrorSevr("F");
-//			exceptionCode.setErrorMsg("FTP Reference["+vObject.getFtpReference()+"],Source Reference & Method Reference combination is not maintained in the FTP Controls table");
-//			throw buildRuntimeCustomException(exceptionCode);
-//		}
-		if (collTempGroups != null && collTempGroups.size() == 0) {
-			retVal = doInsertionGroups(vObject);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				throw buildRuntimeCustomException(exceptionCode);
-			}
-//			retVal = doInsertionControls(vObject);
-//			if(retVal != Constants.SUCCESSFUL_OPERATION){
-//					exceptionCode = getResultObject(retVal);
-//					throw buildRuntimeCustomException(exceptionCode);
-//			}
-		}
-		exceptionCode = getResultObject(retVal);
-		return exceptionCode;
-	}
-
-	public int doUpdateDefaultFlag(FTPGroupsVb vObject) {
-		String query = "Update FTP_GROUPS Set FTP_DEFAULT_FLAG = 'N' "
-				+ " Where COUNTRY = ? And LE_BOOK = ?  And DATA_SOURCE = ? And FTP_GROUP = ? ";
-		Object args[] = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSource(), vObject.getFtpGroup() };
-		return getJdbcTemplate().update(query, args);
-	}
-
-	public int doUpdateAppr(FTPGroupsVb vObject) {
-		String query = "Update FTP_GROUPS Set SOURCE_REFERENCE = ? ,  METHOD_REFERENCE = ? ,FTP_DEFAULT_FLAG = ?,FTP_GROUP_SEQ = ?,FTP_GRP_STATUS = ? , DATE_LAST_MODIFIED = "
-				+ systemDate + "" + " Where COUNTRY = ? And LE_BOOK = ?  And DATA_SOURCE = ? And FTP_GROUP = ? And FTP_GROUP_SEQ = ?";
-		Object args[] = {vObject.getSourceReference(), vObject.getMethodReference(), vObject.getDefaultGroup(), vObject.getGroupSeq(), vObject.getFtpGroupStatus(),
-				vObject.getCountry(), vObject.getLeBook(), vObject.getDataSource(), vObject.getFtpGroup(),vObject.getGroupSeq() };
-		return getJdbcTemplate().update(query, args);
-	}
-
+	
 	@Override
-	protected int doDeleteAppr(FTPGroupsVb vObject) {
-		String query = "Delete From FTP_GROUPS Where "
-				+ "COUNTRY = ? And LE_BOOK = ?  And DATA_SOURCE = ? And FTP_GROUP = ? AND SOURCE_REFERENCE = ? AND METHOD_REFERENCE = ?  ";
-
-		Object args[] = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSource(), vObject.getFtpGroup(),
-				vObject.getSourceReference(), vObject.getMethodDescription() };
-		return getJdbcTemplate().update(query, args);
+	protected List<FTPGroupsVb> selectApprovedRecord(FTPGroupsVb vObject) {
+		return getQueryResults(vObject, Constants.STATUS_ZERO);
 	}
+	
+	
 
-	protected int deleteFtpCurves(FTPCurveVb vObject) {
-		String query = "DELETE FROM FTP_CURVES WHERE FTP_CURVE_ID = ? AND EFFECTIVE_DATE = " + dateConvert;
-		Object args[] = { vObject.getFtpCurveId(), vObject.getEffectiveDate() };
-		return getJdbcTemplate().update(query, args);
-	}
+	
+	// New Changes End  
+	
 
-	protected int deleteFtpAddOn(FTPCurveVb vObject) {
-		String query = "DELETE FROM FTP_ADDON WHERE FTP_CURVE_ID = ? AND EFFECTIVE_DATE = " + dateConvert;
-		Object args[] = { vObject.getFtpCurveId(), vObject.getEffectiveDate() };
-		return getJdbcTemplate().update(query, args);
-	}
-
-	protected int deleteFtpPremium(FTPCurveVb vObject) {
-		String query = "DELETE FROM FTP_PREMIUMS WHERE FTP_CURVE_ID = ? AND EFFECTIVE_DATE = " + dateConvert
-				+ " AND FTP_TENOR_APPLICATION_CODE  = ? " + " AND FTP_TENOR_CODE = ? AND LP_TENOR_APPLICATION_CODE = ? "
-				+ " AND LP_TENOR_CODE = ? AND VISION_SBU_ATTRIBUTE = ? AND CURRENCY =?";
-		Object args[] = { vObject.getFtpCurveId(), vObject.getEffectiveDate(), vObject.getTenorBucketApplicationCode(),
-				vObject.getTenorBucketCode(), vObject.getLpTenorBucketApplicationCode(), vObject.getLpTenorBucketCode(),
-				vObject.getVisionSbu(), vObject.getCurrency() };
-		return getJdbcTemplate().update(query, args);
-	}
-
-	protected int doUpdateApprMethods(FtpMethodsVb vObject) {
-		String query = "Update FTP_METHODS Set METHOD_DESCRIPTION = ?,FTP_CURVE_ID = ?, "
-				+ "METHOD_TYPE = ?, METHOD_SUB_TYPE=?, FTP_TENOR_TYPE = ?,METHOD_BAL_TYPE = ?,FTP_MT_STATUS = ?,LP_TENOR_TYPE = ?,MAKER = ?, VERIFIER = ?, "
-				+ "INTERNAL_STATUS = ?,INTEREST_BASIS = ?,FTP_APPLY_RATE = ?,ADDON_APPLY_RATE = ?,LP_APPLY_RATE= ?,DATE_LAST_MODIFIED = SysDate Where METHOD_REFERENCE = ? and REPRICING_FLAG = ? ";
-		Object[] args = { vObject.getMethodDescription(), vObject.getFtpCurveId(), vObject.getMethodType(),
-				vObject.getMethodSubType(), vObject.getFtpTenorType(), vObject.getMethodBalType(), vObject.getStatus(),
-				vObject.getLpTenorType(), vObject.getMaker(), vObject.getVerifier(), vObject.getInternalStatus(),
-				vObject.getInterestBasis(), vObject.getFtpApplyRate(), vObject.getAddonApplyRate(),
-				vObject.getLpApplyRate(), vObject.getMethodReference(), vObject.getRepricingFlag() };
-		return getJdbcTemplate().update(query, args);
-	}
-
-	@Override
-	protected ExceptionCode doUpdateApprRecordForNonTrans(FTPGroupsVb vObject) throws RuntimeCustomException {
-		List<FTPGroupsVb> collTemp = null;
-		FTPGroupsVb vObjectlocal = null;
+	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
+	public ExceptionCode doUpdateDefaultFlag(FTPGroupsVb vObject) throws RuntimeCustomException {
 		ExceptionCode exceptionCode = null;
 		strApproveOperation = Constants.MODIFY;
 		strErrorDesc = "";
 		strCurrentOperation = Constants.MODIFY;
 		setServiceDefaults();
-		vObject.setMaker(getIntCurrentUserId());
-		if ("RUNNING".equalsIgnoreCase(getBuildStatus(vObject))) {
-			exceptionCode = getResultObject(Constants.BUILD_IS_RUNNING);
+		try {
+			int count = doUpdateDefaultFlagToN(vObject);
+			int count1 = doUpdateDefaultFlagToY(vObject);
+			exceptionCode = CommonUtils.getResultObject( serviceDesc, Constants.SUCCESSFUL_OPERATION, "Save", "");
+			return exceptionCode;
+		} catch (RuntimeCustomException rcException) {
+			throw rcException;
+		} catch (UncategorizedSQLException uSQLEcxception) {
+			strErrorDesc = parseErrorMsg(uSQLEcxception);
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		} catch (Exception ex) {
+			logger.error("Error in Modify.", ex);
+			strErrorDesc = ex.getMessage();
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
 			throw buildRuntimeCustomException(exceptionCode);
 		}
-		/*
-		 * if (getQueryResultsGroup(vObject) == 0){ exceptionCode =
-		 * getResultObject(Constants.ERRONEOUS_OPERATION); throw
-		 * buildRuntimeCustomException(exceptionCode); }
-		 */
-		// Even if record is not there in Appr. table reject the record
-		collTemp = getQueryResultsGroup(vObject);
-		if (collTemp == null || collTemp.size() == 0) {
-			/*
-			 * exceptionCode =
-			 * getResultObject(Constants.ATTEMPT_TO_MODIFY_UNEXISTING_RECORD); throw
-			 * buildRuntimeCustomException(exceptionCode);
-			 */
-			vObject.setRecordIndicator(Constants.STATUS_ZERO);
-			vObject.setVerifier(getIntCurrentUserId());
-			retVal = doInsertionGroups(vObject);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				throw buildRuntimeCustomException(exceptionCode);
-			}
-			
-		}else {
-			vObject.setRecordIndicator(Constants.STATUS_ZERO);
-			vObject.setVerifier(getIntCurrentUserId());
-			retVal = doUpdateDefaultFlag(vObject);
-			retVal = doUpdateAppr(vObject);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				throw buildRuntimeCustomException(exceptionCode);
-			}
-			String systemDate = getSystemDate();
-			vObject.setDateLastModified(systemDate);
+	}
+	public int doUpdateDefaultFlagToN(FTPGroupsVb vObject) {
+		String query = "Update FTP_GROUPS Set FTP_DEFAULT_FLAG = 'N' "
+				+ " Where COUNTRY = ? And LE_BOOK = ?  And DATA_SOURCE = ? And FTP_GROUP = ? ";
+		Object args[] = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSource(), vObject.getFtpGroup() };
+		return getJdbcTemplate().update(query, args);
+	}
+	
+	public int doUpdateDefaultFlagToY(FTPGroupsVb vObject) {
+		String query = "Update FTP_GROUPS Set FTP_DEFAULT_FLAG = 'Y' "
+				+ " Where COUNTRY = ? And LE_BOOK = ?  And DATA_SOURCE = ? And FTP_GROUP = ? and FTP_SUB_GROUP_ID = ?  ";
+		Object args[] = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSource(), vObject.getFtpGroup(), vObject.getFtpSubGroupId() };
+		return getJdbcTemplate().update(query, args);
+	}
+	
+	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
+	public ExceptionCode doUpdateDefaultFlagInPend(FTPGroupsVb vObject) throws RuntimeCustomException {
+		ExceptionCode exceptionCode = null;
+		strApproveOperation = Constants.MODIFY;
+		strErrorDesc = "";
+		strCurrentOperation = Constants.MODIFY;
+		setServiceDefaults();
+		try {
+			int count = doUpdateDefaultFlagToNInPend(vObject);
+			int count1 = doUpdateDefaultFlagToYInPend(vObject);
+			exceptionCode = CommonUtils.getResultObject( serviceDesc, Constants.SUCCESSFUL_OPERATION, "Save", "");
+			return exceptionCode;
+		} catch (RuntimeCustomException rcException) {
+			throw rcException;
+		} catch (UncategorizedSQLException uSQLEcxception) {
+			strErrorDesc = parseErrorMsg(uSQLEcxception);
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		} catch (Exception ex) {
+			logger.error("Error in Modify.", ex);
+			strErrorDesc = ex.getMessage();
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
 		}
-		// exceptionCode = writeAuditLog(vObject, vObjectlocal);
-		/*
-		 * if(exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION){
-		 * exceptionCode = getResultObject(Constants.AUDIT_TRAIL_ERROR); throw
-		 * buildRuntimeCustomException(exceptionCode); }
-		 */
-		exceptionCode = getResultObject(Constants.SUCCESSFUL_OPERATION);
-		return exceptionCode;
+	}
+	public int doUpdateDefaultFlagToNInPend(FTPGroupsVb vObject) {
+		String query = "Update FTP_GROUPS_PEND Set FTP_DEFAULT_FLAG = 'N' "
+				+ " Where COUNTRY = ? And LE_BOOK = ?  And DATA_SOURCE = ? And FTP_GROUP = ? ";
+		Object args[] = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSource(), vObject.getFtpGroup() };
+		return getJdbcTemplate().update(query, args);
+	}
+	
+	public int doUpdateDefaultFlagToYInPend(FTPGroupsVb vObject) {
+		String query = "Update FTP_GROUPS_PEND Set FTP_DEFAULT_FLAG = 'Y' "
+				+ " Where COUNTRY = ? And LE_BOOK = ?  And DATA_SOURCE = ? And FTP_GROUP = ? and FTP_SUB_GROUP_ID = ?  ";
+		Object args[] = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSource(), vObject.getFtpGroup(), vObject.getFtpSubGroupId() };
+		return getJdbcTemplate().update(query, args);
 	}
 
+	public int doUpdateAppr(FTPGroupsVb vObject) {
+		String query = "Update FTP_GROUPS Set DATA_SOURCE_AT = ?, FTP_GROUP_AT = ?, FTP_SUB_GROUP_PRIORITY = ?, FTP_SUB_GROUP_DESC = ?, FTP_DEFAULT_FLAG = ?, "
+				+ "FTP_GRP_STATUS_NT = ?, FTP_GRP_STATUS = ?, RECORD_INDICATOR_NT = ?, RECORD_INDICATOR = ?, MAKER = ?, VERIFIER = ?, INTERNAL_STATUS = ?, DATE_LAST_MODIFIED = "+systemDate
+				+ "  WHERE COUNTRY = ?  AND LE_BOOK = ?  AND DATA_SOURCE = ?  AND FTP_GROUP = ?  AND FTP_SUB_GROUP_ID = ? ";
+		Object[] args = {vObject.getDataSourceAt() , vObject.getFtpGroupAt() , vObject.getFtpSubGroupPriority() , vObject.getFtpSubGroupDesc() , 
+				vObject.getDefaultGroup() , vObject.getFtpGroupStatusNt(), vObject.getFtpGroupStatus() , vObject.getRecordIndicatorNt() 
+				, vObject.getRecordIndicator() , vObject.getMaker() , vObject.getVerifier() , vObject.getInternalStatus() , vObject.getCountry() , vObject.getLeBook() , vObject.getDataSource() , vObject.getFtpGroup() , vObject.getFtpSubGroupId() , };
+
+		return getJdbcTemplate().update(query, args);
+	}
+	
+	public int doUpdatePend(FTPGroupsVb vObject) {
+		String query = "Update FTP_GROUPS_PEND Set DATA_SOURCE_AT = ?, FTP_GROUP_AT = ?, FTP_SUB_GROUP_PRIORITY = ?, FTP_SUB_GROUP_DESC = ?, FTP_DEFAULT_FLAG = ?, "
+				+ "FTP_GRP_STATUS_NT = ?, FTP_GRP_STATUS = ?, RECORD_INDICATOR_NT = ?, RECORD_INDICATOR = ?, MAKER = ?, VERIFIER = ?, INTERNAL_STATUS = ?, DATE_LAST_MODIFIED = "+systemDate
+				+ "  WHERE COUNTRY = ?  AND LE_BOOK = ?  AND DATA_SOURCE = ?  AND FTP_GROUP = ?  AND FTP_SUB_GROUP_ID = ? ";
+		Object[] args = {vObject.getDataSourceAt() , vObject.getFtpGroupAt() , vObject.getFtpSubGroupPriority() , vObject.getFtpSubGroupDesc() , 
+				vObject.getDefaultGroup() , vObject.getFtpGroupStatusNt(), vObject.getFtpGroupStatus() , vObject.getRecordIndicatorNt() 
+				, vObject.getRecordIndicator() , vObject.getMaker() , vObject.getVerifier() , vObject.getInternalStatus() , vObject.getCountry() , vObject.getLeBook() , vObject.getDataSource() , vObject.getFtpGroup() , vObject.getFtpSubGroupId() , };
+
+		return getJdbcTemplate().update(query, args);
+	}
+
+	@Override
+	protected int doDeleteAppr(FTPGroupsVb vObject) {
+		String query = "Delete From FTP_GROUPS Where COUNTRY = ?  AND LE_BOOK = ?  AND DATA_SOURCE = ?  AND FTP_GROUP = ?  AND FTP_SUB_GROUP_ID = ?  ";
+		Object[] args = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSource(), vObject.getFtpGroup(), vObject.getFtpSubGroupId() };
+		return getJdbcTemplate().update(query, args);
+	}
+
+	@Override
+	protected int deletePendingRecord(FTPGroupsVb vObject){
+		String query = "Delete From FTP_GROUPS_PEND Where COUNTRY = ?  AND LE_BOOK = ?  AND DATA_SOURCE = ?  AND FTP_GROUP = ?  AND FTP_SUB_GROUP_ID = ?  ";
+		Object[] args = { vObject.getCountry(), vObject.getLeBook(), vObject.getDataSource(), vObject.getFtpGroup(), vObject.getFtpSubGroupId() };
+		return getJdbcTemplate().update(query,args);
+	}
+	
 	@Override
 	protected String getAuditString(FTPGroupsVb vObject) {
 		StringBuffer strAudit = new StringBuffer("");
@@ -1436,9 +2229,7 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 				strAudit.append("NULL");
 			strAudit.append("!|#");
 
-			strAudit.append(vObject.getSourceReferenceAt());
-			strAudit.append("!|#");
-			strAudit.append(vObject.getSourceReference());
+			strAudit.append(vObject.getFtpSubGroupId());
 			strAudit.append("!|#");
 			strAudit.append(vObject.getRecordIndicatorNt());
 			strAudit.append("!|#");
@@ -1470,113 +2261,16 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 		return strAudit.toString();
 	}
 
-	public int doInsertionFtpCurves(FTPCurveVb vObject) {
-		setServiceDefaults();
-		String query = "Insert Into FTP_CURVES( "
-				+ " FTP_CURVE_ID, EFFECTIVE_DATE, TENOR_APPLICATION_CODE, TENOR_CODE, VISION_SBU_ATTRIBUTE, CURRENCY,INT_RATE_START, INT_RATE_END, AMOUNT_START, "
-				+ " AMOUNT_END, FTP_RATE_ID,FTP_CURVE_STATUS, "
-				+ " RECORD_INDICATOR, MAKER, VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION) "
-				+ " Values (?, " + dateConvert + ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?," + systemDate + ", "
-				+ systemDate + ")";
 
-		Object args[] = { vObject.getFtpCurveId(), vObject.getEffectiveDate(), vObject.getTenorBucketApplicationCode(),
-				vObject.getTenorBucketCode(), vObject.getVisionSbu(), vObject.getCurrency(),
-				vObject.getIntStart().replaceAll(",", ""), vObject.getIntEnd().replaceAll(",", ""),
-				vObject.getAmountStart().replaceAll(",", ""), vObject.getAmountEnd().replaceAll(",", ""),
-				vObject.getFtpRateId(), vObject.getFtpCurveStatus(), vObject.getRecordIndicator(), vObject.getMaker(),
-				vObject.getVerifier(), vObject.getInternalStatus() };
-		return getJdbcTemplate().update(query, args);
-	}
-
-	public int doInsertionFtpAddOn(FTPCurveVb vObject) {
-		setServiceDefaults();
-		String query = "Insert Into FTP_ADDON( "
-				+ " FTP_CURVE_ID, EFFECTIVE_DATE,CUSTOMER_ID,CONTRACT_ID,ADDON_RATE,SUBSIDY_RATE,FTP_ADDON_STATUS, "
-				+ " RECORD_INDICATOR, MAKER, VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION) "
-				+ " Values (?, " + dateConvert + ", ?, ?, ?, ?, ?, ?, ?, ?, ?," + systemDate + ", " + systemDate + ")";
-
-		Object args[] = { vObject.getFtpCurveId(), vObject.getEffectiveDate(), vObject.getCustomerId(),
-				vObject.getContractId(), vObject.getAddOnRate().replaceAll(",", ""),
-				vObject.getSubRate().replaceAll(",", ""), vObject.getFtpCurveStatus(), vObject.getRecordIndicator(),
-				vObject.getMaker(), vObject.getVerifier(), vObject.getInternalStatus() };
-		return getJdbcTemplate().update(query, args);
-	}
-
-	public int doInsertionFtpPremium(FTPCurveVb vObject) {
-		setServiceDefaults();
-		String query = "Insert Into FTP_PREMIUMS( "
-				+ " FTP_CURVE_ID, EFFECTIVE_DATE,FTP_TENOR_APPLICATION_CODE,FTP_TENOR_CODE,LP_TENOR_APPLICATION_CODE,LP_TENOR_CODE, "
-				+ " VISION_SBU_ATTRIBUTE,CURRENCY,LP_RATE_ID,FTP_PREMIUM_STATUS, "
-				+ " RECORD_INDICATOR, MAKER, VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION) "
-				+ " Values (?, " + dateConvert + ", ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?," + systemDate + ", " + systemDate
-				+ ")";
-
-		Object args[] = { vObject.getFtpCurveId(), vObject.getEffectiveDate(), vObject.getTenorBucketApplicationCode(),
-				vObject.getTenorBucketCode(), vObject.getLpTenorBucketApplicationCode(), vObject.getLpTenorBucketCode(),
-				vObject.getVisionSbu(), vObject.getCurrency(), vObject.getFtpRateId(), vObject.getFtpCurveStatus(),
-				vObject.getRecordIndicator(), vObject.getMaker(), vObject.getVerifier(), vObject.getInternalStatus() };
-		return getJdbcTemplate().update(query, args);
-	}
-
-	public ExceptionCode updateSourceMethod(ExceptionCode exceptionCode, List<FTPSourceConfigVb> ftpSoureList,
-			FtpMethodsVb ftpMethodsVb) {
-		setServiceDefaults();
-		ExceptionCode exceptionCode1 = new ExceptionCode();
-		int retVal = 0;
-		for (FTPSourceConfigVb vObjVb : ftpSoureList) {
-			if (vObjVb.isChecked()) {
-				if (!vObjVb.isNewRecord()) {
-					retVal = getFtpSourceConfigDao().doUpdateAppr(vObjVb);
-				}
-				if (retVal != Constants.SUCCESSFUL_OPERATION) {
-					exceptionCode1 = getResultObject(retVal);
-					return exceptionCode1;
-					// throw buildRuntimeCustomException(exceptionCode1);
-				}
+	
+	public String getSystemDateAlone() {
+		String sql = "SELECT To_Char(SysDate, 'DD-MM-YYYY') AS SYSDATE1 FROM DUAL";
+		RowMapper mapper = new RowMapper() {
+			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return (rs.getString("SYSDATE1"));
 			}
-		}
-		retVal = doUpdateApprMethods(ftpMethodsVb);
-		if (retVal != Constants.SUCCESSFUL_OPERATION) {
-			exceptionCode1 = getResultObject(retVal);
-			return exceptionCode1;
-			// throw buildRuntimeCustomException(exceptionCode1);
-		}
-		exceptionCode1 = getResultObject(retVal);
-		return exceptionCode1;
-	}
-
-	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
-	public ExceptionCode addModifyFtpCurve(List<FTPCurveVb> ftpCurveList, FTPCurveVb vObject) {
-		List<FTPGroupsVb> collTemp = null;
-		ExceptionCode exceptionCode = null;
-		strApproveOperation = Constants.MODIFY;
-		strErrorDesc = "";
-		strCurrentOperation = Constants.MODIFY;
-		setServiceDefaults();
-		vObject.setMaker(getIntCurrentUserId());
-		int retVal = 0;
-		collTemp = getQueryResultCurves(vObject);
-		if (collTemp != null && collTemp.size() > 0) {
-			retVal = deleteFtpCurves(vObject);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				return exceptionCode;
-			}
-		}
-		for (FTPCurveVb vObjVb : ftpCurveList) {
-			/* if(vObjVb.isChecked()){ */
-			vObjVb.setRecordIndicator(Constants.STATUS_ZERO);
-			vObjVb.setMaker(getIntCurrentUserId());
-			vObjVb.setVerifier(getIntCurrentUserId());
-			retVal = doInsertionFtpCurves(vObjVb);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				return exceptionCode;
-			}
-			/* } */
-		}
-		exceptionCode = getResultObject(retVal);
-		return exceptionCode;
+		};
+		return (String) getJdbcTemplate().queryForObject(sql, null, mapper);
 	}
 
 	public String businessDay() {
@@ -1601,348 +2295,9 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 		vObject.setFtpGroupStatus(status);
 	}
 
-	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
-	public ExceptionCode addModifyFtpAddOn(List<FTPCurveVb> ftpCurveList, FTPCurveVb vObject) {
-		List<FTPGroupsVb> collTemp = null;
-		ExceptionCode exceptionCode = null;
-		strApproveOperation = Constants.MODIFY;
-		strErrorDesc = "";
-		strCurrentOperation = Constants.MODIFY;
-		setServiceDefaults();
-		vObject.setMaker(getIntCurrentUserId());
-		int retVal = 0;
-		collTemp = getQueryResultAddOn(vObject);
-		if (collTemp != null && collTemp.size() > 0) {
-			retVal = deleteFtpAddOn(vObject);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				return exceptionCode;
-			}
-		}
-		for (FTPCurveVb vObjVb : ftpCurveList) {
-			/* if(vObjVb.isChecked()){ */
-			vObjVb.setRecordIndicator(Constants.STATUS_ZERO);
-			vObjVb.setMaker(getIntCurrentUserId());
-			vObjVb.setVerifier(getIntCurrentUserId());
-			retVal = doInsertionFtpAddOn(vObjVb);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				return exceptionCode;
-			}
-			/* } */
-		}
-		exceptionCode = getResultObject(retVal);
-		return exceptionCode;
-	}
 
-	public List<FTPGroupsVb> getTenorCode(int tenorAppCode) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 1;
-		String strBufApprove = new String(
-				"SELECT TENOR_CODE,TENOR_DESCRIPTION FROM TENOR_BUCKETS WHERE TENOR_APPLICATION_CODE = ? AND TENOR_STATUS = 0 ");
 
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = tenorAppCode;
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getTenorBucketsMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
 
-	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
-	public ExceptionCode addModifyFtpPremium(List<FTPCurveVb> ftpCurveList, FTPCurveVb vObject) {
-		ExceptionCode exceptionCode = new ExceptionCode();
-		List<FTPGroupsVb> collTemp = null;
-		strApproveOperation = Constants.MODIFY;
-		strErrorDesc = "";
-		strCurrentOperation = Constants.MODIFY;
-		setServiceDefaults();
-		vObject.setMaker(getIntCurrentUserId());
-		int retVal = 0;
-		for (FTPCurveVb vObjVb : ftpCurveList) {
-			/* if(vObjVb.isChecked()){ */
-			collTemp = getQueryResultPremium(vObjVb);
-			if (collTemp != null && collTemp.size() > 0) {
-				retVal = deleteFtpPremium(vObjVb);
-				if (retVal != Constants.SUCCESSFUL_OPERATION) {
-					exceptionCode = getResultObject(retVal);
-					return exceptionCode;
-				}
-			}
-			vObjVb.setRecordIndicator(Constants.STATUS_ZERO);
-			vObjVb.setFtpCurveStatus(Constants.STATUS_ZERO);
-			vObjVb.setMaker(getIntCurrentUserId());
-			vObjVb.setVerifier(getIntCurrentUserId());
-			retVal = doInsertionFtpPremium(vObjVb);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				return exceptionCode;
-			}
-			exceptionCode = addLpRates(exceptionCode, vObjVb);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				return exceptionCode;
-			}
-			/* } */
-		}
-		exceptionCode = getResultObject(retVal);
-		return exceptionCode;
-	}
-
-	public List<FTPGroupsVb> getQueryResultLPRates(String lpRateId, String effectiveDate) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 2;
-		String strBufApprove = new String(
-				"Select TAppr.LP_RATE_ID,TO_CHAR(TAppr.EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE,"
-						+ " TO_CHAR(TAppr.LP_RATE,'9,999.999990') LP_RATE From LP_TERM_RATES TAppr Where TAppr.LP_RATE_ID = ?"
-						+ " AND TAppr.EFFECTIVE_DATE = (Select Max(Effective_date) from lp_term_rates where Effective_date < = TO_DATE(?,'DD-MM-RRRR') and lp_rate_id = Tappr.Lp_rate_ID)");
-		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-			strBufApprove = new String(
-					"Select TAppr.LP_RATE_ID,fromat(TAppr.EFFECTIVE_DATE,'dd-MM-yyyy') EFFECTIVE_DATE,"
-							+ " format(TAppr.LP_RATE,'#,##0.000000') LP_RATE From LP_TERM_RATES TAppr Where TAppr.LP_RATE_ID = ?"
-							+ " AND TAppr.EFFECTIVE_DATE = (Select Max(Effective_date) from lp_term_rates where Effective_date <= "
-							+ dateConvert + " and lp_rate_id = Tappr.Lp_rate_ID)");
-		}
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = lpRateId;
-		objParams[1] = effectiveDate;
-
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getlpRateMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getCheckResultLPRates(String lpRateId, String effectiveDate) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 2;
-		String strBufApprove = new String(
-				"Select TAppr.LP_RATE_ID,TO_CHAR(TAppr.EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE,"
-						+ " TO_CHAR(TAppr.LP_RATE,'9,999.999990') LP_RATE From LP_TERM_RATES TAppr Where TAppr.LP_RATE_ID = ?"
-						+ " AND TAppr.EFFECTIVE_DATE = TO_DATE(?,'DD-MM-RRRR') ");
-		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-			strBufApprove = new String(
-					"Select TAppr.LP_RATE_ID,format(TAppr.EFFECTIVE_DATE,'dd-MM-yyyy') EFFECTIVE_DATE,"
-							+ " format(TAppr.LP_RATE,'#,##0.000000') LP_RATE From LP_TERM_RATES TAppr Where TAppr.LP_RATE_ID = ?"
-							+ " AND TAppr.EFFECTIVE_DATE = " + dateConvert + " ");
-		}
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = lpRateId;
-		objParams[1] = effectiveDate;
-
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getlpRateMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	protected RowMapper getlpRateMapper() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FTPCurveVb ftpSourceConfigVb = new FTPCurveVb();
-				ftpSourceConfigVb.setFtpRateId(rs.getString("LP_RATE_ID"));
-				ftpSourceConfigVb.setEffectiveDate(rs.getString("EFFECTIVE_DATE"));
-				ftpSourceConfigVb.setSubRate(rs.getString("LP_RATE"));
-				return ftpSourceConfigVb;
-			}
-		};
-		return mapper;
-	}
-
-	protected int deleteFtpLPRates(FTPCurveVb vObject) {
-		String query = "DELETE FROM LP_TERM_RATES WHERE LP_RATE_ID = ? AND EFFECTIVE_DATE = " + dateConvert;
-		Object args[] = { vObject.getFtpRateId(),
-				ValidationUtil.isValid(vObject.getRateEffectiveDate()) ? vObject.getRateEffectiveDate()
-						: vObject.getEffectiveDate() };
-		return getJdbcTemplate().update(query, args);
-	}
-
-	protected int doInsertionLPRates(FTPCurveVb vObject) {
-		String query = "Insert Into LP_TERM_RATES( "
-				+ "LP_RATE_ID, EFFECTIVE_DATE, LP_RATE, LP_RATE_STATUS_NT, LP_RATE_STATUS, RECORD_INDICATOR_NT, "
-				+ " RECORD_INDICATOR, MAKER, VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION) "
-				+ " Values (?, " + dateConvert + ", ?, ?, ?, ?, ?, ?, ?, ?, " + systemDate + ", " + systemDate + ")";
-
-		Object args[] = { vObject.getFtpRateId(),
-				ValidationUtil.isValid(vObject.getRateEffectiveDate()) ? vObject.getRateEffectiveDate()
-						: vObject.getEffectiveDate(),
-				vObject.getSubRate().replaceAll(",", ""), vObject.getFtpCurveStatusNt(), vObject.getFtpCurveStatus(),
-				vObject.getRecordIndicatorNt(), vObject.getRecordIndicator(), vObject.getMaker(), vObject.getVerifier(),
-				vObject.getInternalStatus() };
-
-		return getJdbcTemplate().update(query, args);
-	}
-
-	public ExceptionCode addLpRates(ExceptionCode exceptionCode, FTPCurveVb vObjVb) {
-		List<FTPGroupsVb> collTemp = null;
-		strApproveOperation = Constants.MODIFY;
-		strErrorDesc = "";
-		strCurrentOperation = Constants.MODIFY;
-		setServiceDefaults();
-		vObjVb.setMaker(getIntCurrentUserId());
-		int retVal = 0;
-		String effectiveDate = "";
-		if (ValidationUtil.isValid(vObjVb.getRateEffectiveDate()))
-			effectiveDate = vObjVb.getRateEffectiveDate();
-		else
-			effectiveDate = vObjVb.getEffectiveDate();
-		collTemp = getQueryResultLPRates(vObjVb.getFtpRateId(), effectiveDate);
-		if (collTemp != null && collTemp.size() > 0) {
-			retVal = deleteFtpLPRates(vObjVb);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				return exceptionCode;
-			}
-		}
-		vObjVb.setRecordIndicator(Constants.STATUS_ZERO);
-		vObjVb.setFtpCurveStatus(Constants.STATUS_ZERO);
-		vObjVb.setMaker(getIntCurrentUserId());
-		vObjVb.setVerifier(getIntCurrentUserId());
-		retVal = doInsertionLPRates(vObjVb);
-		if (retVal != Constants.SUCCESSFUL_OPERATION) {
-			exceptionCode = getResultObject(retVal);
-			return exceptionCode;
-		}
-		exceptionCode = getResultObject(retVal);
-		return exceptionCode;
-	}
-
-	public List<FTPGroupsVb> getQueryResultFtpRates(FTPCurveVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 2;
-		String strBufApprove = new String(
-				"SELECT FTP_RATE_ID,TO_CHAR(FTP_CURVE,'9,990.999999990') FTP_CURVE,TO_CHAR(EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE,FTP_RATE_STATUS,"
-						+ " RECORD_INDICATOR_NT,RECORD_INDICATOR from FTP_TERM_RATES t1 WHERE FTP_RATE_STATUS = 0 AND FTP_RATE_ID = ? and Effective_Date = "
-						+ " (Select Max(Effective_date) from FTP_TERM_RATES where Effective_date <= TO_DATE(?,'DD-MM-RRRR') and FTP_RATE_ID = t1.FTP_RATE_ID) ");
-		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-			strBufApprove = new String(
-					"SELECT FTP_RATE_ID,format(FTP_CURVE,'#,##0.000000000') FTP_CURVE,format(EFFECTIVE_DATE,'dd-MM-yyyy') EFFECTIVE_DATE,FTP_RATE_STATUS,"
-							+ " RECORD_INDICATOR_NT,RECORD_INDICATOR from FTP_TERM_RATES t1 WHERE FTP_RATE_STATUS = 0 AND FTP_RATE_ID = ? and Effective_Date = "
-							+ " (Select Max(Effective_date) from FTP_TERM_RATES where Effective_date <= " + dateConvert
-							+ " and FTP_RATE_ID = t1.FTP_RATE_ID) ");
-		}
-
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = dObj.getFtpRateId();
-		objParams[1] = dObj.getEffectiveDate();
-
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getFtpRatesMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getCheckResultFtpRates(FTPCurveVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		final int intKeyFieldsCount = 2;
-		String strBufApprove = new String(
-				"SELECT FTP_RATE_ID,TO_CHAR(FTP_CURVE,'9,990.999999990') FTP_CURVE,TO_CHAR(EFFECTIVE_DATE,'DD-MM-RRRR') EFFECTIVE_DATE,FTP_RATE_STATUS,"
-						+ " RECORD_INDICATOR_NT,RECORD_INDICATOR from FTP_TERM_RATES t1 WHERE FTP_RATE_STATUS = 0 AND FTP_RATE_ID = ? and "
-						+ " Effective_date = TO_DATE(?,'DD-MM-RRRR') ");
-		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-			strBufApprove = new String(
-					"SELECT FTP_RATE_ID,format(FTP_CURVE,'#,##0.000000000') FTP_CURVE,format(EFFECTIVE_DATE,'dd-MM-yyyyy') EFFECTIVE_DATE,FTP_RATE_STATUS,"
-							+ " RECORD_INDICATOR_NT,RECORD_INDICATOR from FTP_TERM_RATES t1 WHERE FTP_RATE_STATUS = 0 AND FTP_RATE_ID = ? and "
-							+ " Effective_date = " + dateConvert + " ");
-		}
-
-		Object objParams[] = new Object[intKeyFieldsCount];
-		objParams[0] = dObj.getFtpRateId();
-		objParams[1] = dObj.getEffectiveDate();
-
-		try {
-			collTemp = getJdbcTemplate().query(strBufApprove, objParams, getFtpRatesMapper());
-			return collTemp;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error("Error: getQueryResults Exception :   ");
-			logger.error(((strBufApprove == null) ? "strQueryAppr is Null" : strBufApprove.toString()));
-			return null;
-		}
-	}
-
-	protected RowMapper getFtpRatesMapper() {
-		RowMapper mapper = new RowMapper() {
-			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FTPCurveVb ftpSourceConfigVb = new FTPCurveVb();
-				ftpSourceConfigVb.setFtpRateId(rs.getString("FTP_RATE_ID"));
-				ftpSourceConfigVb.setSubRate(rs.getString("FTP_CURVE"));
-				ftpSourceConfigVb.setEffectiveDate(rs.getString("EFFECTIVE_DATE"));
-				ftpSourceConfigVb.setFtpCurveStatus(rs.getInt("FTP_RATE_STATUS"));
-				ftpSourceConfigVb.setDbStatus(rs.getInt("FTP_RATE_STATUS"));
-				ftpSourceConfigVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR_NT"));
-				ftpSourceConfigVb.setRecordIndicator(rs.getInt("RECORD_INDICATOR"));
-				return ftpSourceConfigVb;
-			}
-		};
-		return mapper;
-	}
-
-	protected int deleteFtpRates(FTPCurveVb vObject) {
-		String query = "Delete From FTP_TERM_RATES Where FTP_RATE_ID = ? AND EFFECTIVE_DATE = " + dateConvert;
-		Object args[] = { vObject.getFtpRateId(), vObject.getEffectiveDate() };
-		return getJdbcTemplate().update(query, args);
-	}
-
-	protected int doInsertionFtpRates(FTPCurveVb vObject) {
-		String query = "Insert Into FTP_TERM_RATES( "
-				+ " FTP_RATE_ID, FTP_CURVE, EFFECTIVE_DATE, FTP_RATE_STATUS_NT, FTP_RATE_STATUS,"
-				+ " RECORD_INDICATOR_NT,RECORD_INDICATOR, MAKER, VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION) "
-				+ " Values (?, ?, " + dateConvert + ", ?, ?, ?, ?, ?, ?, ?, " + systemDate + "," + systemDate + ")";
-
-		Object args[] = { vObject.getFtpRateId(), vObject.getSubRate().replaceAll(",", ""), vObject.getEffectiveDate(),
-				vObject.getFtpCurveStatusNt(), vObject.getFtpCurveStatus(), vObject.getRecordIndicatorNt(),
-				vObject.getRecordIndicator(), vObject.getMaker(), vObject.getVerifier(), vObject.getInternalStatus() };
-		return getJdbcTemplate().update(query, args);
-	}
-
-	public ExceptionCode addModifyFtpRates(ExceptionCode exceptionCode, FTPCurveVb vObject) {
-		List<FTPGroupsVb> collTemp = null;
-		strApproveOperation = Constants.MODIFY;
-		strErrorDesc = "";
-		strCurrentOperation = Constants.MODIFY;
-		setServiceDefaults();
-		vObject.setMaker(getIntCurrentUserId());
-		int retVal = 0;
-		collTemp = getCheckResultFtpRates(vObject);
-		if (collTemp != null && collTemp.size() > 0) {
-			retVal = deleteFtpRates(vObject);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				return exceptionCode;
-			}
-		}
-		vObject.setRecordIndicator(Constants.STATUS_ZERO);
-		vObject.setMaker(getIntCurrentUserId());
-		vObject.setVerifier(getIntCurrentUserId());
-		retVal = doInsertionFtpRates(vObject);
-		if (retVal != Constants.SUCCESSFUL_OPERATION) {
-			exceptionCode = getResultObject(retVal);
-			return exceptionCode;
-		}
-		exceptionCode = getResultObject(retVal);
-		return exceptionCode;
-	}
 
 	public List<FTPGroupsVb> getVisionSbu(String visionId, String sessionId, String promptId) {
 		List<FTPGroupsVb> collTemp = null;
@@ -2014,262 +2369,6 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 			DataSourceUtils.releaseConnection(con, jdbcTemplate.getDataSource());
 		}
 		return sbuList;
-	}
-
-	public ExceptionCode addModifyLtpRates(ExceptionCode exceptionCode, FTPCurveVb vObject) {
-		List<FTPGroupsVb> collTemp = null;
-		strApproveOperation = Constants.MODIFY;
-		strErrorDesc = "";
-		strCurrentOperation = Constants.MODIFY;
-		setServiceDefaults();
-		vObject.setMaker(getIntCurrentUserId());
-		int retVal = 0;
-		String effectiveDate = "";
-		if (ValidationUtil.isValid(vObject.getRateEffectiveDate()))
-			effectiveDate = vObject.getRateEffectiveDate();
-		else
-			effectiveDate = vObject.getEffectiveDate();
-		collTemp = getCheckResultLPRates(vObject.getFtpRateId(), effectiveDate);
-		if (collTemp != null && collTemp.size() > 0) {
-			retVal = deleteFtpLPRates(vObject);
-			if (retVal != Constants.SUCCESSFUL_OPERATION) {
-				exceptionCode = getResultObject(retVal);
-				return exceptionCode;
-			}
-		}
-		vObject.setRecordIndicator(Constants.STATUS_ZERO);
-		vObject.setMaker(getIntCurrentUserId());
-		vObject.setVerifier(getIntCurrentUserId());
-		retVal = doInsertionLPRates(vObject);
-		if (retVal != Constants.SUCCESSFUL_OPERATION) {
-			exceptionCode = getResultObject(retVal);
-			return exceptionCode;
-		}
-		exceptionCode = getResultObject(retVal);
-		return exceptionCode;
-	}
-
-	public int getResults(FTPCurveVb ftpCurveVb) {
-		String query = "Select Count(1) FROM FTP_CURVES Where FTP_CURVE_ID = '" + ftpCurveVb.getFtpCurveId()
-				+ "' AND EFFECTIVE_DATE <= TO_DATE('" + ftpCurveVb.getEffectiveDate() + "','DD-MM-RRRR') ";
-		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-			query = "Select Count(1) FROM FTP_CURVES Where FTP_CURVE_ID = '" + ftpCurveVb.getFtpCurveId()
-					+ "' AND EFFECTIVE_DATE <= CONVERT(datetime,'" + ftpCurveVb.getEffectiveDate() + "',103) ";
-		}
-		return getJdbcTemplate().queryForObject(query, Integer.class);
-	}
-
-	public int getResults1(FTPCurveVb ftpCurveVb) {
-		String query = "Select Count(1) FROM FTP_ADDON Where FTP_CURVE_ID = '" + ftpCurveVb.getFtpCurveId()
-				+ "' AND EFFECTIVE_DATE <= TO_DATE('" + ftpCurveVb.getEffectiveDate() + "','DD-MM-RRRR') ";
-		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-			query = "Select Count(1) FROM FTP_ADDON Where FTP_CURVE_ID = '" + ftpCurveVb.getFtpCurveId()
-					+ "' AND EFFECTIVE_DATE <= CONVERT(datetime,'" + ftpCurveVb.getEffectiveDate() + "',103) ";
-		}
-		return getJdbcTemplate().queryForObject(query, Integer.class);
-	}
-
-	public int getResults2(FTPCurveVb ftpCurveVb) {
-		String query = "Select Count(1) FROM FTP_PREMIUMS Where FTP_CURVE_ID = '" + ftpCurveVb.getFtpCurveId()
-				+ "' AND EFFECTIVE_DATE <= TO_DATE('" + ftpCurveVb.getEffectiveDate() + "','DD-MM-RRRR') ";
-		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
-			query = "Select Count(1) FROM FTP_PREMIUMS Where FTP_CURVE_ID = '" + ftpCurveVb.getFtpCurveId()
-					+ "' AND EFFECTIVE_DATE <= CONVERT(datetime,'" + ftpCurveVb.getEffectiveDate() + "',103) ";
-		}
-		return getJdbcTemplate().queryForObject(query, Integer.class);
-	}
-
-	public int getDefaultFlagCount(FTPGroupsVb ftpGroupsVb) {
-		String query = "Select count(1) from Ftp_Groups where ftp_group = '" + ftpGroupsVb.getFtpGroup()
-				+ "' and Country = '" + ftpGroupsVb.getCountry() + "' and le_book ='" + ftpGroupsVb.getLeBook()
-				+ "' and Data_Source ='" + ftpGroupsVb.getDataSource() + "' and ftp_Default_Flag = 'Y'  ";
-		return getJdbcTemplate().queryForObject(query, Integer.class);
-	}
-
-	public List<FTPGroupsVb> getQueryPopupResultsByGroup(FTPGroupsVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer("Select Distinct TAppr.COUNTRY, TAppr.LE_BOOK, "
-				+ " TAppr.DATA_SOURCE,TAPPR.FTP_GROUP " + " From FTP_GROUPS TAppr");
-		StringBuffer strBufPending = new StringBuffer("");
-		try {
-			if (dObj.getSmartSearchOpt() != null && dObj.getSmartSearchOpt().size() > 0) {
-				int count = 1;
-				for (SmartSearchVb data : dObj.getSmartSearchOpt()) {
-					if (count == dObj.getSmartSearchOpt().size()) {
-						data.setJoinType("");
-					} else {
-						if (!ValidationUtil.isValid(data.getJoinType()) && !("AND".equalsIgnoreCase(data.getJoinType())
-								|| "OR".equalsIgnoreCase(data.getJoinType()))) {
-							data.setJoinType("AND");
-						}
-					}
-					String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
-					switch (data.getObject()) {
-					case "country":
-						CommonUtils.addToQuerySearch(" upper(TAppr.COUNTRY) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.COUNTRY) " + val, strBufPending, data.getJoinType());
-						break;
-
-					case "leBook":
-						CommonUtils.addToQuerySearch(" upper(TAppr.LE_BOOK) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.LE_BOOK) " + val, strBufPending, data.getJoinType());
-						break;
-
-					case "dataSource":
-						CommonUtils.addToQuerySearch(" upper(TAppr.DATA_SOURCE) " + val, strBufApprove,
-								data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.DATA_SOURCE) " + val, strBufPending,
-								data.getJoinType());
-						break;
-
-					case "ftpGroup":
-						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_GROUP) " + val, strBufApprove,
-								data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.FTP_GROUP) " + val, strBufPending,
-								data.getJoinType());
-						break;
-						
-						
-					case "recordIndicator":
-						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR) " + val, strBufApprove,
-								data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR) " + val, strBufPending,
-								data.getJoinType());
-						break;
-
-					default:
-					}
-					count++; 
-				}
-			}
-			String orderBy = " Order By COUNTRY, LE_BOOK, DATA_SOURCE, FTP_GROUP ";
-			return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params,
-					getQueryPopupMapper());
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
-			if (params != null)
-				for (int i = 0; i < params.size(); i++)
-					logger.error("objParams[" + i + "]" + params.get(i).toString());
-			return null;
-		}
-	}
-
-	public List<FTPGroupsVb> getQueryPopupResultsDetails(FTPGroupsVb dObj) {
-		List<FTPGroupsVb> collTemp = null;
-		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer("SELECT * FROM (SELECT TAppr.COUNTRY,TAppr.LE_BOOK,TAppr.DATA_SOURCE,\n"
-				+ "(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC\n"
-				+ ",TAppr.FTP_GROUP,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC"
-				+ ",TAppr.FTP_GROUP_SEQ,\n" + "	 TAppr.SOURCE_REFERENCE,\n"
-				+ "(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB T1 WHERE ALPHA_TAB = SOURCE_REFERENCE_AT AND ALPHA_sub_TAB= SOURCE_REFERENCE ) SOURCE_REFERENCE_DESC,\n"
-				+ "				TAppr.METHOD_REFERENCE,\n"
-				+ "				(SELECT MIN(METHOD_DESCRIPTION) FROM FTP_METHODS WHERE METHOD_REFERENCE = TAppr.METHOD_REFERENCE) METHOD_DESCRIPTION,\n"
-				+ "				TAppr.FTP_DEFAULT_FLAG,\n" + "				TAppr.FTP_GRP_STATUS, "
-				+ VariableStatusNtApprDesc + ",TAppr.RECORD_INDICATOR, " + RecordIndicatorNtApprDesc
-				+ ",TAppr.MAKER,"+makerApprDesc+" ,TAppr.VERIFIER,"+verifierApprDesc+",TAppr.INTERNAL_STATUS,TAppr.DATE_CREATION,TAppr.DATE_LAST_MODIFIED \n"
-				+ "				FROM FTP_GROUPS TAppr) TAppr");
-		StringBuffer strBufPending = new StringBuffer("");
-		try {
-			if (ValidationUtil.isValid(dObj.getCountry())) {
-				params.addElement("%" + dObj.getCountry().toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(TAppr.COUNTRY) like ?", strBufApprove);
-			}
-			if (ValidationUtil.isValid(dObj.getLeBook())) {
-				params.addElement("%" + dObj.getLeBook().toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(TAppr.LE_BOOK) like ?", strBufApprove);
-			}
-			if (!"-1".equalsIgnoreCase(dObj.getDataSource())) {
-				params.addElement(dObj.getDataSource());
-				CommonUtils.addToQuery("TAppr.DATA_SOURCE = ?", strBufApprove);
-			}
-			if (!"-1".equalsIgnoreCase(dObj.getFtpGroup())) {
-				params.addElement(dObj.getFtpGroup());
-				CommonUtils.addToQuery("TAppr.FTP_GROUP = ?", strBufApprove);
-			}
-			// check if the column [RECORD_INDICATOR] should be included in the query
-			if (dObj.getRecordIndicator() != -1) {
-				if (dObj.getRecordIndicator() > 3) {
-					params.addElement(new Integer(0));
-					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR > ?", strBufApprove);
-				} else {
-					params.addElement(new Integer(dObj.getRecordIndicator()));
-					CommonUtils.addToQuery("TAppr.RECORD_INDICATOR = ?", strBufApprove);
-				}
-			}
-			/*
-			 * CommonUtils.addToQuery(" TAppr.COUNTRY = T2.COUNTRY" +
-			 * "	AND TAppr.LE_BOOK = T2.LE_BOOK" +
-			 * "	AND TAppr.FTP_REFERENCE = T2.FTP_REFERENCE ", strBufApprove);
-			 */
-
-			
-			if (dObj.getSmartSearchOpt() != null && dObj.getSmartSearchOpt().size() > 0) {
-				int count = 1;
-				for (SmartSearchVb data : dObj.getSmartSearchOpt()) {
-					if (count == dObj.getSmartSearchOpt().size()) {
-						data.setJoinType("");
-					} else {
-						if (!ValidationUtil.isValid(data.getJoinType()) && !("AND".equalsIgnoreCase(data.getJoinType())
-								|| "OR".equalsIgnoreCase(data.getJoinType()))) {
-							data.setJoinType("AND");
-						}
-					}
-					String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
-					switch (data.getObject()) {
-					case "sourceReference":
-						CommonUtils.addToQuery(" upper(TAppr.SOURCE_REFERENCE) " + val, strBufApprove);
-						CommonUtils.addToQuery(" upper(TPend.SOURCE_REFERENCE) " + val, strBufPending);
-						break;
-						
-					case "methodDescription":
-						CommonUtils.addToQuery(" upper(TAppr.METHOD_DESCRIPTION) " + val, strBufApprove);
-						CommonUtils.addToQuery(" upper(TPend.METHOD_DESCRIPTION) " + val, strBufPending);
-						break;
-						
-					case "recordIndicatorDesc":
-						CommonUtils.addToQuery(" upper(TAppr.RECORD_INDICATOR_DESC) " + val, strBufApprove);
-						CommonUtils.addToQuery(" upper(TPend.RECORD_INDICATOR_DESC) " + val, strBufPending);
-						break;
-						
-					case "dataSource":
-						CommonUtils.addToQuery(" upper(TAppr.DATA_SOURCE) " + val, strBufApprove);
-						CommonUtils.addToQuery(" upper(TPend.DATA_SOURCE) " + val, strBufPending);
-						break;	
-						
-					case "ftpGroupDesc":
-						CommonUtils.addToQuery(" upper(TAppr.FTP_GROUP_DESC) " + val, strBufApprove);
-						CommonUtils.addToQuery(" upper(TPend.FTP_GROUP_DESC) " + val, strBufPending);
-						break;
-						
-					case "statusDesc":
-						CommonUtils.addToQuery(" upper(TAppr.FTP_GRP_STATUS_DESC) " + val, strBufApprove);
-						CommonUtils.addToQuery(" upper(TPend.FTP_GRP_STATUS_DESC) " + val, strBufPending);
-						break;
-						
-					case "groupSeq":
-						CommonUtils.addToQuery(" upper(TAppr.FTP_GROUP_SEQ) " + val, strBufApprove);
-						CommonUtils.addToQuery(" upper(TPend.FTP_GROUP_SEQ) " + val, strBufPending);
-						break;
-
-					default:
-					}
-					count++;
-				}
-			} 
-			String orderBy = " ORDER BY TAppr.COUNTRY, TAppr.LE_BOOK, DATA_SOURCE, FTP_GROUP, FTP_GROUP_SEQ,SOURCE_REFERENCE ";
-
-			return getQueryPopupResults(dObj, new StringBuffer(), strBufApprove, "", orderBy, params,
-					getQueryPopupMapperDetails());
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.error(((strBufApprove == null) ? "strBufApprove is null" : strBufApprove.toString()));
-			if (params != null)
-				for (int i = 0; i < params.size(); i++)
-					logger.error("objParams[" + i + "]" + params.get(i).toString());
-			return null;
-		}
 	}
 
 }

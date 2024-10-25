@@ -28,9 +28,9 @@ public class VisionJavaFilesCreations {
 //			Statement stmt=con.createStatement();
 			Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,ResultSet.CONCUR_READ_ONLY);
 			System.out.println("2");
-			String tableName = "ALPHA_TAB";
+			String tableName = "FTP_PREMIUMS";
 			
-			String filePath = "E:\\Java_Files\\";
+			String filePath = "E:\\Java_Files\\FTP\\";
 			
 			String queyr = "SELECT UPPER(RTRIM(COLUMN_NAME)) COLUMN_NAME, NULLABLE,CASE WHEN DATA_PRECISION IS NULL THEN DATA_LENGTH ELSE DATA_PRECISION END PRECISION, \r\n"
 					+ "							 DATA_TYPE, DATA_SCALE, DATA_DEFAULT FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = '"+tableName+"' and owner = 'DEVUSER'  \r\n"

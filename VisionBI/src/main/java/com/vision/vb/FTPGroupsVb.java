@@ -8,6 +8,8 @@ public class FTPGroupsVb extends CommonVb{
 	public FTPGroupsVb() {
 		super();
 	}
+	
+	
 	private String	country = "";
 	private String	leBook = "";
 	private int	dataSourceAt =  10;
@@ -16,26 +18,30 @@ public class FTPGroupsVb extends CommonVb{
 	private int	ftpGroupAt =  1301;
 	private String	ftpGroup = "";
 	private String	ftpGroupDesc = "";
-	private int	groupSeq = 0;
-	private int	sourceReferenceAt =  1302;
-	private String	sourceReference =  "";
-	private String	sourceReferenceDesc =  "";
-//	private String	ftpReference = "";
-//	private String	ftpDescription = "";
+	private String	ftpSubGroupId = "";
+	private String	ftpSubGroupDesc = "";
+	private int	ftpSubGroupPriority = 0;
+	
+	private String	methodType = "";
+	private String	methodTypeDesc = "";
+
 	private String	methodReference = "";
 	private String	methodDescription = "";
-	private String	defaultGroup = "";
+	private String	defaultGroup = "N";
 	private int	ftpGroupStatusNt =  1;
-	private int	ftpGroupStatus =  -1;
-	private int	ftpControlStatusNt =  1;
-	private int	ftpControlStatus =  -1;
+	private int	ftpGroupStatus =  0;
 	private String repricingFlag = "";
 	private int defaultFlagCount = -1;
 	List<SmartSearchVb> smartSearchOpt = null;
+	private String	effectiveDate =  "";
 	
 	
-	private ArrayList<FTPCurveVb> ftpCurveList = new ArrayList<FTPCurveVb>();
-	private ArrayList<FTPCurveVb> ftpAddOnList = new ArrayList<FTPCurveVb>();
+	private List<FTPSourceConfigVb> ftpSourceConfigList = new ArrayList<FTPSourceConfigVb>();
+	
+	private List<FtpMethodsVb> ftpMethodsList = new ArrayList<FtpMethodsVb>();
+	
+	private List<FTPCurveVb> ftpCurveList = new ArrayList<FTPCurveVb>();
+	private List<FTPCurveVb> ftpAddOnList = new ArrayList<FTPCurveVb>();
 	
 	private List<FTPGroupsVb> childList = new ArrayList<FTPGroupsVb>();
 	
@@ -90,30 +96,6 @@ public class FTPGroupsVb extends CommonVb{
 	public void setFtpGroup(String ftpGroup) {
 		this.ftpGroup = ftpGroup;
 	}
-	public int getGroupSeq() {
-		return groupSeq;
-	}
-	public void setGroupSeq(int groupSeq) {
-		this.groupSeq = groupSeq;
-	}
-	public int getSourceReferenceAt() {
-		return sourceReferenceAt;
-	}
-	public void setSourceReferenceAt(int sourceReferenceAt) {
-		this.sourceReferenceAt = sourceReferenceAt;
-	}
-	public String getSourceReference() {
-		return sourceReference;
-	}
-	public void setSourceReference(String sourceReference) {
-		this.sourceReference = sourceReference;
-	}
-//	public String getFtpReference() {
-//		return ftpReference;
-//	}
-//	public void setFtpReference(String ftpReference) {
-//		this.ftpReference = ftpReference;
-//	}
 	public String getMethodReference() {
 		return methodReference;
 	}
@@ -138,30 +120,12 @@ public class FTPGroupsVb extends CommonVb{
 	public void setFtpGroupStatus(int ftpGroupStatus) {
 		this.ftpGroupStatus = ftpGroupStatus;
 	}
-	public int getFtpControlStatusNt() {
-		return ftpControlStatusNt;
-	}
-	public void setFtpControlStatusNt(int ftpControlStatusNt) {
-		this.ftpControlStatusNt = ftpControlStatusNt;
-	}
-	public int getFtpControlStatus() {
-		return ftpControlStatus;
-	}
-	public void setFtpControlStatus(int ftpControlStatus) {
-		this.ftpControlStatus = ftpControlStatus;
-	}
 	public String getMethodDescription() {
 		return methodDescription;
 	}
 	public void setMethodDescription(String methodDescription) {
 		this.methodDescription = methodDescription;
 	}
-	/*public String getFtpDescription() {
-		return ftpDescription;
-	}
-	public void setFtpDescription(String ftpDescription) {
-		this.ftpDescription = ftpDescription;
-	}*/
 	public int getDefaultFlagCount() {
 		return defaultFlagCount;
 	}
@@ -179,18 +143,6 @@ public class FTPGroupsVb extends CommonVb{
 	}
 	public void setChildren(ArrayList<FTPGroupsVb> children) {
 		this.children = children;
-	}
-	public ArrayList<FTPCurveVb> getFtpCurveList() {
-		return ftpCurveList;
-	}
-	public void setFtpCurveList(ArrayList<FTPCurveVb> ftpCurveList) {
-		this.ftpCurveList = ftpCurveList;
-	}
-	public ArrayList<FTPCurveVb> getFtpAddOnList() {
-		return ftpAddOnList;
-	}
-	public void setFtpAddOnList(ArrayList<FTPCurveVb> ftpAddOnList) {
-		this.ftpAddOnList = ftpAddOnList;
 	}
 	public String getDataSourceDescription() {
 		return dataSourceDescription;
@@ -210,10 +162,64 @@ public class FTPGroupsVb extends CommonVb{
 	public void setFtpGroupDesc(String ftpGroupDesc) {
 		this.ftpGroupDesc = ftpGroupDesc;
 	}
-	public String getSourceReferenceDesc() {
-		return sourceReferenceDesc;
+	public String getFtpSubGroupId() {
+		return ftpSubGroupId;
 	}
-	public void setSourceReferenceDesc(String sourceReferenceDesc) {
-		this.sourceReferenceDesc = sourceReferenceDesc;
+	public void setFtpSubGroupId(String ftpSubGroupId) {
+		this.ftpSubGroupId = ftpSubGroupId;
+	}
+	public String getFtpSubGroupDesc() {
+		return ftpSubGroupDesc;
+	}
+	public void setFtpSubGroupDesc(String ftpSubGroupDesc) {
+		this.ftpSubGroupDesc = ftpSubGroupDesc;
+	}
+	public int getFtpSubGroupPriority() {
+		return ftpSubGroupPriority;
+	}
+	public void setFtpSubGroupPriority(int ftpSubGroupPriority) {
+		this.ftpSubGroupPriority = ftpSubGroupPriority;
+	}
+	public String getMethodType() {
+		return methodType;
+	}
+	public void setMethodType(String methodType) {
+		this.methodType = methodType;
+	}
+	public String getMethodTypeDesc() {
+		return methodTypeDesc;
+	}
+	public void setMethodTypeDesc(String methodTypeDesc) {
+		this.methodTypeDesc = methodTypeDesc;
+	}
+	public List<FTPSourceConfigVb> getFtpSourceConfigList() {
+		return ftpSourceConfigList;
+	}
+	public void setFtpSourceConfigList(List<FTPSourceConfigVb> ftpSourceConfigList) {
+		this.ftpSourceConfigList = ftpSourceConfigList;
+	}
+	public List<FtpMethodsVb> getFtpMethodsList() {
+		return ftpMethodsList;
+	}
+	public void setFtpMethodsList(List<FtpMethodsVb> ftpMethodsList) {
+		this.ftpMethodsList = ftpMethodsList;
+	}
+	public List<FTPCurveVb> getFtpCurveList() {
+		return ftpCurveList;
+	}
+	public void setFtpCurveList(List<FTPCurveVb> ftpCurveList) {
+		this.ftpCurveList = ftpCurveList;
+	}
+	public List<FTPCurveVb> getFtpAddOnList() {
+		return ftpAddOnList;
+	}
+	public void setFtpAddOnList(List<FTPCurveVb> ftpAddOnList) {
+		this.ftpAddOnList = ftpAddOnList;
+	}
+	public String getEffectiveDate() {
+		return effectiveDate;
+	}
+	public void setEffectiveDate(String effectiveDate) {
+		this.effectiveDate = effectiveDate;
 	}
 }

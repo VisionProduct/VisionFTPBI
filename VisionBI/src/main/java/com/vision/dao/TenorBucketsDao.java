@@ -149,17 +149,17 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 					}
 					String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
 					switch (data.getObject()) {
-					case "tenorApplicationCode":
+					case "tenorBucketApplicationCode":
 						CommonUtils.addToQuerySearch(" upper(TAppr.TENOR_APPLICATION_CODE) "+ val, strBufApprove, data.getJoinType());
 						CommonUtils.addToQuerySearch(" upper(TPend.TENOR_APPLICATION_CODE) "+ val, strBufPending, data.getJoinType());
 						break;
 
-					case "tenorCode":
+					case "tenorBucketCode":
 						CommonUtils.addToQuerySearch(" upper(TAppr.TENOR_CODE) "+ val, strBufApprove, data.getJoinType());
 						CommonUtils.addToQuerySearch(" upper(TPend.TENOR_CODE) "+ val, strBufPending, data.getJoinType());
 						break;
 
-					case "tenorDescription":
+					case "tenorBucketDescription":
 						CommonUtils.addToQuerySearch(" upper(TAppr.TENOR_DESCRIPTION) "+ val, strBufApprove, data.getJoinType());
 						CommonUtils.addToQuerySearch(" upper(TPend.TENOR_DESCRIPTION) "+ val, strBufPending, data.getJoinType());
 						break;
@@ -174,7 +174,7 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 						CommonUtils.addToQuerySearch(" upper(TPend.DAY_END) "+ val, strBufPending, data.getJoinType());
 						break;
 
-					case "tenorStatus":
+					case "tenorBucketStatusDesc":
 						CommonUtils.addToQuerySearch(" upper(TAppr.TENOR_STATUS) "+ val, strBufApprove, data.getJoinType());
 						CommonUtils.addToQuerySearch(" upper(TPend.TENOR_STATUS) "+ val, strBufPending, data.getJoinType());
 						break;

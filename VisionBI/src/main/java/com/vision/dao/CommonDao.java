@@ -274,6 +274,16 @@ public class CommonDao {
 		};
 		return (String) getJdbcTemplate().queryForObject(sql, null, mapper);
 	}
+	
+	public String getSystemDateAlone() {
+		String sql = "SELECT To_Char(SysDate, 'DD-MM-YYYY') AS SYSDATE1 FROM DUAL";
+		RowMapper mapper = new RowMapper() {
+			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return (rs.getString("SYSDATE1"));
+			}
+		};
+		return (String) getJdbcTemplate().queryForObject(sql, null, mapper);
+	}
 
 	public String getSystemDate12Hr() {
 		String sql = "SELECT To_Char(SysDate, 'DD-MM-YYYY HH:MI:SS') AS SYSDATE1 FROM DUAL";

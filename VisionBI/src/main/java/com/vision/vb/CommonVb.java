@@ -20,7 +20,7 @@ public class CommonVb implements Serializable{
 	private int currentPage = 1;
 	private int minRecords = 1;
 	protected int maxRecords = 20;//Constants.PAGE_DISPLAY_SIZE;
-	private boolean verificationRequired = false;
+	private boolean verificationRequired = true;
 	private boolean staticDelete = true;
 	private boolean newRecord = false;
 	private String dateLastModified = "";

@@ -1200,5 +1200,116 @@ public class AbstractTransactionalDao<E extends CommonVb> extends AbstractQueryD
 			return exceptionCode;
 		}
 	}
+	
+	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
+	public ExceptionCode doInsertrOrUpdateApprRecord(E vObject) throws RuntimeCustomException {
+		ExceptionCode exceptionCode = null;
+		strApproveOperation = Constants.MODIFY;
+		strErrorDesc = "";
+		strCurrentOperation = Constants.MODIFY;
+		setServiceDefaults();
+		try {
+			return doInsertrOrUpdateApprRecordForNonTrans(vObject);
+		} catch (RuntimeCustomException rcException) {
+			throw rcException;
+		} catch (UncategorizedSQLException uSQLEcxception) {
+			strErrorDesc = parseErrorMsg(uSQLEcxception);
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		} catch (Exception ex) {
+			logger.error("Error in Modify.", ex);
+			logger.error(((vObject == null) ? "vObject is Null" : vObject.toString()));
+			strErrorDesc = ex.getMessage();
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+	}
+	
+	protected ExceptionCode doInsertrOrUpdateApprRecordForNonTrans(E vObject) throws RuntimeCustomException {
+		List<E> collTemp = null;
+		E vObjectlocal = null;
+		ExceptionCode exceptionCode = null;
+		strApproveOperation = Constants.MODIFY;
+		strErrorDesc = "";
+		strCurrentOperation = Constants.MODIFY;
+		setServiceDefaults();
+		vObject.setMaker(getIntCurrentUserId());
+		if ("RUNNING".equalsIgnoreCase(getBuildStatus(vObject))) {
+			exceptionCode = getResultObject(Constants.BUILD_IS_RUNNING);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+		/*
+		 * if (getQueryResultsGroup(vObject) == 0){ exceptionCode =
+		 * getResultObject(Constants.ERRONEOUS_OPERATION); throw
+		 * buildRuntimeCustomException(exceptionCode); }
+		 */
+		// Even if record is not there in Appr. table reject the record
+		collTemp = selectApprovedRecord(vObject);
+		if (collTemp == null || collTemp.size() == 0) {
+			/*
+			 * exceptionCode =
+			 * getResultObject(Constants.ATTEMPT_TO_MODIFY_UNEXISTING_RECORD); throw
+			 * buildRuntimeCustomException(exceptionCode);
+			 */
+			vObject.setRecordIndicator(Constants.STATUS_ZERO);
+			vObject.setVerifier(getIntCurrentUserId());
+			retVal = doInsertionAppr(vObject);
+			if (retVal != Constants.SUCCESSFUL_OPERATION) {
+				exceptionCode = getResultObject(retVal);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			
+		}else {
+			vObject.setRecordIndicator(Constants.STATUS_ZERO);
+			vObject.setVerifier(getIntCurrentUserId());
+			retVal = doUpdateAppr(vObject);
+			if (retVal != Constants.SUCCESSFUL_OPERATION) {
+				exceptionCode = getResultObject(retVal);
+				throw buildRuntimeCustomException(exceptionCode);
+			}
+			String systemDate = getSystemDate();
+			vObject.setDateLastModified(systemDate);
+		}
+		// exceptionCode = writeAuditLog(vObject, vObjectlocal);
+		/*
+		 * if(exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION){
+		 * exceptionCode = getResultObject(Constants.AUDIT_TRAIL_ERROR); throw
+		 * buildRuntimeCustomException(exceptionCode); }
+		 */
+		exceptionCode = getResultObject(Constants.SUCCESSFUL_OPERATION);
+		return exceptionCode;
+	}
 
+	@Transactional(rollbackForClassName = { "com.vision.exception.RuntimeCustomException" })
+	public ExceptionCode doInsertrOrUpdateApprRecord(List<E> vObjects) throws RuntimeCustomException {
+		ExceptionCode exceptionCode = null;
+		strApproveOperation = Constants.MODIFY;
+		strErrorDesc = "";
+		strCurrentOperation = Constants.MODIFY;
+		setServiceDefaults();
+		try {
+//			return (vObject);
+			for (E vObject : vObjects) {
+				if (vObject.isChecked()) {
+					exceptionCode = doInsertrOrUpdateApprRecordForNonTrans(vObject);
+					if (exceptionCode == null || exceptionCode.getErrorCode() != Constants.SUCCESSFUL_OPERATION) {
+						throw buildRuntimeCustomException(exceptionCode);
+					}
+				}
+			}
+			return getResultObject(Constants.SUCCESSFUL_OPERATION);
+		} catch (RuntimeCustomException rcException) {
+			throw rcException;
+		} catch (UncategorizedSQLException uSQLEcxception) {
+			strErrorDesc = parseErrorMsg(uSQLEcxception);
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		} catch (Exception ex) {
+			logger.error("Error in Modify.", ex);
+			logger.error(((vObjects == null) ? "vObject is Null" : vObjects.toString()));
+			strErrorDesc = ex.getMessage();
+			exceptionCode = getResultObject(Constants.WE_HAVE_ERROR_DESCRIPTION);
+			throw buildRuntimeCustomException(exceptionCode);
+		}
+	}
 }

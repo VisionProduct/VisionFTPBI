@@ -5,21 +5,25 @@ import java.util.List;
 public class FTPSourceConfigVb extends CommonVb{
 	private String	country = "";
 	private String	leBook = "";
-	private int	sourceReferenceAt =  0;
-	private String	sourceReference =  "";
 	private int	sequence = 0;
 	private String tableName = "";
 	private String colName = "";
+	private int operandNt = 1303 ;
 	private String operand= "-1";
 	private String conditionValue1 = "";
 	private String conditionValue2 = "";
-	private int	ftpSourceConfigStatusNt =  0;
-	private int	ftpSourceConfigStatus =  -1;
+	private int	ftpSourceConfigStatusNt =  1;
+	private int	ftpSourceConfigStatus =  0;
 	private String dailyHint = "";
 	private String monthlyHint = "";
 	private String yearlyHint = "";
-	private int	frquencyTuningNt =  0;
-	private int	frquencyTuning =  1;
+	private int	frquencyTuningNt =  1;
+	private int	frquencyTuning =  0;
+	
+	private String ftpSubGroupId = "";
+	private int filterSequence = 0 ;
+	private String queryType = "";
+	private String queryTypeDesc = "";
 	
 	List<SmartSearchVb> smartSearchOpt = null;
 	
@@ -64,18 +68,6 @@ public class FTPSourceConfigVb extends CommonVb{
 	}
 	public void setLeBook(String leBook) {
 		this.leBook = leBook;
-	}
-	public int getSourceReferenceAt() {
-		return sourceReferenceAt;
-	}
-	public void setSourceReferenceAt(int sourceReferenceAt) {
-		this.sourceReferenceAt = sourceReferenceAt;
-	}
-	public String getSourceReference() {
-		return sourceReference;
-	}
-	public void setSourceReference(String sourceReference) {
-		this.sourceReference = sourceReference;
 	}
 	public int getSequence() {
 		return sequence;
@@ -130,5 +122,35 @@ public class FTPSourceConfigVb extends CommonVb{
 	}
 	public void setSmartSearchOpt(List<SmartSearchVb> smartSearchOpt) {
 		this.smartSearchOpt = smartSearchOpt;
+	}
+	public String getFtpSubGroupId() {
+		return ftpSubGroupId;
+	}
+	public void setFtpSubGroupId(String ftpSubGroupId) {
+		this.ftpSubGroupId = ftpSubGroupId;
+	}
+	public int getFilterSequence() {
+		return filterSequence;
+	}
+	public void setFilterSequence(int filterSequence) {
+		this.filterSequence = filterSequence;
+	}
+	public String getQueryType() {
+		return queryType;
+	}
+	public void setQueryType(String queryType) {
+		this.queryType = queryType;
+	}
+	public int getOperandNt() {
+		return operandNt;
+	}
+	public void setOperandNt(int operandNt) {
+		this.operandNt = operandNt;
+	}
+	public String getQueryTypeDesc() {
+		return queryTypeDesc;
+	}
+	public void setQueryTypeDesc(String queryTypeDesc) {
+		this.queryTypeDesc = queryTypeDesc;
 	}
 }

@@ -7,253 +7,237 @@ public class FtpMethodsVb extends CommonVb {
 	
 	private static final long serialVersionUID = 2073522091526813534L;
 	
-	private String methodReference = "";
-	private String methodDescription = "";
-	private int methodTypeAt = 1303;
-	private String methodType = "";
-	private String methodTypeDesc = "";
-	private int ftpTenorTypeNt = 1302;
-	private int ftpTenorType = -1;
-	private String ftpTenorTypeDesc = "";
-	private int methodBalTypeNt = 1301;
-	private int methodBalType = -1;
-	private String methodBalTypeDesc = "";
-	private int StatusNt = 1;
-	private int Status = -1;
-	private int repricingFlagAt = 1304;
+	
+	private String country = "";
+	private String leBook = "";
+	private String ftpSubGroupId = "";
+	
+	private int methodBalTypeNt = 1301 ;
+	private int methodBalType = -1 ;
+	private String methodBalTypeDesc = "" ;
+	private int interestBasisNt = 6 ;
+	private int interestBasis = 0 ;
+	private String interestBasisDesc = "";
+	private int applyRateNt = 1304 ;
+	private int ftpApplyRate = -1 ;
+	private String ftpApplyRateDesc = "" ;
+	private int ftpMtStatusNt = 1 ;
+	private int ftpMtStatus = 0 ;
+	
+	
+	private int repricingFlagAt = 1304 ;
 	private String repricingFlag = "";
 	private String repricingFlagDesc = "";
-	private int lpTenorTypeNt =1302;
-	private int lpTenorType = -1;
-	private String lpTenorTypeDesc = "";
-	private int ftpCurveIdAt =1310;
+	private int methodTypeAt = 1303 ;
+	private String methodType = "";
+	private String methodTypeDesc = "";
+	private int tenorTypeNt = 1302 ;
+	private int ftpTenorType = 0 ;
+	private String ftpTenorTypeDesc = "" ;
 	private String ftpCurveId = "";
-	private int interestBasisNt = 1301;
-	private int interestBasis = -1;
-	private String interestBasisDesc = "";
-	private int ftpApplyRateNt = 1304;
-	private int ftpApplyRate = -1;
-	private String ftpApplyRateDesc = "";
-	private int addonApplyRate = -1;
-	private String addonApplyRateDesc = "";
-	private int lpApplyRate = -1;
-	private String lpApplyRateDesc = "";
-	private int methodSubTypeAt = 1360;
-	private String methodSubType = "NA";
-	private String methodSubTypeDesc = "NA";
+	
 	
 	List<SmartSearchVb> smartSearchOpt = null;
-	
-	public int getInterestBasisNt() {
-		return interestBasisNt;
+
+	public String getCountry() {
+		return country;
 	}
-	public void setInterestBasisNt(int interestBasisNt) {
-		this.interestBasisNt = interestBasisNt;
+
+	public void setCountry(String country) {
+		this.country = country;
 	}
-	public int getInterestBasis() {
-		return interestBasis;
+
+	public String getLeBook() {
+		return leBook;
 	}
-	public void setInterestBasis(int interestBasis) {
-		this.interestBasis = interestBasis;
+
+	public void setLeBook(String leBook) {
+		this.leBook = leBook;
 	}
-	public String getMethodReference() {
-		return methodReference;
+
+	public String getFtpSubGroupId() {
+		return ftpSubGroupId;
 	}
-	public void setMethodReference(String methodReference) {
-		this.methodReference = methodReference;
+
+	public void setFtpSubGroupId(String ftpSubGroupId) {
+		this.ftpSubGroupId = ftpSubGroupId;
 	}
-	public String getMethodDescription() {
-		return methodDescription;
-	}
-	public void setMethodDescription(String methodDescription) {
-		this.methodDescription = methodDescription;
-	}
-	public int getFtpTenorTypeNt() {
-		return ftpTenorTypeNt;
-	}
-	public void setFtpTenorTypeNt(int ftpTenorTypeNt) {
-		this.ftpTenorTypeNt = ftpTenorTypeNt;
-	}
-	public int getFtpTenorType() {
-		return ftpTenorType;
-	}
-	public void setFtpTenorType(int ftpTenorType) {
-		this.ftpTenorType = ftpTenorType;
-	}
+
 	public int getMethodBalTypeNt() {
 		return methodBalTypeNt;
 	}
+
 	public void setMethodBalTypeNt(int methodBalTypeNt) {
 		this.methodBalTypeNt = methodBalTypeNt;
 	}
+
 	public int getMethodBalType() {
 		return methodBalType;
 	}
+
 	public void setMethodBalType(int methodBalType) {
 		this.methodBalType = methodBalType;
 	}
-	public int getStatusNt() {
-		return StatusNt;
-	}
-	public void setStatusNt(int statusNt) {
-		StatusNt = statusNt;
-	}
-	public int getStatus() {
-		return Status;
-	}
-	public void setStatus(int status) {
-		Status = status;
-	}
-	public int getLpTenorTypeNt() {
-		return lpTenorTypeNt;
-	}
-	public int getMethodTypeAt() {
-		return methodTypeAt;
-	}
-	public void setMethodTypeAt(int methodTypeAt) {
-		this.methodTypeAt = methodTypeAt;
-	}
-	public String getMethodType() {
-		return methodType;
-	}
-	public void setMethodType(String methodType) {
-		this.methodType = methodType;
-	}
-	public int getRepricingFlagAt() {
-		return repricingFlagAt;
-	}
-	public void setRepricingFlagAt(int repricingFlagAt) {
-		this.repricingFlagAt = repricingFlagAt;
-	}
-	public String getRepricingFlag() {
-		return repricingFlag;
-	}
-	public void setRepricingFlag(String repricingFlag) {
-		this.repricingFlag = repricingFlag;
-	}
-	public void setLpTenorTypeNt(int lpTenorTypeNt) {
-		this.lpTenorTypeNt = lpTenorTypeNt;
-	}
-	public int getLpTenorType() {
-		return lpTenorType;
-	}
-	public void setLpTenorType(int lpTenorType) {
-		this.lpTenorType = lpTenorType;
-	}
-	public int getFtpCurveIdAt() {
-		return ftpCurveIdAt;
-	}
-	public void setFtpCurveIdAt(int ftpCurveIdAt) {
-		this.ftpCurveIdAt = ftpCurveIdAt;
-	}
-	public String getFtpCurveId() {
-		return ftpCurveId;
-	}
-	public void setFtpCurveId(String ftpCurveId) {
-		this.ftpCurveId = ftpCurveId;
-	}
-	public int getFtpApplyRateNt() {
-		return ftpApplyRateNt;
-	}
-	public void setFtpApplyRateNt(int ftpApplyRateNt) {
-		this.ftpApplyRateNt = ftpApplyRateNt;
-	}
-	public int getFtpApplyRate() {
-		return ftpApplyRate;
-	}
-	public void setFtpApplyRate(int ftpApplyRate) {
-		this.ftpApplyRate = ftpApplyRate;
-	}
-	public int getAddonApplyRate() {
-		return addonApplyRate;
-	}
-	public void setAddonApplyRate(int addonApplyRate) {
-		this.addonApplyRate = addonApplyRate;
-	}
-	public int getLpApplyRate() {
-		return lpApplyRate;
-	}
-	public void setLpApplyRate(int lpApplyRate) {
-		this.lpApplyRate = lpApplyRate;
-	}
-	public int getMethodSubTypeAt() {
-		return methodSubTypeAt;
-	}
-	public void setMethodSubTypeAt(int methodSubTypeAt) {
-		this.methodSubTypeAt = methodSubTypeAt;
-	}
-	public String getMethodSubType() {
-		return methodSubType;
-	}
-	public void setMethodSubType(String methodSubType) {
-		this.methodSubType = methodSubType;
-	}
-	public List<SmartSearchVb> getSmartSearchOpt() {
-		return smartSearchOpt;
-	}
-	public void setSmartSearchOpt(List<SmartSearchVb> smartSearchOpt) {
-		this.smartSearchOpt = smartSearchOpt;
-	}
-	public String getMethodTypeDesc() {
-		return methodTypeDesc;
-	}
-	public void setMethodTypeDesc(String methodTypeDesc) {
-		this.methodTypeDesc = methodTypeDesc;
-	}
-	public String getFtpTenorTypeDesc() {
-		return ftpTenorTypeDesc;
-	}
-	public void setFtpTenorTypeDesc(String ftpTenorTypeDesc) {
-		this.ftpTenorTypeDesc = ftpTenorTypeDesc;
-	}
+
 	public String getMethodBalTypeDesc() {
 		return methodBalTypeDesc;
 	}
+
 	public void setMethodBalTypeDesc(String methodBalTypeDesc) {
 		this.methodBalTypeDesc = methodBalTypeDesc;
 	}
-	public String getRepricingFlagDesc() {
-		return repricingFlagDesc;
+
+	public int getInterestBasisNt() {
+		return interestBasisNt;
 	}
-	public void setRepricingFlagDesc(String repricingFlagDesc) {
-		this.repricingFlagDesc = repricingFlagDesc;
+
+	public void setInterestBasisNt(int interestBasisNt) {
+		this.interestBasisNt = interestBasisNt;
 	}
-	public String getLpTenorTypeDesc() {
-		return lpTenorTypeDesc;
+
+	public int getInterestBasis() {
+		return interestBasis;
 	}
-	public void setLpTenorTypeDesc(String lpTenorTypeDesc) {
-		this.lpTenorTypeDesc = lpTenorTypeDesc;
+
+	public void setInterestBasis(int interestBasis) {
+		this.interestBasis = interestBasis;
 	}
+
 	public String getInterestBasisDesc() {
 		return interestBasisDesc;
 	}
+
 	public void setInterestBasisDesc(String interestBasisDesc) {
 		this.interestBasisDesc = interestBasisDesc;
 	}
+
+	public int getApplyRateNt() {
+		return applyRateNt;
+	}
+
+	public void setApplyRateNt(int applyRateNt) {
+		this.applyRateNt = applyRateNt;
+	}
+
+	public int getFtpApplyRate() {
+		return ftpApplyRate;
+	}
+
+	public void setFtpApplyRate(int ftpApplyRate) {
+		this.ftpApplyRate = ftpApplyRate;
+	}
+
 	public String getFtpApplyRateDesc() {
 		return ftpApplyRateDesc;
 	}
+
 	public void setFtpApplyRateDesc(String ftpApplyRateDesc) {
 		this.ftpApplyRateDesc = ftpApplyRateDesc;
 	}
-	public String getLpApplyRateDesc() {
-		return lpApplyRateDesc;
+
+	public int getFtpMtStatusNt() {
+		return ftpMtStatusNt;
 	}
-	public void setLpApplyRateDesc(String lpApplyRateDesc) {
-		this.lpApplyRateDesc = lpApplyRateDesc;
+
+	public void setFtpMtStatusNt(int ftpMtStatusNt) {
+		this.ftpMtStatusNt = ftpMtStatusNt;
 	}
-	public String getMethodSubTypeDesc() {
-		return methodSubTypeDesc;
+
+	public int getFtpMtStatus() {
+		return ftpMtStatus;
 	}
-	public void setMethodSubTypeDesc(String methodSubTypeDesc) {
-		this.methodSubTypeDesc = methodSubTypeDesc;
+
+	public void setFtpMtStatus(int ftpMtStatus) {
+		this.ftpMtStatus = ftpMtStatus;
 	}
-	public String getAddonApplyRateDesc() {
-		return addonApplyRateDesc;
+
+	public int getRepricingFlagAt() {
+		return repricingFlagAt;
 	}
-	public void setAddonApplyRateDesc(String addonApplyRateDesc) {
-		this.addonApplyRateDesc = addonApplyRateDesc;
+
+	public void setRepricingFlagAt(int repricingFlagAt) {
+		this.repricingFlagAt = repricingFlagAt;
+	}
+
+	public String getRepricingFlag() {
+		return repricingFlag;
+	}
+
+	public void setRepricingFlag(String repricingFlag) {
+		this.repricingFlag = repricingFlag;
+	}
+
+	public String getRepricingFlagDesc() {
+		return repricingFlagDesc;
+	}
+
+	public void setRepricingFlagDesc(String repricingFlagDesc) {
+		this.repricingFlagDesc = repricingFlagDesc;
+	}
+
+	public int getMethodTypeAt() {
+		return methodTypeAt;
+	}
+
+	public void setMethodTypeAt(int methodTypeAt) {
+		this.methodTypeAt = methodTypeAt;
+	}
+
+	public String getMethodType() {
+		return methodType;
+	}
+
+	public void setMethodType(String methodType) {
+		this.methodType = methodType;
+	}
+
+	public String getMethodTypeDesc() {
+		return methodTypeDesc;
+	}
+
+	public void setMethodTypeDesc(String methodTypeDesc) {
+		this.methodTypeDesc = methodTypeDesc;
+	}
+
+	public int getTenorTypeNt() {
+		return tenorTypeNt;
+	}
+
+	public void setTenorTypeNt(int tenorTypeNt) {
+		this.tenorTypeNt = tenorTypeNt;
+	}
+
+	public int getFtpTenorType() {
+		return ftpTenorType;
+	}
+
+	public void setFtpTenorType(int ftpTenorType) {
+		this.ftpTenorType = ftpTenorType;
+	}
+
+	public String getFtpTenorTypeDesc() {
+		return ftpTenorTypeDesc;
+	}
+
+	public void setFtpTenorTypeDesc(String ftpTenorTypeDesc) {
+		this.ftpTenorTypeDesc = ftpTenorTypeDesc;
+	}
+
+	public String getFtpCurveId() {
+		return ftpCurveId;
+	}
+
+	public void setFtpCurveId(String ftpCurveId) {
+		this.ftpCurveId = ftpCurveId;
+	}
+
+	public List<SmartSearchVb> getSmartSearchOpt() {
+		return smartSearchOpt;
+	}
+
+	public void setSmartSearchOpt(List<SmartSearchVb> smartSearchOpt) {
+		this.smartSearchOpt = smartSearchOpt;
 	}
 	
 	
-	}
+}

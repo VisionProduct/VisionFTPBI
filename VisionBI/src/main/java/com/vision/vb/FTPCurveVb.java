@@ -4,124 +4,105 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FTPCurveVb extends CommonVb{
-	private int	tenorBucketApplicationCodeNt  =  8;
-	private int	tenorBucketApplicationCode = -1;
-	private String	tenorBucketCode = "";
-	private String	intStart =  "";
-	private String	intEnd =  "";
-	private String	amountStart =  "";
-	private String	amountEnd =  "";
-	private String	ftpRateId =  "";
-	private int	ftpCurveStatusNt =  0;
-	private int	ftpCurveStatus =  -1;
-	private String	effectiveDate =  "";
-	private int ftpCurveIdAt =1310;
+	private String country = "";
+	private String leBook = "";
 	private String ftpCurveId = "";
-	private int	visionSbuAt =  3;
-	private String	visionSbu =  "";
-	private String	currency =  "";
-	private String	customerId =  "";
-	private String	contractId =  "";
-	private String	addOnRate =  "";
-	private String	subRate =  "";
-	private int	lpTenorBucketApplicationCodeNt  =  8;
-	private int	lpTenorBucketApplicationCode = -1;
-	private String	lpTenorBucketCode = "";
-	private String	rateEffectiveDate = "";
-	private String tenorDecription ="";
-	private String actualEffectiveDate = "";
-	private String	addOnDepositRate = "";
-	private String	subsidy = "";
-	private String	addOnLendingRate = "";
-	private String	requiredReserveRate = "";
-	private String	glAllocationRate = "";
-	private String	insuranceRate = "";
-	private String	addOnAttRate1 = "";
-	private String	addOnAttRate2 = "";
-	private String	addOnAttRate3 = "";
-	private String	addOnAttRate4 = "";
-	private String	visionSbuDesc =  "";
-	private String	currencyDesc =  "";
-	private String	tenorBucketCodeDesc = "";
-	private String customerIdDesc = "";
-	private String	contractIdDesc =  "";
-	
-	
-	public String getCurrencyDesc() {
-		return currencyDesc;
-	}
-	public void setCurrencyDesc(String currencyDesc) {
-		this.currencyDesc = currencyDesc;
-	}
-	private List<FTPCurveVb> ftpCurveList = new ArrayList<FTPCurveVb>();
-	
-	private boolean reloadFlag = true;
-	
+	private String effectiveDate = "";
+	private int tenorApplicationCodeNt = 8 ;
+	private int tenorApplicationCode = -1 ;
+	private String tenorApplicationCodeDesc = "";
+	private String tenorCode = "";
+	private String tenorCodeDesc = "";
+	private int visionSbuAttributeAt = 3 ;
+	private String visionSbuAttribute = "";
+	private String visionSbuAttributeDesc = "";
 	private String productAttribute = "";
-	
 	private String productAttributeDesc = "";
 	
+	private String currency = "";
+	private String currencyDesc = "";
+	private String intRateStart = "0";
+	private String intRateEnd = "0";
+	private String amountStart = "0";
+	private String amountEnd = "0";
+	private String endDate = "";
+	private String ftpRate = "0";
+	private String crrRate = "0" ;
+	private int ftpCurveStatusNt = 1 ;
+	private int ftpCurveStatus = 0 ;
 	
 	
-	public String getActualEffectiveDate() {
-		return actualEffectiveDate;
+	public String getCountry() {
+		return country;
 	}
-	public void setActualEffectiveDate(String actualEffectiveDate) {
-		this.actualEffectiveDate = actualEffectiveDate;
+	public void setCountry(String country) {
+		this.country = country;
 	}
-	public String getTenorDecription() {
-		return tenorDecription;
+	public String getLeBook() {
+		return leBook;
 	}
-	public void setTenorDecription(String tenorDecription) {
-		this.tenorDecription = tenorDecription;
+	public void setLeBook(String leBook) {
+		this.leBook = leBook;
 	}
-	public int getLpTenorBucketApplicationCodeNt() {
-		return lpTenorBucketApplicationCodeNt;
+	public String getFtpCurveId() {
+		return ftpCurveId;
 	}
-	public void setLpTenorBucketApplicationCodeNt(int lpTenorBucketApplicationCodeNt) {
-		this.lpTenorBucketApplicationCodeNt = lpTenorBucketApplicationCodeNt;
+	public void setFtpCurveId(String ftpCurveId) {
+		this.ftpCurveId = ftpCurveId;
 	}
-	public int getLpTenorBucketApplicationCode() {
-		return lpTenorBucketApplicationCode;
+	public String getEffectiveDate() {
+		return effectiveDate;
 	}
-	public void setLpTenorBucketApplicationCode(int lpTenorBucketApplicationCode) {
-		this.lpTenorBucketApplicationCode = lpTenorBucketApplicationCode;
+	public void setEffectiveDate(String effectiveDate) {
+		this.effectiveDate = effectiveDate;
 	}
-	public String getLpTenorBucketCode() {
-		return lpTenorBucketCode;
+	public int getTenorApplicationCodeNt() {
+		return tenorApplicationCodeNt;
 	}
-	public void setLpTenorBucketCode(String lpTenorBucketCode) {
-		this.lpTenorBucketCode = lpTenorBucketCode;
+	public void setTenorApplicationCodeNt(int tenorApplicationCodeNt) {
+		this.tenorApplicationCodeNt = tenorApplicationCodeNt;
 	}
-	public String getRateEffectiveDate() {
-		return rateEffectiveDate;
+	public int getTenorApplicationCode() {
+		return tenorApplicationCode;
 	}
-	public void setRateEffectiveDate(String rateEffectiveDate) {
-		this.rateEffectiveDate = rateEffectiveDate;
+	public void setTenorApplicationCode(int tenorApplicationCode) {
+		this.tenorApplicationCode = tenorApplicationCode;
 	}
-	public String getCustomerId() {
-		return customerId;
+	public String getTenorApplicationCodeDesc() {
+		return tenorApplicationCodeDesc;
 	}
-	public void setCustomerId(String customerId) {
-		this.customerId = customerId;
+	public void setTenorApplicationCodeDesc(String tenorApplicationCodeDesc) {
+		this.tenorApplicationCodeDesc = tenorApplicationCodeDesc;
 	}
-	public String getContractId() {
-		return contractId;
+	public String getTenorCode() {
+		return tenorCode;
 	}
-	public void setContractId(String contractId) {
-		this.contractId = contractId;
+	public void setTenorCode(String tenorCode) {
+		this.tenorCode = tenorCode;
 	}
-	public String getAddOnRate() {
-		return addOnRate;
+	public int getVisionSbuAttributeAt() {
+		return visionSbuAttributeAt;
 	}
-	public void setAddOnRate(String addOnRate) {
-		this.addOnRate = addOnRate;
+	public void setVisionSbuAttributeAt(int visionSbuAttributeAt) {
+		this.visionSbuAttributeAt = visionSbuAttributeAt;
 	}
-	public String getSubRate() {
-		return subRate;
+	public String getVisionSbuAttribute() {
+		return visionSbuAttribute;
 	}
-	public void setSubRate(String subRate) {
-		this.subRate = subRate;
+	public void setVisionSbuAttribute(String visionSbuAttribute) {
+		this.visionSbuAttribute = visionSbuAttribute;
+	}
+	public String getVisionSbuAttributeDesc() {
+		return visionSbuAttributeDesc;
+	}
+	public void setVisionSbuAttributeDesc(String visionSbuAttributeDesc) {
+		this.visionSbuAttributeDesc = visionSbuAttributeDesc;
+	}
+	public String getProductAttribute() {
+		return productAttribute;
+	}
+	public void setProductAttribute(String productAttribute) {
+		this.productAttribute = productAttribute;
 	}
 	public String getCurrency() {
 		return currency;
@@ -129,47 +110,17 @@ public class FTPCurveVb extends CommonVb{
 	public void setCurrency(String currency) {
 		this.currency = currency;
 	}
-	public int getVisionSbuAt() {
-		return visionSbuAt;
+	public String getIntRateStart() {
+		return intRateStart;
 	}
-	public void setVisionSbuAt(int visionSbuAt) {
-		this.visionSbuAt = visionSbuAt;
+	public void setIntRateStart(String intRateStart) {
+		this.intRateStart = intRateStart;
 	}
-	public String getVisionSbu() {
-		return visionSbu;
+	public String getIntRateEnd() {
+		return intRateEnd;
 	}
-	public void setVisionSbu(String visionSbu) {
-		this.visionSbu = visionSbu;
-	}
-	public int getTenorBucketApplicationCodeNt() {
-		return tenorBucketApplicationCodeNt;
-	}
-	public void setTenorBucketApplicationCodeNt(int tenorBucketApplicationCodeNt) {
-		this.tenorBucketApplicationCodeNt = tenorBucketApplicationCodeNt;
-	}
-	public int getTenorBucketApplicationCode() {
-		return tenorBucketApplicationCode;
-	}
-	public void setTenorBucketApplicationCode(int tenorBucketApplicationCode) {
-		this.tenorBucketApplicationCode = tenorBucketApplicationCode;
-	}
-	public String getTenorBucketCode() {
-		return tenorBucketCode;
-	}
-	public void setTenorBucketCode(String tenorBucketCode) {
-		this.tenorBucketCode = tenorBucketCode;
-	}
-	public String getIntStart() {
-		return intStart;
-	}
-	public void setIntStart(String intStart) {
-		this.intStart = intStart;
-	}
-	public String getIntEnd() {
-		return intEnd;
-	}
-	public void setIntEnd(String intEnd) {
-		this.intEnd = intEnd;
+	public void setIntRateEnd(String intRateEnd) {
+		this.intRateEnd = intRateEnd;
 	}
 	public String getAmountStart() {
 		return amountStart;
@@ -183,11 +134,23 @@ public class FTPCurveVb extends CommonVb{
 	public void setAmountEnd(String amountEnd) {
 		this.amountEnd = amountEnd;
 	}
-	public String getFtpRateId() {
-		return ftpRateId;
+	public String getEndDate() {
+		return endDate;
 	}
-	public void setFtpRateId(String ftpRateId) {
-		this.ftpRateId = ftpRateId;
+	public void setEndDate(String endDate) {
+		this.endDate = endDate;
+	}
+	public String getFtpRate() {
+		return ftpRate;
+	}
+	public void setFtpRate(String ftpRate) {
+		this.ftpRate = ftpRate;
+	}
+	public String getCrrRate() {
+		return crrRate;
+	}
+	public void setCrrRate(String crrRate) {
+		this.crrRate = crrRate;
 	}
 	public int getFtpCurveStatusNt() {
 		return ftpCurveStatusNt;
@@ -201,132 +164,23 @@ public class FTPCurveVb extends CommonVb{
 	public void setFtpCurveStatus(int ftpCurveStatus) {
 		this.ftpCurveStatus = ftpCurveStatus;
 	}
-	public String getEffectiveDate() {
-		return effectiveDate;
-	}
-	public void setEffectiveDate(String effectiveDate) {
-		this.effectiveDate = effectiveDate;
-	}
-	public int getFtpCurveIdAt() {
-		return ftpCurveIdAt;
-	}
-	public void setFtpCurveIdAt(int ftpCurveIdAt) {
-		this.ftpCurveIdAt = ftpCurveIdAt;
-	}
-	public String getFtpCurveId() {
-		return ftpCurveId;
-	}
-	public void setFtpCurveId(String ftpCurveId) {
-		this.ftpCurveId = ftpCurveId;
-	}
-	public String getAddOnDepositRate() {
-		return addOnDepositRate;
-	}
-	public void setAddOnDepositRate(String addOnDepositRate) {
-		this.addOnDepositRate = addOnDepositRate;
-	}
-	public String getSubsidy() {
-		return subsidy;
-	}
-	public void setSubsidy(String subsidy) {
-		this.subsidy = subsidy;
-	}
-	public String getAddOnLendingRate() {
-		return addOnLendingRate;
-	}
-	public void setAddOnLendingRate(String addOnLendingRate) {
-		this.addOnLendingRate = addOnLendingRate;
-	}
-	public String getRequiredReserveRate() {
-		return requiredReserveRate;
-	}
-	public void setRequiredReserveRate(String requiredReserveRate) {
-		this.requiredReserveRate = requiredReserveRate;
-	}
-	public String getGlAllocationRate() {
-		return glAllocationRate;
-	}
-	public void setGlAllocationRate(String glAllocationRate) {
-		this.glAllocationRate = glAllocationRate;
-	}
-	public String getInsuranceRate() {
-		return insuranceRate;
-	}
-	public void setInsuranceRate(String insuranceRate) {
-		this.insuranceRate = insuranceRate;
-	}
-	public String getAddOnAttRate1() {
-		return addOnAttRate1;
-	}
-	public void setAddOnAttRate1(String addOnAttRate1) {
-		this.addOnAttRate1 = addOnAttRate1;
-	}
-	public String getAddOnAttRate2() {
-		return addOnAttRate2;
-	}
-	public void setAddOnAttRate2(String addOnAttRate2) {
-		this.addOnAttRate2 = addOnAttRate2;
-	}
-	public String getAddOnAttRate3() {
-		return addOnAttRate3;
-	}
-	public void setAddOnAttRate3(String addOnAttRate3) {
-		this.addOnAttRate3 = addOnAttRate3;
-	}
-	public String getAddOnAttRate4() {
-		return addOnAttRate4;
-	}
-	public void setAddOnAttRate4(String addOnAttRate4) {
-		this.addOnAttRate4 = addOnAttRate4;
-	}
-	public boolean isReloadFlag() {
-		return reloadFlag;
-	}
-	public void setReloadFlag(boolean reloadFlag) {
-		this.reloadFlag = reloadFlag;
-	}
-	public List<FTPCurveVb> getFtpCurveList() {
-		return ftpCurveList;
-	}
-	public void setFtpCurveList(List<FTPCurveVb> ftpCurveList) {
-		this.ftpCurveList = ftpCurveList;
-	}
-	public String getVisionSbuDesc() {
-		return visionSbuDesc;
-	}
-	public void setVisionSbuDesc(String visionSbuDesc) {
-		this.visionSbuDesc = visionSbuDesc;
-	}
-	public String getTenorBucketCodeDesc() {
-		return tenorBucketCodeDesc;
-	}
-	public void setTenorBucketCodeDesc(String tenorBucketCodeDesc) {
-		this.tenorBucketCodeDesc = tenorBucketCodeDesc;
-	}
 	public String getProductAttributeDesc() {
 		return productAttributeDesc;
 	}
 	public void setProductAttributeDesc(String productAttributeDesc) {
 		this.productAttributeDesc = productAttributeDesc;
 	}
-	public String getProductAttribute() {
-		return productAttribute;
+	public String getCurrencyDesc() {
+		return currencyDesc;
 	}
-	public void setProductAttribute(String productAttribute) {
-		this.productAttribute = productAttribute;
+	public void setCurrencyDesc(String currencyDesc) {
+		this.currencyDesc = currencyDesc;
 	}
-	public String getCustomerIdDesc() {
-		return customerIdDesc;
+	public String getTenorCodeDesc() {
+		return tenorCodeDesc;
 	}
-	public void setCustomerIdDesc(String customerIdDesc) {
-		this.customerIdDesc = customerIdDesc;
-	}
-	public String getContractIdDesc() {
-		return contractIdDesc;
-	}
-	public void setContractIdDesc(String contractIdDesc) {
-		this.contractIdDesc = contractIdDesc;
-	}
-	
+	public void setTenorCodeDesc(String tenorCodeDesc) {
+		this.tenorCodeDesc = tenorCodeDesc;
+	}	
 	
 }

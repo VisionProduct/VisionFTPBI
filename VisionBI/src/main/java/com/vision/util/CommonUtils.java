@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -57,6 +58,7 @@ import com.jcraft.jsch.SftpException;
 import com.vision.authentication.CustomContextHolder;
 import com.vision.exception.ExceptionCode;
 import com.vision.exception.RuntimeCustomException;
+import com.vision.vb.DCManualQueryVb;
 import com.vision.vb.ReportVb;
 
 import io.jsonwebtoken.Claims;
@@ -1800,4 +1802,82 @@ public class CommonUtils {
         returnMap.put("validTill", strTokenExpirationDate);
 		return returnMap;
 	}	
+	public static ExceptionCode formHashList(DCManualQueryVb vObj) {
+		ExceptionCode exceptionCode = new ExceptionCode();
+		/* Use HashSet to avoid duplicates */
+		HashSet<String> hashLst = new HashSet<String>();
+		Pattern pattern = Pattern.compile("#(.*?)#", Pattern.DOTALL);
+		Matcher matcher = null;
+		String curretSql = "";
+		try {
+			if (ValidationUtil.isValid(vObj.getSqlQuery())) {
+				curretSql = vObj.getSqlQuery().trim();
+				matcher = pattern.matcher(curretSql);
+				while (matcher.find()) {
+					if (CommonUtils.checkValidHash(matcher.group(1)) && ValidationUtil.isValid(matcher.group(1)))
+						hashLst.add(matcher.group(1).toUpperCase().replaceAll("\\s", "\\_"));
+				}
+			}
+			if (ValidationUtil.isValid(vObj.getStgQuery1())) {
+				curretSql = vObj.getStgQuery1().trim();
+				matcher = pattern.matcher(curretSql);
+				while (matcher.find()) {
+					if (CommonUtils.checkValidHash(matcher.group(1)) && ValidationUtil.isValid(matcher.group(1)))
+						hashLst.add(matcher.group(1).toUpperCase().replaceAll("\\s", "\\_"));
+				}
+			}
+			if (ValidationUtil.isValid(vObj.getStgQuery2())) {
+				curretSql = vObj.getStgQuery2().trim();
+				matcher = pattern.matcher(curretSql);
+				while (matcher.find()) {
+					if (CommonUtils.checkValidHash(matcher.group(1)) && ValidationUtil.isValid(matcher.group(1)))
+						hashLst.add(matcher.group(1).toUpperCase().replaceAll("\\s", "\\_"));
+				}
+			}
+			if (ValidationUtil.isValid(vObj.getStgQuery3())) {
+				curretSql = vObj.getStgQuery3().trim();
+				matcher = pattern.matcher(curretSql);
+				while (matcher.find()) {
+					if (CommonUtils.checkValidHash(matcher.group(1)) && ValidationUtil.isValid(matcher.group(1)))
+						hashLst.add(matcher.group(1).toUpperCase().replaceAll("\\s", "\\_"));
+				}
+			}
+			if (ValidationUtil.isValid(vObj.getPostQuery())) {
+				curretSql = vObj.getPostQuery().trim();
+				matcher = pattern.matcher(curretSql);
+				while (matcher.find()) {
+					if (CommonUtils.checkValidHash(matcher.group(1)) && ValidationUtil.isValid(matcher.group(1)))
+						hashLst.add(matcher.group(1).toUpperCase().replaceAll("\\s", "\\_"));
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			exceptionCode.setErrorCode(Constants.ERRONEOUS_OPERATION);
+			exceptionCode.setErrorMsg("Error forming hash list");
+			exceptionCode.setOtherInfo(null);
+			exceptionCode.setResponse(0);
+			return exceptionCode;
+		}
+		exceptionCode.setErrorCode(Constants.SUCCESSFUL_OPERATION);
+		String[] returnArr = hashLst.toArray(new String[hashLst.size()]);
+		String[] returnValArr = new String[(returnArr != null) ? returnArr.length : 0];
+
+		if (ValidationUtil.isValid(vObj.getHashVariableScript())) {
+			String hashVarValue = vObj.getHashVariableScript();
+			hashVarValue = hashVarValue.replaceAll("@HASH@", "#");
+			int index = 0;
+			for (String varName : returnArr) {
+				String value = CommonUtils.getValue(hashVarValue, varName);
+				returnValArr[index] = ValidationUtil.isValid(value) ? value : "";
+				index++;
+			}
+		}
+		exceptionCode.setOtherInfo(returnArr);
+		exceptionCode.setResponse((returnArr != null) ? returnArr.length : 0);
+		exceptionCode.setRequest(returnValArr);
+		return exceptionCode;
+	}
+
+
+	
 }

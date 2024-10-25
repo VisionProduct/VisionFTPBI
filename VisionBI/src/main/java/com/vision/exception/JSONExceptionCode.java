@@ -5,6 +5,7 @@ public class JSONExceptionCode {
 	private int status = 0;
 	private String message = null;
 	private Object response = null;
+	private Object response1 = null;
 	private Object request = null;
 	private Object otherInfo = null;
 	
@@ -23,7 +24,6 @@ public class JSONExceptionCode {
 		this.request = request;
 		this.otherInfo = otherInfo;
 	}
-	
 	public JSONExceptionCode(int status,String message, Object response) {
 		this.status = status;
 		this.message = message;
@@ -63,6 +63,14 @@ public class JSONExceptionCode {
 
 	public void setRequest(Object request) {
 		this.request = request;
+	}
+
+	public Object getResponse1() {
+		return response1;
+	}
+
+	public void setResponse1(Object response1) {
+		this.response1 = response1;
 	}
 		
 		 

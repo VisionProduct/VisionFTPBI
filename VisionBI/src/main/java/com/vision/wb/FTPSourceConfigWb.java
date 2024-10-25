@@ -64,9 +64,9 @@ public class FTPSourceConfigWb extends AbstractDynaWorkerBean<FTPSourceConfigVb>
 		ReviewResultVb lLeBook = new ReviewResultVb(rsb.getString("leBook"),(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getLeBook(),
 				(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getLeBook(),!(approvedCollection.get(0).getLeBook().equalsIgnoreCase(pendingCollection.get(0).getLeBook())));
 		lResult.add(lLeBook);
-		ReviewResultVb lSourceReference = new ReviewResultVb(rsb.getString("sourceReference"),(pendingCollection == null || pendingCollection.isEmpty())?"":getAtDescription((List<AlphaSubTabVb>) collTemp.get(2),pendingCollection.get(0).getSourceReference()),
+/*		ReviewResultVb lSourceReference = new ReviewResultVb(rsb.getString("sourceReference"),(pendingCollection == null || pendingCollection.isEmpty())?"":getAtDescription((List<AlphaSubTabVb>) collTemp.get(2),pendingCollection.get(0).getSourceReference()),
 				(approvedCollection == null || approvedCollection.isEmpty())?"":getAtDescription((List<AlphaSubTabVb>) collTemp.get(2),approvedCollection.get(0).getSourceReference()),!(approvedCollection.get(0).getSourceReference().equalsIgnoreCase(pendingCollection.get(0).getSourceReference())));
-		lResult.add(lSourceReference);
+		lResult.add(lSourceReference);*/
 		ReviewResultVb lSequence = new ReviewResultVb(rsb.getString("sequence"),(pendingCollection == null || pendingCollection.isEmpty())?"":String.valueOf(pendingCollection.get(0).getSequence()),
 				(approvedCollection == null || approvedCollection.isEmpty())?"":String.valueOf(approvedCollection.get(0).getSequence()),!(approvedCollection.get(0).getSequence()==(pendingCollection.get(0).getSequence())));
 		lResult.add(lSequence);
@@ -107,7 +107,7 @@ public class FTPSourceConfigWb extends AbstractDynaWorkerBean<FTPSourceConfigVb>
 	}
 	@Override
 	protected void setAtNtValues(FTPSourceConfigVb vObject) {
-		vObject.setSourceReferenceAt(1302);
+//		vObject.setSourceReferenceAt(1302);
 		vObject.setFtpSourceConfigStatusNt(1);
 		vObject.setRecordIndicatorNt(7);
 	}
