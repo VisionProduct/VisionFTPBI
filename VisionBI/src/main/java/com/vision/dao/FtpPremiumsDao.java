@@ -34,8 +34,8 @@ public class FtpPremiumsDao extends AbstractDao<FtpPremiumsVb> {
 	String TenorApplicationCodeNtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 8, "TAppr.LP_TENOR_APPLICATION_CODE", "LP_TENOR_APPLICATION_CODE_DESC");
 	String TenorApplicationCodeNtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("NT", 8, "TPend.LP_TENOR_APPLICATION_CODE", "LP_TENOR_APPLICATION_CODE_DESC");
 
-	String VisionSectorAtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 171, "TAppr.VISION_SECTOR", "VISION_SECTOR_DESC");
-	String VisionSectorAtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 171, "TPend.VISION_SECTOR", "VISION_SECTOR_DESC");
+	String VisionSectorAtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 59, "TAppr.VISION_SECTOR", "VISION_SECTOR_DESC");
+	String VisionSectorAtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 59, "TPend.VISION_SECTOR", "VISION_SECTOR_DESC");
 
 	String VisionSbuAttributeAtApprDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 3, "TAppr.VISION_SBU_ATTRIBUTE", "VISION_SBU_ATTRIBUTE_DESC");
 	String VisionSbuAttributeAtPendDesc = ValidationUtil.numAlphaTabDescritpionQuery("AT", 3, "TPend.VISION_SBU_ATTRIBUTE", "VISION_SBU_ATTRIBUTE_DESC");
@@ -100,7 +100,9 @@ public class FtpPremiumsDao extends AbstractDao<FtpPremiumsVb> {
 				if(rs.getString("VISION_SBU_ATTRIBUTE_DESC")!= null){ 
 					vObject.setVisionSbuAttributeDesc(rs.getString("VISION_SBU_ATTRIBUTE_DESC"));
 				}
-				
+				if(vObject.getVisionSbuAttribute().equalsIgnoreCase("ALL")) {
+					vObject.setVisionSbuAttributeDesc("All");
+				}
 				if(rs.getString("PRODUCT_ATTRIBUTE")!= null){ 
 					vObject.setProductAttribute(rs.getString("PRODUCT_ATTRIBUTE"));
 				}else{
@@ -804,7 +806,7 @@ public class FtpPremiumsDao extends AbstractDao<FtpPremiumsVb> {
 					"									And T2.Currency               = TAppr.Currency  \r\n" + 
 //					"									And NVL(T2.End_Date,TO_DATE ('31-12-2099', 'DD-MM-RRRR')) > NVL(TO_DATE (?, 'DD-MM-RRRR'),trunc(sysdate)) )";
 					" AND t2.EFFECTIVE_DATE <= ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) "
-					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) ";			
+					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) )";			
 			
 			
 			strBufPendAnd = " And TPend.EFFECTIVE_DATE =(  \r\n" + 
@@ -818,7 +820,7 @@ public class FtpPremiumsDao extends AbstractDao<FtpPremiumsVb> {
 					"									And "+nullFun+"(T2.Product_Attribute, 'NA')      = "+nullFun+"(TPend.Product_Attribute, 'NA')  \r\n" + 
 					"									And T2.Currency               = TPend.Currency  \r\n" + 
 					" AND t2.EFFECTIVE_DATE <= ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) "
-					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) ";
+					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) )";
 		}
 		strBufApprove.append(" "+strBufApproveAnd+" ");
 		

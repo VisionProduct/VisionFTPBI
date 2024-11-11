@@ -125,9 +125,9 @@ public class AbstractQueryDao<E extends CommonVb> extends AbstractCommonDao {
 
 		for(Ctr=0; Ctr < params.size(); Ctr++)
 			objParams[Ctr] = (Object) params.elementAt(Ctr);
-		if ("ORACLE".equalsIgnoreCase(databaseType)) {
-			pendingQuery.append(orderBy);
-		}
+//		if ("ORACLE".equalsIgnoreCase(databaseType)) {
+//			pendingQuery.append(orderBy);
+//		}
 		
 		Paginationhelper<E> paginationhelper = new Paginationhelper<E>();
 		PaginationhelperMsSql<E> paginationhelperMsSql = new PaginationhelperMsSql<E>();
@@ -163,6 +163,7 @@ public class AbstractQueryDao<E extends CommonVb> extends AbstractCommonDao {
 							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), dObj.getTotalRows(), rowMapper == null ? getMapper(): rowMapper); 
 				}
 			}else {
+				query = "SELECT * FROM ("+query+") A "+ orderBy;
 				if(dObj.getTotalRows()  <= 0){
 					result = paginationhelper.fetchPage(getJdbcTemplate(), query, 
 							objParams, dObj.getCurrentPage(), dObj.getMaxRecords(), rowMapper == null ? getMapper(): rowMapper);

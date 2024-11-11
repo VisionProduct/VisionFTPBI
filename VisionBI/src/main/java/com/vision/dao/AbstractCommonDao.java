@@ -47,6 +47,7 @@ public abstract class AbstractCommonDao {
 	String dateConvert = "To_Date(?, 'DD-MM-YYYY')";
 	String nullFun = "NVL";
 	String numberFormat = "'99,999,999,999,999,999,990.99990'";
+	String numberFormatAlone = "'99,999,999,999,999,999,990'";
 	
 	
 	String makerApprDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = NVL(TAppr.MAKER,0) ) MAKER_NAME";
@@ -61,8 +62,8 @@ public abstract class AbstractCommonDao {
 		if ("MSSQL".equalsIgnoreCase(privateName) || "SQLSERVER".equalsIgnoreCase(privateName)) {
 			toChar = "";
 			dateFormat = "Format";
-			dateFormatStr = "'dd-MM-yyyy HH:mm:ss'";
-			dateAloneFormatStr = "'dd-MM-yyyy'";
+			dateFormatStr = "'dd-MMM-yyyy HH:mm:ss'";
+			dateAloneFormatStr = "'dd-MMM-yyyy'";
 			systemDate = "GetDate()";
 			dateTimeConvert = "CONVERT(datetime, ?, 103)";
 			dateConvert = "CONVERT(datetime, ?, 103)";
@@ -74,6 +75,7 @@ public abstract class AbstractCommonDao {
 			makerPendDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = CASE  WHEN TPend.MAKER IS NULL THEN 0  ELSE TPend.MAKER  END ) MAKER_NAME";
 			verifierPendDesc =  "(SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = CASE  WHEN TPend.VERIFIER IS NULL THEN 0  ELSE TPend.VERIFIER  END ) VERIFIER_NAME";
 			numberFormat = "'##,###,##0.#0'";
+			numberFormatAlone = "'##,###,##0'";
 		}
 	}
 	

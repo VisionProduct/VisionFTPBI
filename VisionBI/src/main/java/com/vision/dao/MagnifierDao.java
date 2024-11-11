@@ -219,7 +219,15 @@ public class MagnifierDao extends AbstractDao<MagnifierResultVb> {
 			if("ORACLE".equalsIgnoreCase(databaseType)) {
 				totalRows = stmt.executeUpdate("CREATE TABLE "+tmpTableOrg+" AS ("+createTabScript+")");
 			}else if("MSSQL".equalsIgnoreCase(databaseType)) {
-				totalRows = stmt.executeUpdate("Select * into "+tmpTableOrg+" FROM ("+createTabScript+") A");
+				if(createTabScript.contains("ORDER BY")) {
+				String query1 = query.substring(0, query.indexOf("ORDER BY"));
+				createTabScript = "SELECT * FROM ("+query1+") T1";
+				String orderBy = vObject.getOrderByCond();
+				String finalQuery = "Select * into "+tmpTableOrg+" FROM ("+createTabScript+") A ORDER BY "+orderBy;
+					totalRows = stmt.executeUpdate(finalQuery);
+				}else {
+					totalRows = stmt.executeUpdate("Select * into "+tmpTableOrg+" FROM ("+createTabScript+") A");
+				}
 			}
 			if(totalRows == 0) {
 				return null;

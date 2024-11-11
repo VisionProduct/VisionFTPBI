@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +23,8 @@ import com.vision.vb.SmartSearchVb;
 
 @Component
 public class FtpMethodsDao extends AbstractDao<FtpMethodsVb> {
-
+	@Value("${app.databaseType}")
+	 private String databaseType;
 /*******Mapper Start**********/
 	String CountryApprDesc = "(SELECT COUNTRY_DESCRIPTION FROM COUNTRIES WHERE COUNTRY = TAppr.COUNTRY) COUNTRY_DESC";
 	String CountryPendDesc = "(SELECT COUNTRY_DESCRIPTION FROM COUNTRIES WHERE COUNTRY = TPend.COUNTRY) COUNTRY_DESC";
@@ -927,13 +929,17 @@ public class FtpMethodsDao extends AbstractDao<FtpMethodsVb> {
 			objParams[3] = dObj.getCountry();
 			objParams[4] = dObj.getLeBook();
 			objParams[5] = dObj.getFtpSubGroupId();	
+			String seperator = "||";
+			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+				seperator = "+";
+			}
 //			REPRICING_FLAG_AT
-			StringBuffer strApprove = new StringBuffer(" SELECT (SELECT ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB =  METHOD_TYPE) ||' ('|| "
+			StringBuffer strApprove = new StringBuffer(" SELECT (SELECT ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB =  METHOD_TYPE) "+seperator+"' ('"+seperator+" "
 					+ " CASE WHEN REPRICING_FLAG = 'NOMINAL' THEN 'N' ELSE 'R' END "
-					+ "||')' DESC_COL from FTP_METHODS TAppr ");
+					+ ""+seperator+"')' DESC_COL from FTP_METHODS TAppr ");
 			strApprove.append(" WHERE COUNTRY = ?  AND LE_BOOK = ?  AND FTP_SUB_GROUP_ID = ? ");
 			
-			StringBuffer strPend = new StringBuffer(" SELECT (SELECT ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB =  METHOD_TYPE) ||' ('||  CASE WHEN REPRICING_FLAG = 'NOMINAL' THEN 'N' ELSE 'R' END ||')' DESC_COL from FTP_METHODS_PEND TPend ");
+			StringBuffer strPend = new StringBuffer(" SELECT (SELECT ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB =  METHOD_TYPE) "+seperator+"' ('"+seperator+"  CASE WHEN REPRICING_FLAG = 'NOMINAL' THEN 'N' ELSE 'R' END "+seperator+"')' DESC_COL from FTP_METHODS_PEND TPend ");
 			strPend.append(" WHERE COUNTRY = ?  AND LE_BOOK = ?  AND FTP_SUB_GROUP_ID = ? ");
 			
 			String strWhereNotExists = new String( " Not Exists (Select 'X' From FTP_METHODS_PEND TPend WHERE TAppr.COUNTRY = TPend.COUNTRY "
@@ -941,6 +947,9 @@ public class FtpMethodsDao extends AbstractDao<FtpMethodsVb> {
 			strApprove.append(" AND "+strWhereNotExists);
 			
 			sql = " SELECT LISTAGG(DESC_COL, ', ') WITHIN GROUP (ORDER BY DESC_COL) AS METHOD_TYPE_DESC FROM( "+strApprove.toString() + " UNION " + strPend.toString()+") ";
+			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+				sql = " SELECT STRING_AGG(DESC_COL, ', ') WITHIN GROUP (ORDER BY DESC_COL) AS METHOD_TYPE_DESC FROM( "+strApprove.toString() + " UNION " + strPend.toString()+") A ";	
+			}
 			RowMapper mapper = new RowMapper() {
 				public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
 					return (rs.getString("DESC_COL"));

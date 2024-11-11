@@ -112,7 +112,7 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 		StringBuffer strBufPending = new StringBuffer("Select Distinct TPend.TENOR_APPLICATION_CODE"+
 			" From TENOR_BUCKETS_PEND TPend ");*/
 		
-		StringBuffer strBufApprove = new StringBuffer("Select "+dateFormat+"(TAppr.DATE_CREATION, " + 
+		StringBuffer strBufApprove = new StringBuffer("SELECT * FROM (Select "+dateFormat+"(TAppr.DATE_CREATION, " + 
 				dateFormatStr+" ) DATE_CREATION,TAppr.TENOR_APPLICATION_CODE_NT"
 						+ ",TAppr.TENOR_APPLICATION_CODE, " +TenorAppCodeNtApprDesc+ 
 			", TAppr.TENOR_CODE,TAppr.TENOR_DESCRIPTION,TAppr.DAY_START,TAppr.DAY_END,TAppr.TENOR_STATUS_NT, " +StatusNtApprDesc+ 
@@ -120,13 +120,13 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 			+ ","
 			+ "TAppr.MAKER, "+makerApprDesc
 			+ ", TAppr.VERIFIER, "+verifierApprDesc
-			+ ",TAppr.INTERNAL_STATUS,"+dateFormat+"(TAppr.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED From TENOR_BUCKETS TAppr ");
+			+ ",TAppr.INTERNAL_STATUS,"+dateFormat+"(TAppr.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED From TENOR_BUCKETS TAppr) TAppr ");
 
 		String strWhereNotExists = new String(" Not Exists (Select 'X' From TENOR_BUCKETS_PEND TPend Where " + 
 			"TAppr.TENOR_APPLICATION_CODE = TPend.TENOR_APPLICATION_CODE " + 
 			"And TAppr.TENOR_CODE = TPend.TENOR_CODE )");
 
-		StringBuffer strBufPending = new StringBuffer("Select "+dateFormat+"(TPend.DATE_CREATION, " + 
+		StringBuffer strBufPending = new StringBuffer("SELECT * FROM (Select "+dateFormat+"(TPend.DATE_CREATION, " + 
 			dateFormatStr+" ) DATE_CREATION,TPend.TENOR_APPLICATION_CODE_NT,TPend.TENOR_APPLICATION_CODE, "+TenorAppCodeNtPendDesc
 					+ ", " + 
 			"TPend.TENOR_CODE,TPend.TENOR_DESCRIPTION,TPend.DAY_START,TPend.DAY_END,TPend.TENOR_STATUS_NT, " +StatusNtPendDesc+ 
@@ -134,7 +134,7 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 			+ ",TPend.RECORD_INDICATOR_NT,TPend.RECORD_INDICATOR,"+RecordIndicatorNtPendDesc
 			+ ",TPend.MAKER, " +makerPendDesc 
 			+", TPend.VERIFIER, "+verifierPendDesc
-			+ ",TPend.INTERNAL_STATUS,"+dateFormat+"(TPend.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED From TENOR_BUCKETS_PEND TPend ");
+			+ ",TPend.INTERNAL_STATUS,"+dateFormat+"(TPend.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED From TENOR_BUCKETS_PEND TPend) TPend ");
 		try
 		{
 			if (dObj.getSmartSearchOpt() != null && dObj.getSmartSearchOpt().size() > 0) {
@@ -150,10 +150,14 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 					String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
 					switch (data.getObject()) {
 					case "tenorBucketApplicationCode":
+						val = "= UPPER('" + data.getValue() + "') ";
 						CommonUtils.addToQuerySearch(" upper(TAppr.TENOR_APPLICATION_CODE) "+ val, strBufApprove, data.getJoinType());
 						CommonUtils.addToQuerySearch(" upper(TPend.TENOR_APPLICATION_CODE) "+ val, strBufPending, data.getJoinType());
 						break;
-
+					case "tenorBucketApplicationCodeDesc":
+						CommonUtils.addToQuerySearch(" upper(TAppr.TENOR_APPLICATION_CODE_DESC) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.TENOR_APPLICATION_CODE_DESC) "+ val, strBufPending, data.getJoinType());
+						break;						
 					case "tenorBucketCode":
 						CommonUtils.addToQuerySearch(" upper(TAppr.TENOR_CODE) "+ val, strBufApprove, data.getJoinType());
 						CommonUtils.addToQuerySearch(" upper(TPend.TENOR_CODE) "+ val, strBufPending, data.getJoinType());
@@ -175,13 +179,13 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 						break;
 
 					case "tenorBucketStatusDesc":
-						CommonUtils.addToQuerySearch(" upper(TAppr.TENOR_STATUS) "+ val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.TENOR_STATUS) "+ val, strBufPending, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TAppr.TENOR_STATUS_DESC) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.TENOR_STATUS_DESC) "+ val, strBufPending, data.getJoinType());
 						break;
 
 					case "recordIndicator":
-						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR) "+ val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR) "+ val, strBufPending, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR_DESC) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR_DESC) "+ val, strBufPending, data.getJoinType());
 						break;
 
 						default:
@@ -211,7 +215,10 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 		setServiceDefaults();
 		StringBuffer strBufApprove = new StringBuffer("Select "+dateFormat+"(TAppr.DATE_CREATION, " + 
 				dateFormatStr+" ) DATE_CREATION,TAppr.TENOR_APPLICATION_CODE_NT,TAppr.TENOR_APPLICATION_CODE, " +TenorAppCodeNtApprDesc+ 
-			",TAppr.TENOR_CODE,TAppr.TENOR_DESCRIPTION,TAppr.DAY_START,TAppr.DAY_END,TAppr.TENOR_STATUS_NT, " + 
+			",TAppr.TENOR_CODE,TAppr.TENOR_DESCRIPTION,"
+			+"TRIM("+dateFormat+" (TAppr.DAY_START, "+numberFormatAlone+")) DAY_START,"
+			+"TRIM("+dateFormat+" (TAppr.DAY_END, "+numberFormatAlone+")) DAY_END"
+			+ ",TAppr.TENOR_STATUS_NT, " + 
 			"TAppr.TENOR_STATUS, "+StatusNtApprDesc
 			+ ",TAppr.RECORD_INDICATOR_NT,TAppr.RECORD_INDICATOR,"+RecordIndicatorNtApprDesc
 			+ ",TAppr.MAKER, " +makerApprDesc 
@@ -224,7 +231,10 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 
 		StringBuffer strBufPending = new StringBuffer("Select "+dateFormat+"(TPend.DATE_CREATION, " + 
 			dateFormatStr+" ) DATE_CREATION,TPend.TENOR_APPLICATION_CODE_NT,TPend.TENOR_APPLICATION_CODE, " +TenorAppCodeNtPendDesc+ 
-			",TPend.TENOR_CODE,TPend.TENOR_DESCRIPTION,TPend.DAY_START,TPend.DAY_END,TPend.TENOR_STATUS_NT, " + 
+			",TPend.TENOR_CODE,TPend.TENOR_DESCRIPTION,"
+			+"TRIM("+dateFormat+" (TPend.DAY_START, "+numberFormatAlone+")) DAY_START,"
+			+"TRIM("+dateFormat+" (TPend.DAY_END, "+numberFormatAlone+")) DAY_END"
+			+ ",TPend.TENOR_STATUS_NT, " + 
 			"TPend.TENOR_STATUS, "+StatusNtPendDesc
 			+ ",TPend.RECORD_INDICATOR_NT,TPend.RECORD_INDICATOR,"+RecordIndicatorNtPendDesc
 			+ ",TPend.MAKER, " +makerPendDesc 
@@ -306,8 +316,10 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 				dateFormatStr+" ) DATE_CREATION," +
 			"TAppr.TENOR_APPLICATION_CODE_NT, " + 
 			"TAppr.TENOR_APPLICATION_CODE, "+TenorAppCodeNtApprDesc
-			+ ",TAppr.TENOR_CODE,TAppr.TENOR_DESCRIPTION,TAppr.DAY_START, " + 
-			"TAppr.DAY_END,TAppr.TENOR_STATUS_NT,TAppr.TENOR_STATUS, "+StatusNtApprDesc
+			+ ",TAppr.TENOR_CODE,TAppr.TENOR_DESCRIPTION,"
+			+"TRIM("+dateFormat+" (TAppr.DAY_START, "+numberFormatAlone+")) DAY_START,"
+			+"TRIM("+dateFormat+" (TAppr.DAY_END, "+numberFormatAlone+")) DAY_END, " 
+			+"TAppr.TENOR_STATUS_NT,TAppr.TENOR_STATUS, "+StatusNtApprDesc
 			+ ",TAppr.RECORD_INDICATOR_NT, " + 
 			"TAppr.RECORD_INDICATOR,"+RecordIndicatorNtApprDesc
 			+ ",TAppr.MAKER,"+makerApprDesc
@@ -321,8 +333,10 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 				dateFormatStr+" ) DATE_CREATION," +
 			"TPend.TENOR_APPLICATION_CODE_NT, " + 
 			"TPend.TENOR_APPLICATION_CODE, "+TenorAppCodeNtPendDesc
-			+ ",TPend.TENOR_CODE,TPend.TENOR_DESCRIPTION,TPend.DAY_START, " + 
-			"TPend.DAY_END,TPend.TENOR_STATUS_NT,TPend.TENOR_STATUS, "+StatusNtPendDesc
+			+ ",TPend.TENOR_CODE,TPend.TENOR_DESCRIPTION,"
+			+"TRIM("+dateFormat+" (TPend.DAY_START, "+numberFormatAlone+")) DAY_START,"
+			+"TRIM("+dateFormat+" (TPend.DAY_END, "+numberFormatAlone+")) DAY_END,"+
+			"TPend.TENOR_STATUS_NT,TPend.TENOR_STATUS, "+StatusNtPendDesc
 			+ ",TPend.RECORD_INDICATOR_NT, " + 
 			"TPend.RECORD_INDICATOR,"+RecordIndicatorNtPendDesc
 			+ ",TPend.MAKER, "+makerPendDesc
@@ -386,6 +400,7 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 
 	@Override
 	protected int doInsertionAppr(TenorBucketsVb vObject){
+		replaceComma(vObject);
 		String query = "Insert Into TENOR_BUCKETS( " + 
 		" TENOR_APPLICATION_CODE_NT, TENOR_APPLICATION_CODE, TENOR_CODE, TENOR_DESCRIPTION, " + 
 			" DAY_START, DAY_END, TENOR_STATUS_NT, TENOR_STATUS, RECORD_INDICATOR_NT, RECORD_INDICATOR, " + 
@@ -401,6 +416,7 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 
 	@Override
 	protected int doInsertionPend(TenorBucketsVb vObject){
+		replaceComma(vObject);
 		String query = "Insert Into TENOR_BUCKETS_PEND( " + 
 		"TENOR_APPLICATION_CODE_NT, TENOR_APPLICATION_CODE, TENOR_CODE, TENOR_DESCRIPTION, " + 
 			" DAY_START, DAY_END, TENOR_STATUS_NT, TENOR_STATUS, RECORD_INDICATOR_NT, RECORD_INDICATOR, " + 
@@ -414,9 +430,17 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 
 		return getJdbcTemplate().update(query,args);
 	}
-
+	public void replaceComma(TenorBucketsVb vObject) {
+		if(ValidationUtil.isValid(vObject.getDayStart())) {
+			vObject.setDayStart(vObject.getDayStart().replaceAll(",", ""));
+		}
+		if(ValidationUtil.isValid(vObject.getDayEnd())) {
+			vObject.setDayEnd(vObject.getDayEnd().replaceAll(",", ""));
+		}
+	}
 	@Override
 	protected int doInsertionPendWithDc(TenorBucketsVb vObject){
+		replaceComma(vObject);
 		String query = "Insert Into TENOR_BUCKETS_PEND( " + 
 		" TENOR_APPLICATION_CODE_NT, TENOR_APPLICATION_CODE, TENOR_CODE, TENOR_DESCRIPTION, " + 
 			" DAY_START, DAY_END, TENOR_STATUS_NT, TENOR_STATUS, RECORD_INDICATOR_NT, RECORD_INDICATOR, " + 
@@ -433,6 +457,7 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 
 	@Override
 	protected int doUpdateAppr(TenorBucketsVb vObject){
+		replaceComma(vObject);
 		String query = "Update TENOR_BUCKETS Set " + 
 		"TENOR_APPLICATION_CODE_NT = ?, TENOR_DESCRIPTION = ?, DAY_START = ?, DAY_END = ?, " + 
 		" TENOR_STATUS_NT = ?, TENOR_STATUS = ?, RECORD_INDICATOR_NT = ?, RECORD_INDICATOR = ?, " + 
@@ -450,6 +475,7 @@ public class TenorBucketsDao extends AbstractDao<TenorBucketsVb> {
 
 	@Override
 	protected int doUpdatePend(TenorBucketsVb vObject){
+		replaceComma(vObject);
 		String query = "Update TENOR_BUCKETS_PEND Set " + 
 		"TENOR_APPLICATION_CODE_NT = ?, TENOR_DESCRIPTION = ?, DAY_START = ?, DAY_END = ?, " + 
 		" TENOR_STATUS_NT = ?, TENOR_STATUS = ?, RECORD_INDICATOR_NT = ?, RECORD_INDICATOR = ?, " + 

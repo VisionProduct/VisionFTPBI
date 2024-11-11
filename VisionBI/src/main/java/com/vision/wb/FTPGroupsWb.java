@@ -43,6 +43,7 @@ import com.vision.util.CommonUtils;
 import com.vision.util.Constants;
 import com.vision.util.DeepCopy;
 import com.vision.util.ValidationUtil;
+import com.vision.vb.AlphaSubTabVb;
 import com.vision.vb.CommonVb;
 import com.vision.vb.DCManualQueryVb;
 import com.vision.vb.DesignAndAnalysisMagnifierVb;
@@ -199,13 +200,13 @@ public class FTPGroupsWb extends AbstractWorkerBean<FTPGroupsVb> {
 				for (FTPGroupsVb groupsVb : arrListResult) {
 					groupsVb.setVerificationRequired(queryPopupObj.isVerificationRequired());
 					groupsVb.setSmartSearchOpt(detailSmartSearchOpt);
-					List<FTPGroupsVb> childList = ftpGroupsDao.getQueryPopupResultsDetailsNew(groupsVb);
-					if (childList != null && childList.size() > 0) {
+					List<FTPGroupsVb> childList = ftpGroupsDao.getQueryPopupResultsDetailsNew(groupsVb, groupSmartSearchOpt);
+					/*if (childList != null && childList.size() > 0) {
 						for (FTPGroupsVb groupsVb1 : childList) {
 							String methodTyp = ftpMethodsDao.getMethodType(groupsVb1);	
 							groupsVb1.setMethodTypeDesc(methodTyp);
 						}
-					}
+					}*/
 					groupsVb.setChildList(childList);
 				}
 				exceptionCode.setErrorCode(Constants.SUCCESSFUL_OPERATION);
@@ -1609,6 +1610,9 @@ public class FTPGroupsWb extends AbstractWorkerBean<FTPGroupsVb> {
 	}
 	
 	protected List<ReviewResultVb> transformToReviewResultsPremium(List<FtpPremiumsVb> approvedCollection, List<FtpPremiumsVb> pendingCollection) {
+		
+		ArrayList collTemp = getPageLoadValues();
+		
 		ResourceBundle rsb = CommonUtils.getResourceManger();
 		ArrayList<ReviewResultVb> lResult = new ArrayList<ReviewResultVb>();
 
@@ -1648,9 +1652,13 @@ public class FTPGroupsWb extends AbstractWorkerBean<FTPGroupsVb> {
 					(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getVisionSectorDesc(),(!pendingCollection.get(0).getVisionSectorDesc().equals(approvedCollection.get(0).getVisionSectorDesc())));
 				lResult.add(lVisionSector);
 
-				ReviewResultVb lVisionSbuAttribute = new ReviewResultVb(rsb.getString("visionSbuAttribute"),
+				ReviewResultVb lVisionSbuAttribute = new ReviewResultVb(rsb.getString("category"),(pendingCollection == null || pendingCollection.isEmpty())?"":getAtDescription((List<AlphaSubTabVb>) collTemp.get(15), pendingCollection.get(0).getVisionSbuAttribute()),
+						(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getVisionSbuAttribute() == "-1"?"":getAtDescription((List<AlphaSubTabVb>) collTemp.get(15), approvedCollection.get(0).getVisionSbuAttribute()), !(approvedCollection.get(0).getVisionSbuAttribute().equals(pendingCollection.get(0).getVisionSbuAttribute())));
+//				lResult.add(lCategory);
+				
+/*				ReviewResultVb lVisionSbuAttribute = new ReviewResultVb(rsb.getString("visionSbuAttribute"),
 					(pendingCollection == null || pendingCollection.isEmpty())?"":pendingCollection.get(0).getVisionSbuAttributeDesc(),
-					(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getVisionSbuAttributeDesc(),(!pendingCollection.get(0).getVisionSbuAttributeDesc().equals(approvedCollection.get(0).getVisionSbuAttributeDesc())));
+					(approvedCollection == null || approvedCollection.isEmpty())?"":approvedCollection.get(0).getVisionSbuAttributeDesc(),(!pendingCollection.get(0).getVisionSbuAttributeDesc().equals(approvedCollection.get(0).getVisionSbuAttributeDesc())));*/
 				lResult.add(lVisionSbuAttribute);
 
 				ReviewResultVb lProductAttribute = new ReviewResultVb(rsb.getString("productAttribute"),

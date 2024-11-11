@@ -907,7 +907,7 @@ public class CommonUtils {
 	}
 
 	public static void addToQuerySearch(String strFld, StringBuffer strBuf, String condition) {
-		if(strBuf.toString().endsWith(")  ") == true) {
+		if(strBuf.toString().endsWith(")  ") == true  || strBuf.toString().endsWith("?") == true) {
 			strBuf.append(" AND " + strFld + condition + SPACE);
 		}
 		else if (strBuf.toString().endsWith(") ") == true || strBuf.toString().endsWith("?") == true

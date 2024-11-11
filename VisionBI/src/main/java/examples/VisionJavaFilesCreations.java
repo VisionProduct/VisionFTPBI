@@ -28,7 +28,7 @@ public class VisionJavaFilesCreations {
 //			Statement stmt=con.createStatement();
 			Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,ResultSet.CONCUR_READ_ONLY);
 			System.out.println("2");
-			String tableName = "FTP_PREMIUMS";
+			String tableName = "FTP_RATES";
 			
 			String filePath = "E:\\Java_Files\\FTP\\";
 			

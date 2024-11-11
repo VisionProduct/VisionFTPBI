@@ -602,7 +602,7 @@ public class FTPSourceConfigDao extends AbstractDao<FTPSourceConfigVb> {
 		String query =	"Insert Into FTP_SOURCE_CONFIG_PEND (COUNTRY, LE_BOOK, FTP_SUB_GROUP_ID, FILTER_SEQUENCE, QUERY_TYPE, "
 				+ "TABLE_NAME, COLUMN_NAME, OPERAND_NT, OPERAND, FTP_SC_STATUS_NT, FTP_SC_STATUS, RECORD_INDICATOR_NT, RECORD_INDICATOR, MAKER, "
 				+ "VERIFIER, INTERNAL_STATUS, DATE_LAST_MODIFIED, DATE_CREATION, CONDITION_VALUE1, CONDITION_VALUE2 )"+ 
-				 "Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SysDate, SysDate, ?, ?)";
+				 "Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "+systemDate+", "+systemDate+", ?, ?)";
 		
 		Object[] args = {vObject.getCountry(), vObject.getLeBook(), vObject.getFtpSubGroupId(), vObject.getFilterSequence(), vObject.getQueryType(), 
 				vObject.getTableName(), vObject.getColName(), vObject.getOperandNt(), vObject.getOperand(),  
@@ -716,7 +716,7 @@ public class FTPSourceConfigDao extends AbstractDao<FTPSourceConfigVb> {
 	protected int doUpdatePend(FTPSourceConfigVb vObject){
 		String query = "Update FTP_SOURCE_CONFIG_PEND Set CONDITION_VALUE1 = ?, CONDITION_VALUE2 = ?, QUERY_TYPE = ?, TABLE_NAME = ?, COLUMN_NAME = ?, OPERAND_NT = ?, OPERAND = ?, "
 				+ "FTP_SC_STATUS_NT = ?, FTP_SC_STATUS = ?, RECORD_INDICATOR_NT = ?, RECORD_INDICATOR = ?, MAKER = ?, VERIFIER = ?, INTERNAL_STATUS = ?, "
-				+ "DATE_LAST_MODIFIED = SysDate  WHERE COUNTRY = ?  AND LE_BOOK = ?  AND FTP_SUB_GROUP_ID = ?  AND FILTER_SEQUENCE = ? ";
+				+ "DATE_LAST_MODIFIED = "+systemDate+"  WHERE COUNTRY = ?  AND LE_BOOK = ?  AND FTP_SUB_GROUP_ID = ?  AND FILTER_SEQUENCE = ? ";
 			Object[] args = {vObject.getQueryType() , vObject.getTableName() , vObject.getColName() , vObject.getOperandNt() , vObject.getOperand() , 
 					vObject.getFtpSourceConfigStatusNt() , vObject.getFtpSourceConfigStatus() , vObject.getRecordIndicatorNt() , vObject.getRecordIndicator() , vObject.getMaker() , vObject.getVerifier() , vObject.getInternalStatus() 
 					, vObject.getCountry() , vObject.getLeBook() , vObject.getFtpSubGroupId() , vObject.getFilterSequence()  };

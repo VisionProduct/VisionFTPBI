@@ -99,77 +99,124 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 		Vector<Object> params = new Vector<Object>();
 		StringBuffer strBufApprove = new StringBuffer("Select Distinct TAppr.COUNTRY, TAppr.LE_BOOK, "
 				+ " TAppr.DATA_SOURCE,TAPPR.FTP_GROUP"
-				+ ",(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC  " + " From FTP_GROUPS TAppr");
+				+ ",(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC  From FTP_GROUPS TAppr ");
 		StringBuffer strBufPending = new StringBuffer("Select Distinct TPend.COUNTRY, TPend.LE_BOOK, "
 				+ " TPend.DATA_SOURCE,TPend.FTP_GROUP"
-				+ ",(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC  " + " From FTP_GROUPS_PEND TPend");
-		String strWhereNotExists = new String( " Not Exists (Select 'X' From FTP_GROUPS_PEND TPend WHERE TAppr.COUNTRY = TPend.COUNTRY AND TAppr.LE_BOOK = TPend.LE_BOOK AND TAppr.DATA_SOURCE = TPend.DATA_SOURCE AND TAppr.FTP_GROUP = TPend.FTP_GROUP AND TAppr.FTP_SUB_GROUP_ID = TPend.FTP_SUB_GROUP_ID )");
+				+ ",(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC From FTP_GROUPS_PEND TPend");
+		String strWhereNotExists = new String( " Not Exists (Select 'X' From FTP_GROUPS_PEND TPend WHERE TAppr.COUNTRY = TPend.COUNTRY AND TAppr.LE_BOOK = TPend.LE_BOOK"
+				+ " AND TAppr.DATA_SOURCE = TPend.DATA_SOURCE AND TAppr.FTP_GROUP = TPend.FTP_GROUP"
+//				+ " AND TAppr.FTP_SUB_GROUP_ID = TPend.FTP_SUB_GROUP_ID "
+				+ ")");
 		try {
 			if (dObj.getSmartSearchOpt() != null && dObj.getSmartSearchOpt().size() > 0) {
 				int count = 1;
 				for (SmartSearchVb data : dObj.getSmartSearchOpt()) {
-					if (count == dObj.getSmartSearchOpt().size()) {
-						data.setJoinType("");
-					} else {
-						if (!ValidationUtil.isValid(data.getJoinType()) && !("AND".equalsIgnoreCase(data.getJoinType())
-								|| "OR".equalsIgnoreCase(data.getJoinType()))) {
-							data.setJoinType("AND");
+					if(!data.getObject().equalsIgnoreCase("ftpGroupDesc")) {
+						if (count == dObj.getSmartSearchOpt().size()) {
+							data.setJoinType("");
+						} else {
+							if (!ValidationUtil.isValid(data.getJoinType()) && !("AND".equalsIgnoreCase(data.getJoinType())
+									|| "OR".equalsIgnoreCase(data.getJoinType()))) {
+								data.setJoinType("AND");
+							}
 						}
+						String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
+						switch (data.getObject()) {
+						case "country":
+//							CommonUtils.addToQuery("TPend.RECORD_INDICATOR = ?", strBufPending);
+							CommonUtils.addToQuery("TAppr.COUNTRY = ?", strBufApprove);
+							CommonUtils.addToQuery("TPend.COUNTRY = ?", strBufPending);
+							params.addElement(data.getValue());
+//							CommonUtils.addToQuerySearch(" upper(TAppr.COUNTRY) " + val, strBufApprove, data.getJoinType());
+//							CommonUtils.addToQuerySearch(" upper(TPend.COUNTRY) " + val, strBufPending, data.getJoinType());
+							break;
+							
+						case "leBook":
+							CommonUtils.addToQuery("TAppr.LE_BOOK = ?", strBufApprove);
+							CommonUtils.addToQuery("TPend.LE_BOOK = ?", strBufPending);
+							params.addElement(data.getValue());
+//							CommonUtils.addToQuerySearch(" upper(TAppr.LE_BOOK) " + val, strBufApprove, data.getJoinType());
+//							CommonUtils.addToQuerySearch(" upper(TPend.LE_BOOK) " + val, strBufPending, data.getJoinType());
+							break;
+							
+						case "dataSource":
+							CommonUtils.addToQuery("TAppr.DATA_SOURCE = ?", strBufApprove);
+							CommonUtils.addToQuery("TPend.DATA_SOURCE = ?", strBufPending);
+							params.addElement(data.getValue());
+//							CommonUtils.addToQuerySearch(" upper(TAppr.DATA_SOURCE) " + val, strBufApprove, data.getJoinType());
+//							CommonUtils.addToQuerySearch(" upper(TPend.DATA_SOURCE) " + val, strBufPending, data.getJoinType());
+							break;								
+							
+						case "ftpSubGroupPriority":
+							CommonUtils.addToQuery("UPPER(TAppr.FTP_SUB_GROUP_PRIORITY) "+val, strBufApprove);
+							CommonUtils.addToQuery("UPPER(TPend.FTP_SUB_GROUP_PRIORITY) "+val, strBufPending);
+//							CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_PRIORITY) " + val, strBufApprove, data.getJoinType());
+//							CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_PRIORITY) " + val, strBufPending, data.getJoinType());
+							break;
+							
+							
+						case "ftpSubGroupDesc":
+							CommonUtils.addToQuery("UPPER(TAppr.FTP_SUB_GROUP_DESC) "+val, strBufApprove);
+							CommonUtils.addToQuery("UPPER(TPend.FTP_SUB_GROUP_DESC) "+val, strBufPending);
+//							CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_DESC) " + val, strBufApprove, data.getJoinType());
+//							CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_DESC) " + val, strBufPending, data.getJoinType());
+							break;
+							
+						case "recordIndicatorDesc":
+							CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR) " + val, strBufApprove, data.getJoinType());
+							CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR) " + val, strBufPending, data.getJoinType());
+							break;						
+							
+						case "statusDesc":
+							CommonUtils.addToQuerySearch(" upper(TAppr.FTP_GRP_STATUS) " + val, strBufApprove, data.getJoinType());
+							CommonUtils.addToQuerySearch(" upper(TPend.FTP_GRP_STATUS) " + val, strBufPending, data.getJoinType());
+							break;
+							
+						case "defaultGroup":
+							CommonUtils.addToQuerySearch(" upper(TAppr.FTP_DEFAULT_FLAG) " + val, strBufApprove, data.getJoinType());
+							CommonUtils.addToQuerySearch(" upper(TPend.FTP_DEFAULT_FLAG) " + val, strBufPending, data.getJoinType());
+							break;
+							
+						default:
+						}
+						count++;
 					}
-					String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
-					switch (data.getObject()) {
-					case "country":
-						CommonUtils.addToQuerySearch(" upper(TAppr.COUNTRY) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.COUNTRY) " + val, strBufPending, data.getJoinType());
-						break;
-						
-					case "leBook":
-						CommonUtils.addToQuerySearch(" upper(TAppr.LE_BOOK) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.LE_BOOK) " + val, strBufPending, data.getJoinType());
-						break;
-						
-					case "ftpGroupDesc":
-						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_GROUP) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.FTP_GROUP) " + val, strBufPending, data.getJoinType());
-						break;				
-						
-					case "ftpSubGroupPriority":
-						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_PRIORITY) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_PRIORITY) " + val, strBufPending, data.getJoinType());
-						break;
-						
-					case "dataSource":
-						CommonUtils.addToQuerySearch(" upper(TAppr.DATA_SOURCE) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.DATA_SOURCE) " + val, strBufPending, data.getJoinType());
-						break;	
-						
-					case "ftpSubGroupDesc":
-						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_DESC) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_DESC) " + val, strBufPending, data.getJoinType());
-						break;
-						
-					case "recordIndicatorDesc":
-						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR) " + val, strBufPending, data.getJoinType());
-						break;						
-						
-					case "statusDesc":
-						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_GRP_STATUS) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.FTP_GRP_STATUS) " + val, strBufPending, data.getJoinType());
-						break;
-						
-					case "defaultGroup":
-						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_DEFAULT_FLAG) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.FTP_DEFAULT_FLAG) " + val, strBufPending, data.getJoinType());
-						break;
-						
-					default:
-					}
-					count++;
 				}
 			}
+			StringBuffer strBufApproveFinal = new StringBuffer();
+			StringBuffer strBufPendingFinal = new StringBuffer();
+			strBufApproveFinal.append("SELECT * FROM ("+strBufApprove+") TAppr");
+			strBufPendingFinal.append("SELECT * FROM ("+strBufPending+") TPend");
+			if (dObj.getSmartSearchOpt() != null && dObj.getSmartSearchOpt().size() > 0) {
+				int count = 1;
+				for (SmartSearchVb data : dObj.getSmartSearchOpt()) {
+					if(data.getObject().equalsIgnoreCase("ftpGroupDesc")) {
+						if (count == dObj.getSmartSearchOpt().size()) {
+							data.setJoinType("");
+						} else {
+							if (!ValidationUtil.isValid(data.getJoinType()) && !("AND".equalsIgnoreCase(data.getJoinType())
+									|| "OR".equalsIgnoreCase(data.getJoinType()))) {
+								data.setJoinType("AND");
+							}
+						}
+						String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
+						switch (data.getObject()) {
+						case "ftpGroupDesc":
+							CommonUtils.addToQuery("UPPER(TAppr.FTP_GROUP_DESC) "+val, strBufApproveFinal);
+							CommonUtils.addToQuery("UPPER(TPend.FTP_GROUP_DESC) "+val, strBufPendingFinal);
+//							CommonUtils.addToQuerySearch(" upper(TAppr.) " + val, strBufApproveFinal, data.getJoinType());
+//							CommonUtils.addToQuerySearch(" upper(TPend.FTP_GROUP_DESC) " + val, strBufPendingFinal, data.getJoinType());
+							break;				
+							
+						default:
+						}
+						count++;
+					}
+				}
+			}
+			
 			String orderBy = " Order By COUNTRY, LE_BOOK, DATA_SOURCE, FTP_GROUP ";
-			return getQueryPopupResults(dObj, strBufPending, strBufApprove, strWhereNotExists, orderBy, params,
+			return getQueryPopupResults(dObj, strBufPendingFinal, strBufApproveFinal, strWhereNotExists, orderBy, params,
 					getQueryPopupMapper());
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -359,46 +406,160 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 			return null;
 		}
 	}
-	public List<FTPGroupsVb> getQueryPopupResultsDetailsNew(FTPGroupsVb dObj) {
+	public List<FTPGroupsVb> getQueryPopupResultsDetailsNew(FTPGroupsVb dObj, List<SmartSearchVb> groupSmartSearchOpt) {
 		List<FTPGroupsVb> collTemp = null;
 		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer("SELECT TAppr.COUNTRY,TAppr.LE_BOOK,TAppr.DATA_SOURCE,  \n" + 
+		String listStag = "LISTAGG";
+		String seperator = "||";
+		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+			seperator = "+";
+			listStag = "STRING_AGG";
+		}
+		StringBuffer strBufApprove = new StringBuffer("SELECT * FROM (SELECT TAppr.COUNTRY,TAppr.LE_BOOK,TAppr.DATA_SOURCE,  \n" + 
 				"				   (SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC  \n" + 
 				"				   ,TAppr.FTP_GROUP,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC \n" + 
 				"				   ,TAppr.FTP_SUB_GROUP_PRIORITY,      	  \n" + 
-				"				   				TAppr.FTP_SUB_GROUP_ID,  \n" + 
-				"				   				FTP_SUB_GROUP_DESC,  \n" + 
+				"				   				TAppr.FTP_SUB_GROUP_ID, "+
+				"				   				FTP_SUB_GROUP_DESC, \n"
+				+ " "+listStag+"(CASE WHEN (SELECT ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB =  METHOD_TYPE) IS NOT NULL \n" + 
+				"				   				THEN (SELECT ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB =  METHOD_TYPE)\n" + 
+				"				   				"+seperator+"' ('"+seperator+"  CASE WHEN REPRICING_FLAG = 'NOMINAL' THEN 'N' ELSE 'R' END "+seperator+"')' \n" + 
+				"				   				ELSE '' END,',') METHOD_LIST, \n"+
 				"				   				TAppr.FTP_DEFAULT_FLAG,      				TAppr.FTP_GRP_STATUS,     \n" + StatusNtApprDesc+
 				"				   ,TAppr.RECORD_INDICATOR,\n" +RecordIndicatorNtApprDesc+ 
 				"				   ,TAppr.MAKER, "+makerApprDesc+",  TAppr.VERIFIER, "+verifierApprDesc+",   TAppr.INTERNAL_STATUS,TAppr.DATE_CREATION,TAppr.DATE_LAST_MODIFIED   \n" + 
 				"				   				FROM FTP_GROUPS TAppr LEFT JOIN  FTP_METHODS FTP_METHOD\n" + 
 				"				   				ON  TAppr.COUNTRY = FTP_METHOD.COUNTRY\n" + 
 				"				   				AND TAppr.LE_BOOK = FTP_METHOD.LE_BOOK\n" + 
-				"				   				AND TAppr.FTP_SUB_GROUP_ID = FTP_METHOD.FTP_SUB_GROUP_ID ");
+				"				   				AND TAppr.FTP_SUB_GROUP_ID = FTP_METHOD.FTP_SUB_GROUP_ID "
+				+ " GROUP BY\n" + 
+				" TAppr.COUNTRY,TAppr.LE_BOOK,TAppr.DATA_SOURCE,  \n" + 
+				" TAppr.DATA_SOURCE_AT ,\n" + 
+				" TAppr.FTP_GROUP,TAppr.FTP_GROUP_AT,\n" + 
+				" TAppr.FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+				" TAppr.FTP_SUB_GROUP_ID, \n" + 
+				" FTP_SUB_GROUP_DESC,  \n" + 
+				" TAppr.FTP_DEFAULT_FLAG,      				TAppr.FTP_GRP_STATUS,TAppr.FTP_GRP_STATUS,TAppr.RECORD_INDICATOR,\n" + 
+				" TAppr.MAKER,\n" + 
+				" TAppr.VERIFIER,TAppr.INTERNAL_STATUS,TAppr.DATE_CREATION,TAppr.DATE_LAST_MODIFIED) TAppr ");
 		
-		StringBuffer strBufPending = new StringBuffer("SELECT TPend.COUNTRY,TPend.LE_BOOK,TPend.DATA_SOURCE,  \n" + 
+		StringBuffer strBufPending = new StringBuffer("SELECT * FROM (SELECT TPend.COUNTRY,TPend.LE_BOOK,TPend.DATA_SOURCE,  \n" + 
 				"				   (SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC  \n" + 
 				"				   ,TPend.FTP_GROUP,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC \n" + 
 				"				   ,TPend.FTP_SUB_GROUP_PRIORITY,      	  \n" + 
-				"				   				TPend.FTP_SUB_GROUP_ID,  \n" + 
-				"				   				FTP_SUB_GROUP_DESC,  \n" + 
+				"				   				TPend.FTP_SUB_GROUP_ID, "+
+				"				   				FTP_SUB_GROUP_DESC,  \n" +
+				" "+listStag+"(CASE WHEN (SELECT ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB =  METHOD_TYPE) IS NOT NULL \n" + 
+				"				   				THEN (SELECT ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB =  METHOD_TYPE)\n" + 
+				"				   				"+seperator+"' ('"+seperator+"  CASE WHEN REPRICING_FLAG = 'NOMINAL' THEN 'N' ELSE 'R' END "+seperator+"')' \n" + 
+				"				   				ELSE '' END,',') METHOD_LIST, \n"+
 				"				   				TPend.FTP_DEFAULT_FLAG,      				TPend.FTP_GRP_STATUS,     \n" + StatusNtPendDesc+
 				"				   ,TPend.RECORD_INDICATOR,\n" +RecordIndicatorNtPendDesc+ 
 				"				   ,TPend.MAKER, "+makerPendDesc+",  TPend.VERIFIER, "+verifierPendDesc+",   TPend.INTERNAL_STATUS,TPend.DATE_CREATION,TPend.DATE_LAST_MODIFIED   \n" + 
 				"				   				FROM FTP_GROUPS_PEND TPend LEFT JOIN  FTP_METHODS_PEND FTP_METHOD\n" + 
 				"				   				ON  TPend.COUNTRY = FTP_METHOD.COUNTRY\n" + 
 				"				   				AND TPend.LE_BOOK = FTP_METHOD.LE_BOOK\n" + 
-				"				   				AND TPend.FTP_SUB_GROUP_ID = FTP_METHOD.FTP_SUB_GROUP_ID ");
+				"				   				AND TPend.FTP_SUB_GROUP_ID = FTP_METHOD.FTP_SUB_GROUP_ID "
+				+ "  GROUP BY\n" + 
+				"    TPend.COUNTRY,TPend.LE_BOOK,TPend.DATA_SOURCE,  \n" + 
+				"    TPend.DATA_SOURCE_AT ,\n" + 
+				"    TPend.FTP_GROUP,TPend.FTP_GROUP_AT,\n" + 
+				"    TPend.FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+				"    TPend.FTP_SUB_GROUP_ID, \n" + 
+				"    FTP_SUB_GROUP_DESC,  \n" + 
+				"    TPend.FTP_DEFAULT_FLAG,      				TPend.FTP_GRP_STATUS,TPend.FTP_GRP_STATUS,TPend.RECORD_INDICATOR,\n" + 
+				"    TPend.MAKER,\n" + 
+				"    TPend.VERIFIER,TPend.INTERNAL_STATUS,TPend.DATE_CREATION,TPend.DATE_LAST_MODIFIED) TPend ");
+		String groupBy = " GROUP BY\n" + 
+				" COUNTRY,LE_BOOK,DATA_SOURCE, DATA_SOURCE_DESC, \n" + 
+				" FTP_GROUP, FTP_GROUP_DESC,\n" + 
+				" FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+				" FTP_SUB_GROUP_ID, \n" + 
+				" FTP_SUB_GROUP_DESC,  \n" + 
+				" FTP_DEFAULT_FLAG,      				\n" + 
+				" FTP_GRP_STATUS, FTP_GRP_STATUS_DESC,\n" + 
+				" RECORD_INDICATOR,\n" + 
+				" RECORD_INDICATOR_DESC,\n" + 
+				" MAKER, MAKER_NAME,\n" + 
+				" VERIFIER, VERIFIER_NAME,\n" + 
+				" INTERNAL_STATUS,\n" + 
+				" DATE_CREATION,DATE_LAST_MODIFIED ";
+		
+		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+			strBufApprove = new StringBuffer("SELECT \n" + 
+					" COUNTRY,LE_BOOK,DATA_SOURCE, DATA_SOURCE_DESC,  \n" + 
+					" FTP_GROUP, FTP_GROUP_DESC,\n" + 
+					" FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+					" FTP_SUB_GROUP_ID, \n" + 
+					" FTP_SUB_GROUP_DESC,  \n" + 
+					" FTP_DEFAULT_FLAG,      				\n" + 
+					" FTP_GRP_STATUS, FTP_GRP_STATUS_DESC,\n" + 
+					" RECORD_INDICATOR,\n" + 
+					" RECORD_INDICATOR_DESC,\n" + 
+					" MAKER, MAKER_NAME,\n" + 
+					" VERIFIER, VERIFIER_NAME,\n" + 
+					" INTERNAL_STATUS,\n" + 
+					" DATE_CREATION,DATE_LAST_MODIFIED,"
+					+ "STRING_AGG(METHOD_LIST+' ('+CASE WHEN REPRICING_FLAG = 'NOMINAL' THEN 'N' ELSE 'R' END+')', ',') AS METHOD_LIST\n" + 
+					"FROM (\n" + 
+					"SELECT REPRICING_FLAG, TAppr.COUNTRY,TAppr.LE_BOOK,TAppr.DATA_SOURCE,  \n" + 
+					"				   (SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC  \n" + 
+					"				   ,TAppr.FTP_GROUP,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TAppr WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC \n" + 
+					"				   ,TAppr.FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+					"				   				TAppr.FTP_SUB_GROUP_ID, 				   				FTP_SUB_GROUP_DESC, \n" + 
+					" (SELECT ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB =  METHOD_TYPE) METHOD_LIST, \n" + 
+					"				   				TAppr.FTP_DEFAULT_FLAG,      				TAppr.FTP_GRP_STATUS,     \n" + 
+					"(SELECT NUM_SUBTAB_DESCRIPTION FROM NUM_SUB_TAB WHERE NUM_TAB = 1 AND NUM_SUB_TAB =  TAppr.FTP_GRP_STATUS)  FTP_GRP_STATUS_DESC				   ,TAppr.RECORD_INDICATOR,\n" + 
+					"(SELECT NUM_SUBTAB_DESCRIPTION FROM NUM_SUB_TAB WHERE NUM_TAB = 7 AND NUM_SUB_TAB =  TAppr.RECORD_INDICATOR)  RECORD_INDICATOR_DESC				   ,TAppr.MAKER, (SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = CASE  WHEN TAppr.MAKER IS NULL THEN 0  ELSE TAppr.MAKER  END ) MAKER_NAME,  TAppr.VERIFIER, (SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = CASE  WHEN TAppr.VERIFIER IS NULL THEN 0  ELSE TAppr.VERIFIER  END ) VERIFIER_NAME,   TAppr.INTERNAL_STATUS,TAppr.DATE_CREATION,TAppr.DATE_LAST_MODIFIED   \n" + 
+					"				   				FROM FTP_GROUPS TAppr LEFT JOIN  FTP_METHODS FTP_METHOD\n" + 
+					"				   				ON  TAppr.COUNTRY = FTP_METHOD.COUNTRY\n" + 
+					"				   				AND TAppr.LE_BOOK = FTP_METHOD.LE_BOOK\n" + 
+					"				   				AND TAppr.FTP_SUB_GROUP_ID = FTP_METHOD.FTP_SUB_GROUP_ID \n" + 
+					") TAppr ");
+			
+			
+			strBufPending = new StringBuffer("SELECT \n" + 
+					" COUNTRY,LE_BOOK,DATA_SOURCE,DATA_SOURCE_DESC,  \n" + 
+					" FTP_GROUP,FTP_GROUP_DESC,\n" + 
+					" FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+					" FTP_SUB_GROUP_ID, \n" + 
+					" FTP_SUB_GROUP_DESC,  \n" + 
+					" FTP_DEFAULT_FLAG,      				\n" + 
+					" FTP_GRP_STATUS, FTP_GRP_STATUS_DESC,\n" + 
+					" RECORD_INDICATOR,\n" + 
+					" RECORD_INDICATOR_DESC,\n" + 
+					" MAKER, MAKER_NAME,\n" + 
+					" VERIFIER, VERIFIER_NAME,\n" + 
+					" INTERNAL_STATUS,\n" + 
+					" DATE_CREATION,DATE_LAST_MODIFIED,"
+					+ "STRING_AGG(METHOD_LIST+' ('+CASE WHEN REPRICING_FLAG = 'NOMINAL' THEN 'N' ELSE 'R' END+')', ',') AS METHOD_LIST\n" + 
+					"FROM (\n" + 
+					"SELECT REPRICING_FLAG, TPend.COUNTRY,TPend.LE_BOOK,TPend.DATA_SOURCE,  \n" + 
+					"				   (SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = DATA_SOURCE_AT AND ALPHA_sub_TAB= DATA_SOURCE ) DATA_SOURCE_DESC  \n" + 
+					"				   ,TPend.FTP_GROUP,(SELECT  ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB TPend WHERE ALPHA_TAB = FTP_GROUP_AT AND ALPHA_sub_TAB= FTP_GROUP ) FTP_GROUP_DESC \n" + 
+					"				   ,TPend.FTP_SUB_GROUP_PRIORITY,      	  \n" + 
+					"				   				TPend.FTP_SUB_GROUP_ID, 				   				FTP_SUB_GROUP_DESC, \n" + 
+					" (SELECT ALPHA_SUBTAB_DESCRIPTION FROM ALPHA_SUB_TAB WHERE ALPHA_TAB = METHOD_TYPE_AT AND ALPHA_SUB_TAB =  METHOD_TYPE) METHOD_LIST, \n" + 
+					"				   				TPend.FTP_DEFAULT_FLAG,      				TPend.FTP_GRP_STATUS,     \n" + 
+					"(SELECT NUM_SUBTAB_DESCRIPTION FROM NUM_SUB_TAB WHERE NUM_TAB = 1 AND NUM_SUB_TAB =  TPend.FTP_GRP_STATUS)  FTP_GRP_STATUS_DESC				   ,TPend.RECORD_INDICATOR,\n" + 
+					"(SELECT NUM_SUBTAB_DESCRIPTION FROM NUM_SUB_TAB WHERE NUM_TAB = 7 AND NUM_SUB_TAB =  TPend.RECORD_INDICATOR)  RECORD_INDICATOR_DESC				   ,TPend.MAKER, (SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = CASE  WHEN TPend.MAKER IS NULL THEN 0  ELSE TPend.MAKER  END ) MAKER_NAME,  TPend.VERIFIER, (SELECT MIN(USER_NAME) FROM VISION_USERS WHERE VISION_ID = CASE  WHEN TPend.VERIFIER IS NULL THEN 0  ELSE TPend.VERIFIER  END ) VERIFIER_NAME,   TPend.INTERNAL_STATUS,TPend.DATE_CREATION,TPend.DATE_LAST_MODIFIED   \n" + 
+					"				   				FROM FTP_GROUPS_PEND TPend LEFT JOIN  FTP_METHODS_PEND FTP_METHOD\n" + 
+					"				   				ON  TPend.COUNTRY = FTP_METHOD.COUNTRY\n" + 
+					"				   				AND TPend.LE_BOOK = FTP_METHOD.LE_BOOK\n" + 
+					"				   				AND TPend.FTP_SUB_GROUP_ID = FTP_METHOD.FTP_SUB_GROUP_ID \n" + 
+					") TPend ");
+		}
+		
 		try {
 			if (ValidationUtil.isValid(dObj.getCountry())) {
-				params.addElement("%" + dObj.getCountry().toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(TAppr.COUNTRY) like ?", strBufApprove);
-				CommonUtils.addToQuery("UPPER(TPend.COUNTRY) like ?", strBufPending);
+				params.addElement(dObj.getCountry().toUpperCase());
+				CommonUtils.addToQuery("TAppr.COUNTRY = ?", strBufApprove);
+				CommonUtils.addToQuery("TPend.COUNTRY = ?", strBufPending);
 			}
 			if (ValidationUtil.isValid(dObj.getLeBook())) {
-				params.addElement("%" + dObj.getLeBook().toUpperCase() + "%");
-				CommonUtils.addToQuery("UPPER(TAppr.LE_BOOK) like ?", strBufApprove);
-				CommonUtils.addToQuery("UPPER(TPend.LE_BOOK) like ?", strBufPending);
+				params.addElement(dObj.getLeBook().toUpperCase());
+				CommonUtils.addToQuery("TAppr.LE_BOOK = ?", strBufApprove);
+				CommonUtils.addToQuery("TPend.LE_BOOK = ?", strBufPending);
 			}
 			if (!"-1".equalsIgnoreCase(dObj.getDataSource())) {
 				params.addElement(dObj.getDataSource());
@@ -442,9 +603,9 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 						CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_PRIORITY) " + val, strBufPending, data.getJoinType());
 						break;
 						
-					case "dataSource":
-						CommonUtils.addToQuerySearch(" upper(TAppr.DATA_SOURCE) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.DATA_SOURCE) " + val, strBufPending, data.getJoinType());
+					case "methodTypeDesc":
+						CommonUtils.addToQuerySearch(" upper(TAppr.METHOD_LIST) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.METHOD_LIST) " + val, strBufPending, data.getJoinType());
 						break;	
 						
 					case "ftpSubGroupDesc":
@@ -453,13 +614,13 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 						break;
 						
 					case "recordIndicatorDesc":
-						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR) " + val, strBufPending, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR_DESC) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR_DESC) " + val, strBufPending, data.getJoinType());
 						break;						
 						
-					case "ftpGroupStatus":
-						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_GRP_STATUS) " + val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.FTP_GRP_STATUS) " + val, strBufPending, data.getJoinType());
+					case "statusDesc":
+						CommonUtils.addToQuerySearch(" upper(TAppr.FTP_GRP_STATUS_DESC) " + val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.FTP_GRP_STATUS_DESC) " + val, strBufPending, data.getJoinType());
 						break;
 						
 					case "defaultGroup":
@@ -472,10 +633,63 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 					count++;
 				}
 			} 
-
+			
+			if (groupSmartSearchOpt != null && groupSmartSearchOpt.size() > 0) {
+				int count = 1;
+				for (SmartSearchVb data : groupSmartSearchOpt) {
+					if(data.getObject().equalsIgnoreCase("ftpSubGroupPriority")
+						|| data.getObject().equalsIgnoreCase("ftpSubGroupDesc")) {
+						if (count == dObj.getSmartSearchOpt().size()) {
+							data.setJoinType("");
+						} else {
+							if (!ValidationUtil.isValid(data.getJoinType()) && !("AND".equalsIgnoreCase(data.getJoinType())
+									|| "OR".equalsIgnoreCase(data.getJoinType()))) {
+								data.setJoinType("AND");
+							}
+						}
+						String val = CommonUtils.criteriaBasedVal(data.getCriteria(), data.getValue());
+						switch (data.getObject()) {
+						case "ftpSubGroupPriority":
+							CommonUtils.addToQuery("UPPER(TAppr.FTP_SUB_GROUP_PRIORITY) "+val, strBufApprove);
+							CommonUtils.addToQuery("UPPER(TPend.FTP_SUB_GROUP_PRIORITY) "+val, strBufPending);
+//							CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_PRIORITY) " + val, strBufApprove, data.getJoinType());
+//							CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_PRIORITY) " + val, strBufPending, data.getJoinType());
+							break;
+							
+						case "ftpSubGroupDesc":
+							CommonUtils.addToQuery("UPPER(TAppr.FTP_SUB_GROUP_DESC) "+val, strBufApprove);
+							CommonUtils.addToQuery("UPPER(TPend.FTP_SUB_GROUP_DESC) "+val, strBufPending);
+//							CommonUtils.addToQuerySearch(" upper(TAppr.FTP_SUB_GROUP_DESC) " + val, strBufApprove, data.getJoinType());
+//							CommonUtils.addToQuerySearch(" upper(TPend.FTP_SUB_GROUP_DESC) " + val, strBufPending, data.getJoinType());
+							break;
+						case "defaultGroup":
+							CommonUtils.addToQuerySearch(" upper(TAppr.FTP_DEFAULT_FLAG) " + val, strBufApprove, data.getJoinType());
+							CommonUtils.addToQuerySearch(" upper(TPend.FTP_DEFAULT_FLAG) " + val, strBufPending, data.getJoinType());
+							break;
+							
+						default:
+						}
+						count++;
+					}
+				}
+			}
+			
 			String strWhereNotExists = new String( " Not Exists (Select 'X' From FTP_GROUPS_PEND TPend WHERE TAppr.COUNTRY = TPend.COUNTRY AND TAppr.LE_BOOK = TPend.LE_BOOK AND TAppr.DATA_SOURCE = TPend.DATA_SOURCE AND TAppr.FTP_GROUP = TPend.FTP_GROUP AND TAppr.FTP_SUB_GROUP_ID = TPend.FTP_SUB_GROUP_ID )");
 			
-			String orderBy = " ORDER BY COUNTRY, LE_BOOK, DATA_SOURCE, FTP_GROUP, FTP_SUB_GROUP_PRIORITY,FTP_SUB_GROUP_ID ";
+			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+				
+				CommonUtils.addToQuery(strWhereNotExists, strBufApprove);
+				
+				strBufApprove.append(groupBy);
+				strBufPending.append(groupBy);
+				
+				
+				strWhereNotExists = "";
+			}
+			
+			
+//			String orderBy = " ORDER BY  COUNTRY, LE_BOOK, DATA_SOURCE, FTP_GROUP, FTP_SUB_GROUP_PRIORITY,FTP_SUB_GROUP_ID ";
+			String orderBy = " ORDER BY  case when FTP_DEFAULT_FLAG = 'Y' THEN 0 ELSE 1 END,  FTP_SUB_GROUP_PRIORITY";
 //			strBufApprove.append(strApprGroupBy);
 			
 			return getQueryPopupResults(dObj, strBufPending, strBufApprove, strWhereNotExists, orderBy, params, getQueryPopupMapperDetails());
@@ -528,7 +742,7 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
 				query = ValidationUtil.convertQuery(query, orderBy);
 			}else {
-				query = query+" "+ orderBy;
+				query = "SELECT * FROM ("+query+") A "+ orderBy;
 			}
 			if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
 				if(dObj.getTotalRows()  <= 0){
@@ -2014,6 +2228,7 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 				ftpSourceConfigVb.setInternalStatus(rs.getInt("INTERNAL_STATUS"));
 				ftpSourceConfigVb.setDateLastModified(rs.getString("DATE_LAST_MODIFIED"));
 				ftpSourceConfigVb.setDateCreation(rs.getString("DATE_CREATION"));
+				ftpSourceConfigVb.setMethodTypeDesc(rs.getString("METHOD_LIST"));
 				return ftpSourceConfigVb;
 			}
 
@@ -2264,13 +2479,27 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 
 	
 	public String getSystemDateAlone() {
+/*		String sql = "SELECT To_Char(SysDate, 'DD-MM-YYYY') AS SYSDATE1 FROM DUAL";
+		RowMapper mapper = new RowMapper() {
+			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return (rs.getString("SYSDATE1"));
+			}
+		};
+		return (String) getJdbcTemplate().queryForObject(sql, null, mapper);*/
+		
+		
+
 		String sql = "SELECT To_Char(SysDate, 'DD-MM-YYYY') AS SYSDATE1 FROM DUAL";
+		if ("MSSQL".equalsIgnoreCase(databaseType) || "SQLSERVER".equalsIgnoreCase(databaseType)) {
+			sql = "SELECT Format(GetDate(), 'dd-MM-yyyy') AS SYSDATE1 ";
+		}
 		RowMapper mapper = new RowMapper() {
 			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return (rs.getString("SYSDATE1"));
 			}
 		};
 		return (String) getJdbcTemplate().queryForObject(sql, null, mapper);
+	
 	}
 
 	public String businessDay() {
@@ -2327,6 +2556,10 @@ public class FTPGroupsDao extends AbstractDao<FTPGroupsVb> {
 				AlphaSubTabVb vObjVb = new AlphaSubTabVb();
 				vObjVb.setAlphaSubTab(rs.getString("VISION_SBU"));
 				vObjVb.setDescription(rs.getString("SBU_DESCRIPTION"));
+				if(ValidationUtil.isValid(vObjVb.getDescription())) {
+					vObjVb.setDescription(vObjVb.getDescription().replaceAll(";", ""));
+					
+				}
 				return vObjVb;
 			}
 		};

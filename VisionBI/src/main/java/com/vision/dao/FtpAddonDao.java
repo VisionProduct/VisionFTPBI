@@ -627,7 +627,7 @@ public class FtpAddonDao extends AbstractDao<FtpAddonVb> {
 					"				And T2.CUSTOMER_ID   = TAppr.CUSTOMER_ID\n" + 
 					"				And T2.CONTRACT_ID      = TAppr.CONTRACT_ID\n" + 
 					" AND t2.EFFECTIVE_DATE <= ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) "
-					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) ";
+					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE))) ";
 			
 			
 			strBufPendAnd = " And TPend.EFFECTIVE_DATE =(\n" + 
@@ -640,7 +640,7 @@ public class FtpAddonDao extends AbstractDao<FtpAddonVb> {
 					"				And T2.CUSTOMER_ID   = TPend.CUSTOMER_ID\n" + 
 					"				And T2.CONTRACT_ID      = TPend.CONTRACT_ID\n" + 
 					" AND t2.EFFECTIVE_DATE <= ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) "
-					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) ";
+					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) )";
 		}
 		
 		strBufApprove.append(" "+strBufApproveAnd+" ");

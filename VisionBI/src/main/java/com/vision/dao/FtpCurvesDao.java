@@ -710,7 +710,7 @@ public class FtpCurvesDao extends AbstractDao<FTPCurveVb> {
 		StringBuffer strBufPend = new StringBuffer("SELECT TPend.COUNTRY," + 
 				"        TPend.LE_BOOK," + 
 				"        TPend.FTP_CURVE_ID                                            ," + 
-				"        "+dateFormat+" (TPend.EFFECTIVE_DATE, 'DD-Mon-RRRR') EFFECTIVE_DATE," + 
+				"        "+dateFormat+" (TPend.EFFECTIVE_DATE, "+dateAloneFormatStr+") EFFECTIVE_DATE," + 
 				"		"+dateFormat+" (TPend.END_DATE, "+dateAloneFormatStr+") END_DATE," + 
 				"        TPend.TENOR_APPLICATION_CODE                                  ," + 
 				"        TPend.TENOR_CODE                                              ," + 
@@ -773,7 +773,7 @@ public class FtpCurvesDao extends AbstractDao<FTPCurveVb> {
 					" And T2.Amount_Start           = TAppr.Amount_Start" + 
 					" And T2.Amount_End             = TAppr.Amount_End"
 					+ " AND t2.EFFECTIVE_DATE <= ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) "
-					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) ";
+					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE))) ";
 			
 			strBufPendAnd = " And TPend.EFFECTIVE_DATE =(" + 
 					" SELECT MAX(T2.EFFECTIVE_DATE) FROM FTP_CURVES_PEND t2" + 
@@ -790,7 +790,7 @@ public class FtpCurvesDao extends AbstractDao<FTPCurveVb> {
 					" And T2.Amount_Start           = TPend.Amount_Start" + 
 					" And T2.Amount_End             = TPend.Amount_End" + 
 					" AND t2.EFFECTIVE_DATE <= ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) "
-					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE)) ";
+					+ " AND ISNULL(t2.End_Date, CONVERT(DATE, '31-12-2099', 105)) > ISNULL(CONVERT(DATE, ?, 105), CAST(GETDATE() AS DATE))) ";
 		}
 		strBufApprove.append(" "+strBufApproveAnd+" ");
 		
@@ -920,7 +920,7 @@ public class FtpCurvesDao extends AbstractDao<FTPCurveVb> {
 		StringBuffer strBufPend = new StringBuffer("SELECT TPend.COUNTRY," + 
 				"        TPend.LE_BOOK," + 
 				"        TPend.FTP_CURVE_ID                                            ," + 
-				"        "+dateFormat+" (TPend.EFFECTIVE_DATE, 'DD-Mon-RRRR') EFFECTIVE_DATE," + 
+				"        "+dateFormat+" (TPend.EFFECTIVE_DATE, "+dateAloneFormatStr+") EFFECTIVE_DATE," + 
 				"		"+dateFormat+" (TPend.END_DATE, "+dateAloneFormatStr+") END_DATE," + 
 				"        TPend.TENOR_APPLICATION_CODE                                  ," + 
 				"        TPend.TENOR_CODE                                              ," + 
@@ -1011,6 +1011,11 @@ public class FtpCurvesDao extends AbstractDao<FTPCurveVb> {
 				ftpCurveVb.setIntRateEnd(rs.getString("INT_RATE_END"));
 				ftpCurveVb.setAmountStart(rs.getString("AMOUNT_START"));
 				ftpCurveVb.setAmountEnd(rs.getString("AMOUNT_END"));
+				if(rs.getString("END_DATE")!= null){ 
+					ftpCurveVb.setEndDate(rs.getString("END_DATE"));
+				}else{
+					ftpCurveVb.setEndDate("");
+				}
 				ftpCurveVb.setFtpRate(rs.getString("FTP_RATE"));
 				ftpCurveVb.setCrrRate(rs.getString("CRR_RATE"));
 //				ftpCurveVb.setFtpRateId(rs.getString("FTP_RATE_ID"));

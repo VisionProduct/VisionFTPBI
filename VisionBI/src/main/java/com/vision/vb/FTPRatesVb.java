@@ -1,13 +1,17 @@
 package com.vision.vb;
 
+import java.util.List;
+
 public class FTPRatesVb extends CommonVb{
 	
 	private int	dataSourceAt =  0;
 	private String	dataSource = "-1";
+	private String	dataSourceDesc = "-1";
 	private String  year =  "";
 	private String  month =  "";
 	private String	country = "";
 	private String	leBook = "";
+	private String	leBookDesc = "";
 	private String	currency = "";
 	private String	poolCode = "";
 	private String	poolCodeDesc = "";
@@ -20,18 +24,22 @@ public class FTPRatesVb extends CommonVb{
 	private String avgStart = "";
 	private String avgEnd = "";	
 	private int	visionSbuAt =  3;
-	private String	visionSbu = "-1";	
+	private String	visionSbu = "-1";
+	private String	visionSbuDesc = "-1";
 	private String	product = "";
 	private String	productDesc = "";
 	private String tenorRateStart = "";
 	private String tenorRateEnd = "";
 	private String effectiveDate="";
-	private String oucAttribute= "";
+/*	private String oucAttribute= "";
+	private String oucAttributeDesc= "";
 	private String	oucAttributeLevel="-1";
 	private String riskAssetClass = "";
 	private String liquidityRate = "";
-	private String ndicRate = "";
+	private String ndicRate = "";*/
 	private String	oucAttributeLevelDesc="";
+	
+	List<SmartSearchVb> smartSearchOpt = null;
 	
 	public String getOucAttributeLevelDesc() {
 		return oucAttributeLevelDesc;
@@ -39,7 +47,7 @@ public class FTPRatesVb extends CommonVb{
 	public void setOucAttributeLevelDesc(String oucAttributeLevelDesc) {
 		this.oucAttributeLevelDesc = oucAttributeLevelDesc;
 	}
-	public String getOucAttribute() {
+	/*public String getOucAttribute() {
 		return oucAttribute;
 	}
 	public void setOucAttribute(String oucAttribute) {
@@ -68,7 +76,7 @@ public class FTPRatesVb extends CommonVb{
 	}
 	public void setNdicRate(String ndicRate) {
 		this.ndicRate = ndicRate;
-	}
+	}*/
 	public String getEffectiveDate() {
 		return effectiveDate;
 	}
@@ -213,5 +221,35 @@ public class FTPRatesVb extends CommonVb{
 	public void setVisionSbu(String visionSbu) {
 		this.visionSbu = visionSbu;
 	}
+	public List<SmartSearchVb> getSmartSearchOpt() {
+		return smartSearchOpt;
+	}
+	public void setSmartSearchOpt(List<SmartSearchVb> smartSearchOpt) {
+		this.smartSearchOpt = smartSearchOpt;
+	}
+	public String getDataSourceDesc() {
+		return dataSourceDesc;
+	}
+	public void setDataSourceDesc(String dataSourceDesc) {
+		this.dataSourceDesc = dataSourceDesc;
+	}
+	public String getLeBookDesc() {
+		return leBookDesc;
+	}
+	public void setLeBookDesc(String leBookDesc) {
+		this.leBookDesc = leBookDesc;
+	}
+	public String getVisionSbuDesc() {
+		return visionSbuDesc;
+	}
+	public void setVisionSbuDesc(String visionSbuDesc) {
+		this.visionSbuDesc = visionSbuDesc;
+	}
+/*	public String getOucAttributeDesc() {
+		return oucAttributeDesc;
+	}
+	public void setOucAttributeDesc(String oucAttributeDesc) {
+		this.oucAttributeDesc = oucAttributeDesc;
+	}*/
 
 }

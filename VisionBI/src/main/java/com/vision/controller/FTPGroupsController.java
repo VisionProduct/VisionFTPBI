@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.vision.dao.FTPGroupsDao;
 import com.vision.exception.ExceptionCode;
 import com.vision.exception.JSONExceptionCode;
 import com.vision.exception.RuntimeCustomException;
@@ -43,7 +42,7 @@ public class FTPGroupsController {
 	@Autowired
 	FTPGroupsWb ftpGroupsWb;
 	
-	FTPGroupsDao fTPGroupsDao;
+//	FTPGroupsDao fTPGroupsDao;
 	
 	@Autowired
 	FTPSourceConfigWb ftpSourceConfigWb;

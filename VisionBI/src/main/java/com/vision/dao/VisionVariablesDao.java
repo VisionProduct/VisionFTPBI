@@ -82,7 +82,7 @@ public class VisionVariablesDao extends AbstractDao<VisionVariablesVb> {
 	
 	public List<VisionVariablesVb> getQueryPopupResults(VisionVariablesVb dObj){
 		Vector<Object> params = new Vector<Object>();
-		StringBuffer strBufApprove = new StringBuffer("Select TAppr.VARIABLE," +
+		StringBuffer strBufApprove = new StringBuffer("SELECT * FROM (Select TAppr.VARIABLE," +
 			"TAppr.VALUE, TAppr.VARIABLE_STATUS_NT, TAppr.VARIABLE_STATUS," +VariableStatusNtApprDesc+
 			",TAppr.RECORD_INDICATOR_NT, TAppr.RECORD_INDICATOR, "+RecordIndicatorNtApprDesc
 			+ ", TAppr.MAKER, "+makerApprDesc
@@ -90,16 +90,16 @@ public class VisionVariablesDao extends AbstractDao<VisionVariablesVb> {
 			+ ", TAppr.INTERNAL_STATUS, " +
 			dateFormat+"(TAppr.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED, " +
 			dateFormat+"(TAppr.DATE_CREATION, "+dateFormatStr+") DATE_CREATION, TAppr.READ_ONLY, TAppr.VV_CATEGORY_AT, TAppr.VV_CATEGORY, " +VvCategoryAtApprDesc+
-			" From VISION_VARIABLES TAppr ");
+			" From VISION_VARIABLES TAppr) TAppr ");
 		String strWhereNotExists = new String( " Not Exists (Select 'X' From VISION_VARIABLES_PEND TPend Where TPend.VARIABLE = TAppr.VARIABLE)");
-		StringBuffer strBufPending = new StringBuffer("Select TPend.VARIABLE, TPend.VALUE, TPend.VARIABLE_STATUS_NT, TPend.VARIABLE_STATUS, " +VariableStatusNtPendDesc+
+		StringBuffer strBufPending = new StringBuffer("SELECT * FROM (Select TPend.VARIABLE, TPend.VALUE, TPend.VARIABLE_STATUS_NT, TPend.VARIABLE_STATUS, " +VariableStatusNtPendDesc+
 			", TPend.RECORD_INDICATOR_NT, TPend.RECORD_INDICATOR, "+RecordIndicatorNtPendDesc
 			+ ", TPend.MAKER,"+makerPendDesc
 			+ ", TPend.VERIFIER,"+verifierPendDesc
 			+ ", TPend.INTERNAL_STATUS, " +
 			dateFormat+"(TPend.DATE_LAST_MODIFIED, "+dateFormatStr+") DATE_LAST_MODIFIED, " +
 			dateFormat+"(TPend.DATE_CREATION, "+dateFormatStr+") DATE_CREATION, READ_ONLY, TPend.VV_CATEGORY_AT, TPend.VV_CATEGORY, " +VvCategoryAtPendDesc+
-			" From VISION_VARIABLES_PEND TPend ");
+			" From VISION_VARIABLES_PEND TPend) TPend ");
 		try
 		{
 			
@@ -131,18 +131,18 @@ public class VisionVariablesDao extends AbstractDao<VisionVariablesVb> {
 						break;
 
 					case "variableStatus":
-						CommonUtils.addToQuerySearch(" upper(TAppr.VARIABLE_STATUS) "+ val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.VARIABLE_STATUS) "+ val, strBufPending, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TAppr.VARIABLE_STATUS_DESC) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.VARIABLE_STATUS_DESC) "+ val, strBufPending, data.getJoinType());
 						break;
 
 					case "recordIndicator":
-						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR) "+ val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR) "+ val, strBufPending, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TAppr.RECORD_INDICATOR_DESC) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.RECORD_INDICATOR_DESC) "+ val, strBufPending, data.getJoinType());
 						break;
 
 					case "vvCategory":
-						CommonUtils.addToQuerySearch(" upper(TAppr.VV_CATEGORY) "+ val, strBufApprove, data.getJoinType());
-						CommonUtils.addToQuerySearch(" upper(TPend.VV_CATEGORY) "+ val, strBufPending, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TAppr.VV_CATEGORY_DESC) "+ val, strBufApprove, data.getJoinType());
+						CommonUtils.addToQuerySearch(" upper(TPend.VV_CATEGORY_DESC) "+ val, strBufPending, data.getJoinType());
 						break;
 
 					case "shortDescription":
